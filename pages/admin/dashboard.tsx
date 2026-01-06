@@ -5,10 +5,17 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
-  const [prices, setPrices] = useState<any[]>([]);
+  const [prices, setPrices] = useState<any[]>([
+    { id: 1, season: 'Verão', pricePerNight: 120, startDate: '2026-06-01', endDate: '2026-08-31' },
+    { id: 2, season: 'Inverno', pricePerNight: 80, startDate: '2026-11-01', endDate: '2027-02-28' },
+  ]);
   const [availability, setAvailability] = useState<any[]>([]);
-  const [vouchers, setVouchers] = useState<any[]>([]);
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [vouchers, setVouchers] = useState<any[]>([
+    { id: 1, code: 'SUMMER20', type: 'percentage', value: 20, expiryDate: '2026-08-31' },
+  ]);
+  const [newPrice, setNewPrice] = useState({ season: '', pricePerNight: 0, startDate: '', endDate: '' });
+  const [newAvailability, setNewAvailability] = useState({ startDate: '', endDate: '', reason: '', status: 'blocked' });
+  const [newVoucher, setNewVoucher] = useState({ code: '', type: 'percentage', value: 0, expiryDate: '' });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const router = useRouter();
@@ -30,19 +37,13 @@ export default function AdminDashboard() {
 
   const fetchAllData = async () => {
     try {
-      const [resRes, pricesRes, availRes, vouchersRes, analyticsRes] = await Promise.all([
+      const [resRes, availRes] = await Promise.all([
         fetch('/api/admin/reservations'),
-        fetch('/api/admin/prices'),
         fetch('/api/admin/availability'),
-        fetch('/api/admin/vouchers'),
-        fetch('/api/admin/analytics'),
       ]);
 
       if (resRes.ok) setReservations(await resRes.json());
-      if (pricesRes.ok) setPrices(await pricesRes.json());
       if (availRes.ok) setAvailability(await availRes.json());
-      if (vouchersRes.ok) setVouchers(await vouchersRes.json());
-      if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     } finally {
@@ -50,412 +51,524 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateStatus = async (reservationId: string, newStatus: string) => {
-    try {
-      await fetch(`/api/admin/reservations/${reservationId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      fetchAllData();
-    } catch (error) {
-      console.error('Erro ao atualizar reserva:', error);
-    }
-  };
-
-  const addPrice = () => {
-    const newPrice = {
-      id: prices.length + 1,
-      season: 'New Season',
-      pricePerNight: 100,
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
-    };
-    setPrices([...prices, newPrice]);
-  };
-
-  const addAvailability = () => {
-    const newAvail = {
-      id: availability.length + 1,
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
-      status: 'available',
-      reason: '',
-    };
-    setAvailability([...availability, newAvail]);
-  };
-
-  const addVoucher = () => {
-    const newVoucher = {
-      id: vouchers.length + 1,
-      code: 'NEW' + Math.random().toString(36).substring(7).toUpperCase(),
-      discount: 10,
-      type: 'percentage',
-      expiry: new Date().toISOString().split('T')[0],
-      usage: 0,
-      maxUses: 100,
-    };
-    setVouchers([...vouchers, newVoucher]);
-  };
-
-  const handleLogout = () => {
+  const logout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminEmail');
     router.push('/admin/login');
   };
 
+  const updateReservationStatus = (idx: number, status: string) => {
+    const updated = [...reservations];
+    if (updated[idx]) updated[idx].status = status;
+    setReservations(updated);
+  };
+
+  const dashboardData = [
+    { day: 'Seg', visitors: 450, conversions: 65 },
+    { day: 'Ter', visitors: 520, conversions: 78 },
+    { day: 'Qua', visitors: 480, conversions: 72 },
+    { day: 'Qui', visitors: 610, conversions: 92 },
+    { day: 'Sex', visitors: 720, conversions: 120 },
+    { day: 'Sab', visitors: 890, conversions: 156 },
+  ];
+
+  const occupancyData = [
+    { name: 'Ocupado', value: 78 },
+    { name: 'Disponível', value: 22 },
+  ];
+
+  const analyticsData = [
+    { day: '1-6', visitors: 2400, conversions: 350 },
+    { day: '7-12', visitors: 2800, conversions: 420 },
+    { day: '13-18', visitors: 3200, conversions: 520 },
+    { day: '19-24', visitors: 2900, conversions: 450 },
+    { day: '25-30', visitors: 3500, conversions: 620 },
+  ];
+
+  const revenueData = [
+    { month: 'Janeiro', revenue: 4200 },
+    { month: 'Fevereiro', revenue: 3800 },
+    { month: 'Março', revenue: 5100 },
+    { month: 'Abril', revenue: 6200 },
+    { month: 'Maio', revenue: 7500 },
+    { month: 'Junho', revenue: 8900 },
+  ];
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'reservations', label: 'Reservas', icon: '📋' },
+    { id: 'prices', label: 'Preços', icon: '💰' },
+    { id: 'availability', label: 'Disponibilidade', icon: '📅' },
+    { id: 'vouchers', label: 'Vouchers', icon: '🎁' },
+    { id: 'analytics', label: 'Analíticas', icon: '📈' },
+  ];
+
+  const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+
+    return (
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="font-bold">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   if (!admin) {
-    return <div className="min-h-screen bg-gray-100"></div>;
+    return <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800"></div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <header className="bg-amber-900 text-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">EnzoLoft Admin</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm">{admin.email}</span>
-            <button
-              onClick={handleLogout}
-              className="bg-amber-700 hover:bg-amber-800 px-4 py-2 rounded-lg"
-            >
-              Logout
-            </button>
+      <header className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-6 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">🏢 Painel Admin</h1>
+            <p className="text-purple-100">EnzoLoft Management</p>
           </div>
+          <button
+            onClick={logout}
+            className="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-lg font-semibold transition-all"
+          >
+            🚪 Sair
+          </button>
         </div>
       </header>
 
-      {/* Sidebar & Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-4 space-y-2">
-              {['dashboard', 'reservations', 'prices', 'availability', 'vouchers', 'analytics'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                    activeTab === tab
-                      ? 'bg-amber-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {tab === 'dashboard' && '📊 Dashboard'}
-                  {tab === 'reservations' && '📅 Reservas'}
-                  {tab === 'prices' && '💰 Preços'}
-                  {tab === 'availability' && '📆 Disponibilidade'}
-                  {tab === 'vouchers' && '🎟️ Vouchers'}
-                  {tab === 'analytics' && '📈 Analíticas'}
-                </button>
-              ))}
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-blue-100 font-semibold mb-2">Receita Total</p>
+                <p className="text-3xl font-bold">€15.420</p>
+                <p className="text-blue-100 text-sm mt-2">↑ +12% este mês</p>
+              </div>
+              <span className="text-4xl">💰</span>
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Dashboard Overview */}
+          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-green-100 font-semibold mb-2">Taxa Ocupação</p>
+                <p className="text-3xl font-bold">78%</p>
+                <p className="text-green-100 text-sm mt-2">18 de 23 dias</p>
+              </div>
+              <span className="text-4xl">📊</span>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-orange-100 font-semibold mb-2">Visitantes</p>
+                <p className="text-3xl font-bold">2.847</p>
+                <p className="text-orange-100 text-sm mt-2">↑ +24% esta semana</p>
+              </div>
+              <span className="text-4xl">👥</span>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-red-100 font-semibold mb-2">Pendentes</p>
+                <p className="text-3xl font-bold">5</p>
+                <p className="text-red-100 text-sm mt-2">Reservas a confirmar</p>
+              </div>
+              <span className="text-4xl">⏳</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+          <div className="flex border-b border-gray-200 overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white border-b-4 border-transparent'
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-8">
+            {/* Dashboard Tab */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-semibold text-amber-900 mb-2">Receita (Junho)</h3>
-                    <p className="text-3xl font-bold text-amber-600">€5,400</p>
+                <h2 className="text-2xl font-bold text-gray-800">📈 Visão Geral</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg border-2 border-blue-100">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Visitantes & Conversões (últimos 6 dias)</h3>
+                    <LineChart width={400} height={300} data={dashboardData}>
+                      <CartesianGrid stroke="#e5e7eb" />
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} />
+                      <Line type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} />
+                    </LineChart>
                   </div>
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-semibold text-amber-900 mb-2">Ocupação</h3>
-                    <p className="text-3xl font-bold text-green-600">45%</p>
-                  </div>
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-semibold text-amber-900 mb-2">Visitantes (hoje)</h3>
-                    <p className="text-3xl font-bold text-blue-600">280</p>
-                  </div>
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-semibold text-amber-900 mb-2">Reservas Pendentes</h3>
-                    <p className="text-3xl font-bold text-yellow-600">{reservations.filter(r => r.status === 'pending').length}</p>
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-lg border-2 border-orange-100">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Taxa de Ocupação</h3>
+                    <PieChart width={400} height={300}>
+                      <Pie data={occupancyData} cx={200} cy={150} labelLine={false} label={<CustomLabel />} outerRadius={80} fill="#8884d8" dataKey="value">
+                        <Cell fill="#10b981" />
+                        <Cell fill="#e5e7eb" />
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Reservations */}
+            {/* Reservations Tab */}
             {activeTab === 'reservations' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold text-amber-900 mb-6">Gestão de Reservas</h2>
-                {loading ? (
-                  <p className="text-gray-500">Carregando...</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-semibold">Hóspede</th>
-                          <th className="px-4 py-3 text-left font-semibold">Email</th>
-                          <th className="px-4 py-3 text-left font-semibold">Datas</th>
-                          <th className="px-4 py-3 text-left font-semibold">Status</th>
-                          <th className="px-4 py-3 text-left font-semibold">Ação</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {reservations.map((res) => (
-                          <tr key={res.id}>
-                            <td className="px-4 py-3">{res.guestName}</td>
-                            <td className="px-4 py-3">{res.guestEmail}</td>
-                            <td className="px-4 py-3">{new Date(res.startDate).toLocaleDateString('pt-PT')} - {new Date(res.endDate).toLocaleDateString('pt-PT')}</td>
-                            <td className="px-4 py-3">
-                              <span className={`px-3 py-1 rounded text-xs font-semibold ${
-                                res.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                res.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>{res.status}</span>
-                            </td>
-                            <td className="px-4 py-3 space-x-2">
-                              {res.status === 'pending' && (
-                                <>
-                                  <button onClick={() => handleUpdateStatus(res.id, 'confirmed')} className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700">Confirmar</button>
-                                  <button onClick={() => handleUpdateStatus(res.id, 'cancelled')} className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700">Cancelar</button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Prices */}
-            {activeTab === 'prices' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-amber-900">Gestão de Preços</h2>
-                  <button onClick={addPrice} className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700">+ Adicionar Preço</button>
-                </div>
-                <div className="space-y-4">
-                  {prices.map((price) => (
-                    <div key={price.id} className="border rounded-lg p-4 space-y-3">
-                      <input type="text" defaultValue={price.season} className="w-full px-3 py-2 border rounded" placeholder="Temporada" />
-                      <input type="number" defaultValue={price.pricePerNight} className="w-full px-3 py-2 border rounded" placeholder="Preço/noite" />
-                      <div className="grid grid-cols-2 gap-3">
-                        <input type="date" defaultValue={price.startDate} className="px-3 py-2 border rounded" />
-                        <input type="date" defaultValue={price.endDate} className="px-3 py-2 border rounded" />
-                      </div>
-                      <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Guardar</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Availability */}
-            {activeTab === 'availability' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold text-amber-900 mb-6">🚫 Bloquear Datas de Reservas</h2>
-                <p className="text-gray-600 mb-6">As datas bloqueadas não poderão ter novas reservas. Use isto para manutenção, limpeza ou períodos de encerramento.</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Add New Block */}
-                  <div className="border-2 border-dashed border-amber-300 rounded-lg p-6">
-                    <h3 className="text-lg font-bold text-amber-900 mb-4">+ Adicionar Novo Bloqueio</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
-                        <input type="date" id="newBlockStart" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Data de Fim</label>
-                        <input type="date" id="newBlockEnd" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Motivo</label>
-                        <input type="text" id="newBlockReason" placeholder="Ex: Manutenção, Limpeza..." className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
-                      </div>
-                      <button onClick={() => {
-                        const startDate = (document.getElementById('newBlockStart') as HTMLInputElement).value;
-                        const endDate = (document.getElementById('newBlockEnd') as HTMLInputElement).value;
-                        const reason = (document.getElementById('newBlockReason') as HTMLInputElement).value;
-                        
-                        if (startDate && endDate && reason) {
-                          const newBlock = {
-                            id: Math.max(...availability.map(a => a.id), 0) + 1,
-                            startDate,
-                            endDate,
-                            reason,
-                            status: 'blocked'
-                          };
-                          setAvailability([...availability, newBlock]);
-                          (document.getElementById('newBlockStart') as HTMLInputElement).value = '';
-                          (document.getElementById('newBlockEnd') as HTMLInputElement).value = '';
-                          (document.getElementById('newBlockReason') as HTMLInputElement).value = '';
-                        }
-                      }} className="w-full bg-amber-600 text-white font-bold py-2 rounded-lg hover:bg-amber-700 transition">
-                        🔒 Bloquear Período
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Calendar View */}
-                  <div className="border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">📅 Períodos Bloqueados</h3>
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {availability.length === 0 ? (
-                        <p className="text-gray-500 text-center py-8">Nenhuma data bloqueada</p>
-                      ) : (
-                        availability.map((block) => (
-                          <div key={block.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-red-600 font-bold">🚫</span>
-                                  <span className="font-semibold text-gray-900">{block.reason}</span>
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  📍 {new Date(block.startDate).toLocaleDateString('pt-PT')} → {new Date(block.endDate).toLocaleDateString('pt-PT')}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {Math.ceil((new Date(block.endDate).getTime() - new Date(block.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1} dias bloqueados
-                                </div>
-                              </div>
-                              <button 
-                                onClick={() => setAvailability(availability.filter(a => a.id !== block.id))}
-                                className="text-red-600 hover:text-red-800 text-lg"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Info Box */}
-                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>💡 Dica:</strong> Os períodos bloqueados aparecerão no site e os clientes não conseguirão fazer reservas nestas datas. O sistema valida automaticamente.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Vouchers */}
-            {activeTab === 'vouchers' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-amber-900">Gestão de Vouchers</h2>
-                  <button onClick={addVoucher} className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700">+ Novo Voucher</button>
-                </div>
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-800">📋 Reservas</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-semibold">Código</th>
-                        <th className="px-4 py-3 text-left font-semibold">Desconto (%)</th>
-                        <th className="px-4 py-3 text-left font-semibold">Validade</th>
-                        <th className="px-4 py-3 text-left font-semibold">Utilizações</th>
-                        <th className="px-4 py-3 text-left font-semibold">Ação</th>
+                    <thead>
+                      <tr className="bg-gradient-to-r from-purple-50 to-blue-50 border-b-2 border-purple-200">
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspede</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Email</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Datas</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspedes</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Preço</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
+                        <th className="px-6 py-4 text-center font-semibold text-gray-700">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
-                      {vouchers.map((voucher) => (
-                        <tr key={voucher.id}>
-                          <td className="px-4 py-3 font-mono">{voucher.code}</td>
-                          <td className="px-4 py-3">{voucher.discount}%</td>
-                          <td className="px-4 py-3">{new Date(voucher.expiry).toLocaleDateString('pt-PT')}</td>
-                          <td className="px-4 py-3">{voucher.usage}</td>
-                          <td className="px-4 py-3">
-                            <button className="text-blue-600 hover:text-blue-800">Editar</button>
-                            <button className="ml-3 text-red-600 hover:text-red-800">Eliminar</button>
+                    <tbody>
+                      {reservations.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                            Nenhuma reserva ainda
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        reservations.map((res, idx) => (
+                          <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 font-semibold text-gray-900">{res.guestName}</td>
+                            <td className="px-6 py-4 text-gray-700">{res.guestEmail}</td>
+                            <td className="px-6 py-4 text-gray-700">
+                              {new Date(res.startDate).toLocaleDateString('pt-PT')} -{' '}
+                              {new Date(res.endDate).toLocaleDateString('pt-PT')}
+                            </td>
+                            <td className="px-6 py-4 text-gray-700">👥 {res.guestsCount}</td>
+                            <td className="px-6 py-4 font-semibold text-blue-600">€{res.totalPrice}</td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`px-4 py-2 rounded-full font-semibold text-sm ${
+                                  res.status === 'confirmed'
+                                    ? 'bg-green-100 text-green-800'
+                                    : res.status === 'cancelled'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}
+                              >
+                                {res.status === 'confirmed' ? '✓ Confirmada' : res.status === 'cancelled' ? '✗ Cancelada' : '⏳ Pendente'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-center space-x-2 flex justify-center">
+                              <button
+                                onClick={() => updateReservationStatus(idx, 'confirmed')}
+                                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={() => updateReservationStatus(idx, 'cancelled')}
+                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                              >
+                                ✗
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
             )}
 
-            {/* Analytics */}
+            {/* Prices Tab */}
+            {activeTab === 'prices' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-800">💰 Preços</h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setPrices([...prices, newPrice]);
+                    setNewPrice({ season: '', pricePerNight: 0, startDate: '', endDate: '' });
+                  }}
+                  className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200 space-y-4"
+                >
+                  <h3 className="font-semibold text-gray-800 text-lg">Adicionar Novo Preço</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Estação (ex: Verão)"
+                      value={newPrice.season}
+                      onChange={(e) => setNewPrice({ ...newPrice, season: e.target.value })}
+                      className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="Preço/noite (€)"
+                      value={newPrice.pricePerNight}
+                      onChange={(e) => setNewPrice({ ...newPrice, pricePerNight: parseFloat(e.target.value) })}
+                      className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    />
+                    <input
+                      type="date"
+                      value={newPrice.startDate}
+                      onChange={(e) => setNewPrice({ ...newPrice, startDate: e.target.value })}
+                      className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    />
+                    <input
+                      type="date"
+                      value={newPrice.endDate}
+                      onChange={(e) => setNewPrice({ ...newPrice, endDate: e.target.value })}
+                      className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:shadow-green-300 transition-all"
+                  >
+                    ➕ Adicionar Preço
+                  </button>
+                </form>
+                <div className="space-y-3">
+                  {prices.map((price, idx) => (
+                    <div key={idx} className="bg-white border-2 border-green-200 p-4 rounded-lg flex justify-between items-center hover:shadow-md transition-all">
+                      <div>
+                        <p className="font-semibold text-gray-800">{price.season}</p>
+                        <p className="text-sm text-gray-600">
+                          €{price.pricePerNight}/noite • {price.startDate} a {price.endDate}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setPrices(prices.filter((_, i) => i !== idx))}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Availability Tab */}
+            {activeTab === 'availability' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-800">📅 Disponibilidade</h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setAvailability([...availability, newAvailability]);
+                    setNewAvailability({ startDate: '', endDate: '', reason: '', status: 'blocked' });
+                  }}
+                  className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-xl border-2 border-orange-200 space-y-4"
+                >
+                  <h3 className="font-semibold text-gray-800 text-lg">Bloquear Datas</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
+                      type="date"
+                      value={newAvailability.startDate}
+                      onChange={(e) => setNewAvailability({ ...newAvailability, startDate: e.target.value })}
+                      className="px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      required
+                    />
+                    <input
+                      type="date"
+                      value={newAvailability.endDate}
+                      onChange={(e) => setNewAvailability({ ...newAvailability, endDate: e.target.value })}
+                      className="px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Motivo (ex: Manutenção)"
+                      value={newAvailability.reason}
+                      onChange={(e) => setNewAvailability({ ...newAvailability, reason: e.target.value })}
+                      className="px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:shadow-orange-300 transition-all"
+                  >
+                    🔒 Bloquear Datas
+                  </button>
+                </form>
+                <div className="space-y-3">
+                  {availability.map((avail, idx) => {
+                    const start = new Date(avail.startDate);
+                    const end = new Date(avail.endDate);
+                    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                    return (
+                      <div key={idx} className="bg-white border-2 border-orange-200 p-4 rounded-lg flex justify-between items-center hover:shadow-md transition-all">
+                        <div>
+                          <p className="font-semibold text-gray-800">🔒 {avail.reason || 'Bloqueado'}</p>
+                          <p className="text-sm text-gray-600">
+                            {avail.startDate} a {avail.endDate} • {days} dia(s)
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setAvailability(availability.filter((_, i) => i !== idx))}
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Vouchers Tab */}
+            {activeTab === 'vouchers' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-800">🎁 Vouchers</h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setVouchers([...vouchers, newVoucher]);
+                    setNewVoucher({ code: '', type: 'percentage', value: 0, expiryDate: '' });
+                  }}
+                  className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200 space-y-4"
+                >
+                  <h3 className="font-semibold text-gray-800 text-lg">Criar Novo Voucher</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Código"
+                      value={newVoucher.code}
+                      onChange={(e) => setNewVoucher({ ...newVoucher, code: e.target.value })}
+                      className="px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase"
+                      required
+                    />
+                    <select
+                      value={newVoucher.type}
+                      onChange={(e) => setNewVoucher({ ...newVoucher, type: e.target.value as 'percentage' | 'fixed' })}
+                      className="px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="percentage">Percentagem (%)</option>
+                      <option value="fixed">Valor Fixo (€)</option>
+                    </select>
+                    <input
+                      type="number"
+                      placeholder="Valor"
+                      value={newVoucher.value}
+                      onChange={(e) => setNewVoucher({ ...newVoucher, value: parseFloat(e.target.value) })}
+                      className="px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    />
+                    <input
+                      type="date"
+                      value={newVoucher.expiryDate}
+                      onChange={(e) => setNewVoucher({ ...newVoucher, expiryDate: e.target.value })}
+                      className="px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:shadow-purple-300 transition-all"
+                  >
+                    ➕ Criar Voucher
+                  </button>
+                </form>
+                <div className="space-y-3">
+                  {vouchers.map((voucher, idx) => (
+                    <div key={idx} className="bg-white border-2 border-purple-200 p-4 rounded-lg flex justify-between items-center hover:shadow-md transition-all">
+                      <div>
+                        <p className="font-semibold text-gray-800">🎫 {voucher.code}</p>
+                        <p className="text-sm text-gray-600">
+                          {voucher.type === 'percentage' ? `${voucher.value}%` : `€${voucher.value}`} desconto • Expira: {voucher.expiryDate}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setVouchers(vouchers.filter((_, i) => i !== idx))}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Analytics Tab */}
             {activeTab === 'analytics' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-xl font-bold text-amber-900 mb-4">Visitantes e Conversões (últimos 6 dias)</h3>
-                  {analytics ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={analytics.visitors}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="visitors" stroke="#b45309" name="Visitantes" />
-                        <Line type="monotone" dataKey="bookings" stroke="#10b981" name="Reservas" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : null}
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-xl font-bold text-amber-900 mb-4">Receita Mensal</h3>
-                  {analytics ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={analytics.revenue}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="revenue" fill="#b45309" name="Receita (€)" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : null}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-xl font-bold text-amber-900 mb-4">Taxa de Ocupação</h3>
-                    {analytics ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie data={[
-                            { name: 'Ocupado', value: analytics.occupancy.occupied },
-                            { name: 'Disponível', value: analytics.occupancy.available }
-                          ]} cx="50%" cy="50%" labelLine={false} label>
-                            {[0, 1].map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : null}
+                <h2 className="text-2xl font-bold text-gray-800">📊 Analíticas</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border-2 border-blue-200">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">📈 Visitantes & Conversões (6 dias)</h3>
+                    <LineChart width={450} height={300} data={analyticsData}>
+                      <CartesianGrid stroke="#e0e7ff" />
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} name="Visitantes" />
+                      <Line type="monotone" dataKey="conversions" stroke="#06b6d4" strokeWidth={2} name="Conversões" />
+                    </LineChart>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow p-6 space-y-4">
-                    <h3 className="text-xl font-bold text-amber-900">KPIs Principais</h3>
-                    {analytics ? (
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Média de visitas/dia</span>
-                          <span className="font-bold">{Math.round(analytics.kpis.avgVisitorsPerDay)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Taxa de conversão</span>
-                          <span className="font-bold">{analytics.kpis.conversionRate}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Receita média/reserva</span>
-                          <span className="font-bold">€{analytics.kpis.avgRevenuePerBooking}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Duração média estadia</span>
-                          <span className="font-bold">{analytics.kpis.avgStayDuration} noites</span>
-                        </div>
-                      </div>
-                    ) : null}
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-xl border-2 border-orange-200">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">💹 Receita Mensal</h3>
+                    <BarChart width={450} height={300} data={revenueData}>
+                      <CartesianGrid stroke="#fed7aa" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="revenue" fill="#f59e0b" name="Receita (€)" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
+                    <p className="text-blue-700 font-semibold mb-2">Visitantes/dia</p>
+                    <p className="text-3xl font-bold text-blue-900">473</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200">
+                    <p className="text-green-700 font-semibold mb-2">Taxa Conversão</p>
+                    <p className="text-3xl font-bold text-green-900">16.8%</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
+                    <p className="text-purple-700 font-semibold mb-2">Média/Reserva</p>
+                    <p className="text-3xl font-bold text-purple-900">€420</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl border-2 border-yellow-200">
+                    <p className="text-yellow-700 font-semibold mb-2">Duração Média</p>
+                    <p className="text-3xl font-bold text-yellow-900">3.2 dias</p>
                   </div>
                 </div>
               </div>

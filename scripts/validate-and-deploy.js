@@ -86,7 +86,7 @@ async function main() {
   // 3. Git status
   log('\n3️⃣  Checking Git status...', 'yellow');
   const gitStatus = runCommand('git status --porcelain', true);
-  if (gitStatus.output.trim()) {
+  if (gitStatus.success && gitStatus.output && gitStatus.output.trim()) {
     log('⚠️  Uncommitted changes detected:', 'yellow');
     log(gitStatus.output, 'yellow');
   } else {
