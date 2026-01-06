@@ -22,33 +22,8 @@ export default function AdminLogin() {
         return;
       }
 
-      // Se existir API (modo SSR), tenta autenticar; caso contrário mostra mensagem clara
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      }).catch(() => null as any);
-
-      if (!response) {
-        setError('API indisponível no modo estático. Usa as credenciais demo acima.');
-        return;
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        setError('Resposta inválida da API. Usa as credenciais demo no modo estático.');
-        return;
-      }
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('adminToken', data.token || 'token');
-        localStorage.setItem('adminEmail', email);
-        router.push('/admin/dashboard');
-      } else {
-        setError(data.message || 'Credenciais inválidas');
-      }
+      // Credenciais inválidas no modo estático
+      setError('Credenciais inválidas. Usa: admin@enzoloft.com / password123');
     } catch (err) {
       setError('Erro ao fazer login');
     } finally {

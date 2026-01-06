@@ -33,12 +33,11 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(false);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [dateError, setDateError] = useState<string>('');
+  const [nights, setNights] = useState<number>(0);
 
   useEffect(() => {
-    fetch('/api/admin/availability')
-      .then(res => res.json())
-      .then(data => setBlockedDates(data))
-      .catch(err => console.error('Erro ao carregar datas bloqueadas:', err));
+    // API desativada no modo estático - sem datas bloqueadas
+    setBlockedDates([]);
   }, []);
 
   const isDateBlocked = useCallback((date: string): boolean => {
@@ -49,6 +48,59 @@ export default function Home() {
       return checkDate >= blockStart && checkDate <= blockEnd && block.status === 'blocked';
     });
   }, [blockedDates]);
+
+  const calculateTotalPrice = useCallback((startDate: string, endDate: string): number => {
+    if (!startDate || !endDate) return 0;
+    
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    
+    if (end <= start) return 0;
+    
+    const nightsCount = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    setNights(nightsCount);
+    
+    // Carregar preços do localStorage
+    const storedPrices = localStorage.getItem('prices');
+    console.log('Preços carregados:', storedPrices);
+    
+    if (!storedPrices) {
+      // Preço padrão se não houver preços definidos
+      console.log('Usando preço padrão: €100/noite');
+      return nightsCount * 100;
+    }
+    
+    const prices = JSON.parse(storedPrices);
+    console.log('Preços parseados:', prices);
+    let totalPrice = 0;
+    
+    // Calcular preço para cada noite
+    let currentDate = new Date(start);
+    for (let i = 0; i < nightsCount; i++) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      
+      // Encontrar preço aplicável para esta data
+      const applicablePrice = prices.find((p: any) => {
+        const priceStart = new Date(p.startDate + 'T00:00:00');
+        const priceEnd = new Date(p.endDate + 'T00:00:00');
+        const checkDate = new Date(dateStr + 'T00:00:00');
+        return checkDate >= priceStart && checkDate <= priceEnd;
+      });
+      
+      if (applicablePrice) {
+        console.log(`Data ${dateStr}: €${applicablePrice.pricePerNight} (${applicablePrice.season})`);
+        totalPrice += parseFloat(applicablePrice.pricePerNight);
+      } else {
+        console.log(`Data ${dateStr}: €100 (preço padrão)`);
+        totalPrice += 100;
+      }
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    console.log('Total calculado:', totalPrice);
+    return totalPrice;
+  }, []);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -63,6 +115,10 @@ export default function Home() {
         const startDate = new Date(start);
         const endDate = new Date(end);
         
+        // Calcular preço total
+        const calculatedPrice = calculateTotalPrice(start, end);
+        setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
+        
         let hasBlockedDate = false;
         let currentDate = new Date(startDate);
         
@@ -75,11 +131,11 @@ export default function Home() {
         }
         
         if (hasBlockedDate) {
-          setDateError(' Uma ou mais datas selecionadas estão bloqueadas. Escolha outras datas.');
+          setDateError('❌ Uma ou mais datas selecionadas estão bloqueadas. Escolha outras datas.');
         }
       }
     }
-  }, [formData.startDate, formData.endDate, isDateBlocked]);
+  }, [formData.startDate, formData.endDate, isDateBlocked, calculateTotalPrice]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,21 +149,23 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch('/api/reservations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setMessage(' Reserva criada com sucesso! Aguardando confirmação do admin.');
-        setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
-      } else {
-        setMessage(` Erro: ${data.error}`);
-      }
+      // Modo estático: guardar reserva no localStorage
+      const reservation = {
+        id: Date.now().toString(),
+        ...formData,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      
+      // Obter reservas existentes
+      const existingReservations = JSON.parse(localStorage.getItem('reservations') || '[]');
+      existingReservations.push(reservation);
+      localStorage.setItem('reservations', JSON.stringify(existingReservations));
+      
+      setMessage('✅ Reserva criada com sucesso! Aguardando confirmação do admin.');
+      setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
     } catch (error) {
-      setMessage(' Erro ao criar reserva.');
+      setMessage('❌ Erro ao criar reserva.');
     } finally {
       setLoading(false);
     }
@@ -356,17 +414,26 @@ export default function Home() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-orange-900 mb-2">Preço Total (€) *</label>
-                <input
-                  type="number"
-                  name="totalPrice"
-                  min="0"
-                  step="0.01"
-                  required
-                  value={formData.totalPrice}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-                />
+                {formData.startDate && formData.endDate && formData.totalPrice > 0 && (
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 p-6 rounded-xl">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-lg font-semibold text-gray-700">💰 Resumo da Reserva</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-gray-600">
+                        <span>📅 Noites:</span>
+                        <span className="font-semibold">{nights} {nights === 1 ? 'noite' : 'noites'}</span>
+                      </div>
+                      <div className="border-t-2 border-green-200 pt-2 mt-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xl font-bold text-green-800">Total:</span>
+                          <span className="text-3xl font-bold text-green-600">€{formData.totalPrice.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">* Preço calculado automaticamente baseado nas datas selecionadas</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             

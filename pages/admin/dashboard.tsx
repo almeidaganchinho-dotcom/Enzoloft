@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   const [vouchers, setVouchers] = useState<any[]>([
     { id: 1, code: 'SUMMER20', type: 'percentage', value: 20, expiryDate: '2026-08-31' },
   ]);
-  const [newPrice, setNewPrice] = useState({ season: '', pricePerNight: 0, startDate: '', endDate: '' });
+  const [newPrice, setNewPrice] = useState({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
   const [newAvailability, setNewAvailability] = useState({ startDate: '', endDate: '', reason: '', status: 'blocked' });
   const [newVoucher, setNewVoucher] = useState({ code: '', type: 'percentage', value: 0, expiryDate: '' });
   const [loading, setLoading] = useState(true);
@@ -42,18 +42,22 @@ export default function AdminDashboard() {
     }
 
     setAdmin({ email: email || 'Admin' });
+    
+    // Carregar preços do localStorage
+    const storedPrices = localStorage.getItem('prices');
+    if (storedPrices) {
+      setPrices(JSON.parse(storedPrices));
+    }
+    
     fetchAllData();
   }, []);
 
   const fetchAllData = useCallback(async () => {
     try {
-      const [resRes, availRes] = await Promise.all([
-        fetch('/api/admin/reservations'),
-        fetch('/api/admin/availability'),
-      ]);
-
-      if (resRes.ok) setReservations(await resRes.json());
-      if (availRes.ok) setAvailability(await availRes.json());
+      // Modo estático: carregar reservas do localStorage
+      const storedReservations = JSON.parse(localStorage.getItem('reservations') || '[]');
+      setReservations(storedReservations);
+      setAvailability([]);
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     } finally {
@@ -69,8 +73,12 @@ export default function AdminDashboard() {
 
   const updateReservationStatus = useCallback((idx: number, status: string) => {
     const updated = [...reservations];
-    if (updated[idx]) updated[idx].status = status;
-    setReservations(updated);
+    if (updated[idx]) {
+      updated[idx].status = status;
+      setReservations(updated);
+      // Atualizar no localStorage
+      localStorage.setItem('reservations', JSON.stringify(updated));
+    }
   }, [reservations]);
 
   const dashboardData = useMemo(() => [
@@ -321,34 +329,54 @@ export default function AdminDashboard() {
             {activeTab === 'prices' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-gray-800">💰 Preços</h2>
+                <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>💡 Dica:</strong> Defina preços diferentes para períodos especiais como Verão, Natal, Páscoa, Fim de Semana, etc.
+                  </p>
+                </div>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    setPrices([...prices, newPrice]);
-                    setNewPrice({ season: '', pricePerNight: 0, startDate: '', endDate: '' });
+                    const newPriceWithId = { ...newPrice, id: Date.now() };
+                    const updatedPrices = [...prices, newPriceWithId];
+                    setPrices(updatedPrices);
+                    localStorage.setItem('prices', JSON.stringify(updatedPrices));
+                    setNewPrice({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
                   }}
                   className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200 space-y-4"
                 >
-                  <h3 className="font-semibold text-gray-800 text-lg">Adicionar Novo Preço</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <h3 className="font-semibold text-gray-800 text-lg">Adicionar Novo Período de Preço</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input
                       type="text"
-                      placeholder="Estação (ex: Verão)"
+                      placeholder="Nome do período (ex: Verão 2026, Natal, Páscoa)"
                       value={newPrice.season}
                       onChange={(e) => setNewPrice({ ...newPrice, season: e.target.value })}
                       className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       required
                     />
                     <input
-                      type="number"
-                      placeholder="Preço/noite (€)"
-                      value={newPrice.pricePerNight}
-                      onChange={(e) => setNewPrice({ ...newPrice, pricePerNight: parseFloat(e.target.value) })}
+                      type="text"
+                      placeholder="Descrição (opcional: ex: Alta temporada, Feriado)"
+                      value={newPrice.description}
+                      onChange={(e) => setNewPrice({ ...newPrice, description: e.target.value })}
                       className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
+                      type="number"
+                      placeholder="Preço por noite (€)"
+                      value={newPrice.pricePerNight || ''}
+                      onChange={(e) => setNewPrice({ ...newPrice, pricePerNight: parseFloat(e.target.value) || 0 })}
+                      className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      min="0"
+                      step="0.01"
                       required
                     />
                     <input
                       type="date"
+                      placeholder="Data início"
                       value={newPrice.startDate}
                       onChange={(e) => setNewPrice({ ...newPrice, startDate: e.target.value })}
                       className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -356,6 +384,7 @@ export default function AdminDashboard() {
                     />
                     <input
                       type="date"
+                      placeholder="Data fim"
                       value={newPrice.endDate}
                       onChange={(e) => setNewPrice({ ...newPrice, endDate: e.target.value })}
                       className="px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -366,26 +395,44 @@ export default function AdminDashboard() {
                     type="submit"
                     className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:shadow-green-300 transition-all"
                   >
-                    ➕ Adicionar Preço
+                    ➕ Adicionar Período de Preço
                   </button>
                 </form>
                 <div className="space-y-3">
-                  {prices.map((price, idx) => (
-                    <div key={idx} className="bg-white border-2 border-green-200 p-4 rounded-lg flex justify-between items-center hover:shadow-md transition-all">
-                      <div>
-                        <p className="font-semibold text-gray-800">{price.season}</p>
-                        <p className="text-sm text-gray-600">
-                          €{price.pricePerNight}/noite • {price.startDate} a {price.endDate}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setPrices(prices.filter((_, i) => i !== idx))}
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
-                      >
-                        🗑️
-                      </button>
+                  {prices.length === 0 ? (
+                    <div className="bg-gray-50 border-2 border-gray-200 p-8 rounded-lg text-center">
+                      <p className="text-gray-500">Nenhum período de preço definido. Adicione o primeiro!</p>
                     </div>
-                  ))}
+                  ) : (
+                    prices.map((price, idx) => (
+                      <div key={price.id || idx} className="bg-white border-2 border-green-200 p-4 rounded-lg flex justify-between items-center hover:shadow-md transition-all">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-800 text-lg">{price.season}</p>
+                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">
+                              €{price.pricePerNight}/noite
+                            </span>
+                          </div>
+                          {price.description && (
+                            <p className="text-sm text-gray-500 mt-1">📝 {price.description}</p>
+                          )}
+                          <p className="text-sm text-gray-600 mt-1">
+                            📅 {new Date(price.startDate).toLocaleDateString('pt-PT')} até {new Date(price.endDate).toLocaleDateString('pt-PT')}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const updatedPrices = prices.filter((_, i) => i !== idx);
+                            setPrices(updatedPrices);
+                            localStorage.setItem('prices', JSON.stringify(updatedPrices));
+                          }}
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all ml-4"
+                        >
+                          🗑️ Remover
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
