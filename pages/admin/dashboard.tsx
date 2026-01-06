@@ -882,7 +882,7 @@ export default function AdminDashboard() {
                       type="text"
                       placeholder="Código"
                       value={newVoucher.code}
-                      onChange={(e) => setNewVoucher({ ...newVoucher, code: e.target.value })}
+                      onChange={(e) => setNewVoucher({ ...newVoucher, code: e.target.value.trim().toUpperCase() })}
                       className="px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase"
                       required
                     />

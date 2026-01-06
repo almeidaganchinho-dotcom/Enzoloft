@@ -120,7 +120,7 @@ export default function Home() {
       const vouchersSnapshot = await getDocs(collection(db, 'vouchers'));
       const vouchers = vouchersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Voucher));
       
-      const voucher = vouchers.find(v => v.code.toUpperCase() === voucherCode.toUpperCase());
+      const voucher = vouchers.find(v => v.code.trim().toUpperCase() === voucherCode.trim().toUpperCase());
       
       if (!voucher) {
         setVoucherError('Voucher inválido.');
