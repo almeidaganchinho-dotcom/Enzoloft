@@ -402,8 +402,17 @@ export default function Home() {
             <span> Vila Nova da Baronia, Évora</span>
             <span> info@enzoloft.com</span>
             <span> +351 XXX XXX XXX</span>
+          </div>          
+          {/* Admin Access Button */}
+          <div className="mb-6">
+            <a
+              href="/admin/login"
+              className="inline-flex items-center gap-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 backdrop-blur-sm border border-white border-opacity-20 hover:border-opacity-40"
+            >
+              🔐 Acesso Admin
+            </a>
           </div>
-          <p className="text-orange-200 text-sm"> 2026 EnzoLoft. Todos os direitos reservados.</p>
+                    <p className="text-orange-200 text-sm"> 2026 EnzoLoft. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
