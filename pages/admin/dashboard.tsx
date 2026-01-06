@@ -28,6 +28,8 @@ export default function AdminDashboard() {
   const [newPrice, setNewPrice] = useState({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
   const [newAvailability, setNewAvailability] = useState({ startDate: '', endDate: '', reason: '', status: 'blocked' });
   const [newVoucher, setNewVoucher] = useState({ code: '', type: 'percentage', value: 0, expiryDate: '' });
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedReservation, setSelectedReservation] = useState<any>(null);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Nova da Baronia, Évora',
     email: 'info@enzoloft.com',
@@ -138,6 +140,7 @@ export default function AdminDashboard() {
 
   const tabs = useMemo<Tab[]>(() => [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'calendar', label: 'Calendário', icon: '🗓️' },
     { id: 'reservations', label: 'Reservas', icon: '📋' },
     { id: 'prices', label: 'Preços', icon: '💰' },
     { id: 'availability', label: 'Disponibilidade', icon: '📅' },
@@ -276,6 +279,192 @@ export default function AdminDashboard() {
                     </PieChart>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Calendar Tab */}
+            {activeTab === 'calendar' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-800">🗓️ Calendário de Reservas</h2>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newMonth = new Date(currentMonth);
+                        newMonth.setMonth(newMonth.getMonth() - 1);
+                        setCurrentMonth(newMonth);
+                      }}
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                    >
+                      ◀ Anterior
+                    </button>
+                    <button
+                      onClick={() => setCurrentMonth(new Date())}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                    >
+                      Hoje
+                    </button>
+                    <button
+                      onClick={() => {
+                        const newMonth = new Date(currentMonth);
+                        newMonth.setMonth(newMonth.getMonth() + 1);
+                        setCurrentMonth(newMonth);
+                      }}
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                    >
+                      Próximo ▶
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl border-2 border-purple-200 p-6">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
+                    {currentMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+                  </h3>
+                  
+                  {/* Calendar Grid */}
+                  <div className="grid grid-cols-7 gap-2">
+                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                      <div key={day} className="text-center font-bold text-gray-700 py-2">
+                        {day}
+                      </div>
+                    ))}
+                    
+                    {(() => {
+                      const year = currentMonth.getFullYear();
+                      const month = currentMonth.getMonth();
+                      const firstDay = new Date(year, month, 1).getDay();
+                      const daysInMonth = new Date(year, month + 1, 0).getDate();
+                      const days = [];
+                      
+                      // Empty cells before first day
+                      for (let i = 0; i < firstDay; i++) {
+                        days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
+                      }
+                      
+                      // Days of the month
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const date = new Date(year, month, day);
+                        const dateStr = date.toISOString().split('T')[0];
+                        
+                        // Find reservations for this day
+                        const dayReservations = reservations.filter(res => {
+                          if (res.status !== 'confirmed') return false;
+                          const start = new Date(res.startDate);
+                          const end = new Date(res.endDate);
+                          return date >= start && date <= end;
+                        });
+                        
+                        const isToday = new Date().toDateString() === date.toDateString();
+                        
+                        days.push(
+                          <div
+                            key={day}
+                            className={`aspect-square border-2 rounded-lg p-1 cursor-pointer transition-all ${
+                              isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                            } ${
+                              dayReservations.length > 0 ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-50'
+                            }`}
+                            onClick={() => {
+                              if (dayReservations.length > 0) {
+                                setSelectedReservation(dayReservations[0]);
+                              }
+                            }}
+                          >
+                            <div className="text-sm font-semibold text-gray-700">{day}</div>
+                            {dayReservations.length > 0 && (
+                              <div className="mt-1">
+                                <div className="text-xs font-semibold text-green-800 truncate">
+                                  {dayReservations[0].guestName}
+                                </div>
+                                {dayReservations.length > 1 && (
+                                  <div className="text-xs text-gray-600">+{dayReservations.length - 1}</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      
+                      return days;
+                    })()}
+                  </div>
+                </div>
+
+                {/* Reservation Details Modal */}
+                {selectedReservation && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl">
+                      <div className="flex justify-between items-start mb-6">
+                        <h3 className="text-2xl font-bold text-gray-800">📋 Detalhes da Reserva</h3>
+                        <button
+                          onClick={() => setSelectedReservation(null)}
+                          className="text-gray-500 hover:text-gray-700 text-2xl"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-semibold text-gray-600">Nome do Hóspede</label>
+                          <p className="text-lg text-gray-800">{selectedReservation.guestName}</p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-semibold text-gray-600">Email</label>
+                          <p className="text-lg text-gray-800">{selectedReservation.guestEmail}</p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-semibold text-gray-600">Telefone</label>
+                          <p className="text-lg text-gray-800">{selectedReservation.guestPhone || 'Não fornecido'}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-semibold text-gray-600">Check-in</label>
+                            <p className="text-lg text-gray-800">
+                              {new Date(selectedReservation.startDate).toLocaleDateString('pt-PT')}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-semibold text-gray-600">Check-out</label>
+                            <p className="text-lg text-gray-800">
+                              {new Date(selectedReservation.endDate).toLocaleDateString('pt-PT')}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-semibold text-gray-600">Número de Hóspedes</label>
+                          <p className="text-lg text-gray-800">👥 {selectedReservation.guestsCount}</p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-semibold text-gray-600">Preço Total</label>
+                          <p className="text-2xl font-bold text-green-600">€{selectedReservation.totalPrice}</p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-semibold text-gray-600">Status</label>
+                          <p>
+                            <span className="px-4 py-2 rounded-full font-semibold text-sm bg-green-100 text-green-800">
+                              ✓ Confirmada
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => setSelectedReservation(null)}
+                        className="w-full mt-6 bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg font-semibold transition-all"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
