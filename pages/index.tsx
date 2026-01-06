@@ -629,7 +629,9 @@ export default function Home() {
           </div>
           
           {/* Google Maps */}
-          {contactInfo.mapsUrl && contactInfo.mapsUrl.trim() !== '' && (
+          {contactInfo.mapsUrl && 
+           contactInfo.mapsUrl.trim() !== '' && 
+           (contactInfo.mapsUrl.includes('google.com/maps/embed') || contactInfo.mapsUrl.includes('maps.google.com')) && (
             <div className="mb-8">
               <div className="max-w-4xl mx-auto">
                 <iframe
