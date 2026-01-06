@@ -54,8 +54,16 @@ export default function Home() {
   });
 
   useEffect(() => {
-    // API desativada no modo estático - sem datas bloqueadas
-    setBlockedDates([]);
+    // Carregar datas bloqueadas do Firestore
+    const loadBlockedDates = async () => {
+      try {
+        const availabilitySnapshot = await getDocs(collection(db, 'availability'));
+        const blockedData = availabilitySnapshot.docs.map(doc => doc.data() as BlockedDate);
+        setBlockedDates(blockedData);
+      } catch (error) {
+        console.error('Erro ao carregar datas bloqueadas:', error);
+      }
+    };
     
     // Carregar informações de contacto do Firestore
     const loadContactInfo = async () => {
@@ -70,6 +78,7 @@ export default function Home() {
       }
     };
     
+    loadBlockedDates();
     loadContactInfo();
   }, []);
 

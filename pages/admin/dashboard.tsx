@@ -66,13 +66,16 @@ export default function AdminDashboard() {
       const pricesData = pricesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPrices(pricesData);
       
+      // Carregar disponibilidade do Firestore
+      const availabilitySnapshot = await getDocs(collection(db, 'availability'));
+      const availabilityData = availabilitySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAvailability(availabilityData);
+      
       // Carregar configurações de contacto
       const contactDoc = await getDoc(doc(db, 'settings', 'contactInfo'));
       if (contactDoc.exists()) {
         setContactInfo(contactDoc.data() as any);
       }
-      
-      setAvailability([]);
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     } finally {
@@ -476,10 +479,18 @@ export default function AdminDashboard() {
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-gray-800">📅 Disponibilidade</h2>
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    setAvailability([...availability, newAvailability]);
-                    setNewAvailability({ startDate: '', endDate: '', reason: '', status: 'blocked' });
+                    try {
+                      // Adicionar ao Firestore
+                      const docRef = await addDoc(collection(db, 'availability'), newAvailability);
+                      const newAvailWithId = { ...newAvailability, id: docRef.id };
+                      setAvailability([...availability, newAvailWithId]);
+                      setNewAvailability({ startDate: '', endDate: '', reason: '', status: 'blocked' });
+                    } catch (error) {
+                      console.error('Erro ao bloquear datas:', error);
+                      alert('Erro ao bloquear datas. Tente novamente.');
+                    }
                   }}
                   className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-xl border-2 border-orange-200 space-y-4"
                 >
@@ -528,7 +539,18 @@ export default function AdminDashboard() {
                           </p>
                         </div>
                         <button
-                          onClick={() => setAvailability(availability.filter((_, i) => i !== idx))}
+                          onClick={async () => {
+                            try {
+                              const availId = availability[idx].id;
+                              if (availId) {
+                                await deleteDoc(doc(db, 'availability', availId));
+                              }
+                              setAvailability(availability.filter((_, i) => i !== idx));
+                            } catch (error) {
+                              console.error('Erro ao remover bloqueio:', error);
+                              alert('Erro ao remover bloqueio. Tente novamente.');
+                            }
+                          }}
                           className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
                         >
                           🗑️
