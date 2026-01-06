@@ -413,26 +413,40 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-orange-900 mb-1">Check-in</label>
-                    <input
-                      type="date"
-                      name="startDate"
-                      required
-                      value={formData.startDate}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
-                    />
+                    <label className="block text-xs font-semibold text-orange-900 mb-1 flex items-center gap-1">
+                      📅 Check-in
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        name="startDate"
+                        required
+                        value={formData.startDate}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-gradient-to-br from-white to-orange-50 transition text-sm font-medium text-gray-700 hover:border-orange-300 cursor-pointer"
+                        style={{
+                          colorScheme: 'light',
+                        }}
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-orange-900 mb-1">Check-out</label>
-                    <input
-                      type="date"
-                      name="endDate"
-                      required
-                      value={formData.endDate}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
-                    />
+                    <label className="block text-xs font-semibold text-orange-900 mb-1 flex items-center gap-1">
+                      📅 Check-out
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        name="endDate"
+                        required
+                        value={formData.endDate}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-gradient-to-br from-white to-orange-50 transition text-sm font-medium text-gray-700 hover:border-orange-300 cursor-pointer"
+                        style={{
+                          colorScheme: 'light',
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div>
