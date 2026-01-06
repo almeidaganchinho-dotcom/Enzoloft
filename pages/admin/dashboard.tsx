@@ -481,15 +481,26 @@ export default function AdminDashboard() {
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
+                    if (!newAvailability.startDate || !newAvailability.endDate) {
+                      alert('Por favor, preencha as datas de início e fim.');
+                      return;
+                    }
                     try {
                       // Adicionar ao Firestore
-                      const docRef = await addDoc(collection(db, 'availability'), newAvailability);
-                      const newAvailWithId = { ...newAvailability, id: docRef.id };
+                      const availabilityData = {
+                        startDate: newAvailability.startDate,
+                        endDate: newAvailability.endDate,
+                        reason: newAvailability.reason || 'Bloqueado',
+                        status: 'blocked',
+                        createdAt: new Date().toISOString()
+                      };
+                      const docRef = await addDoc(collection(db, 'availability'), availabilityData);
+                      const newAvailWithId = { ...availabilityData, id: docRef.id };
                       setAvailability([...availability, newAvailWithId]);
                       setNewAvailability({ startDate: '', endDate: '', reason: '', status: 'blocked' });
                     } catch (error) {
                       console.error('Erro ao bloquear datas:', error);
-                      alert('Erro ao bloquear datas. Tente novamente.');
+                      alert('Erro ao bloquear datas: ' + (error as Error).message);
                     }
                   }}
                   className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-xl border-2 border-orange-200 space-y-4"
@@ -540,15 +551,18 @@ export default function AdminDashboard() {
                         </div>
                         <button
                           onClick={async () => {
+                            if (!confirm('Deseja mesmo remover este bloqueio?')) return;
                             try {
                               const availId = availability[idx].id;
-                              if (availId) {
-                                await deleteDoc(doc(db, 'availability', availId));
+                              if (!availId) {
+                                alert('Erro: ID do bloqueio não encontrado.');
+                                return;
                               }
+                              await deleteDoc(doc(db, 'availability', availId));
                               setAvailability(availability.filter((_, i) => i !== idx));
                             } catch (error) {
                               console.error('Erro ao remover bloqueio:', error);
-                              alert('Erro ao remover bloqueio. Tente novamente.');
+                              alert('Erro ao remover bloqueio: ' + (error as Error).message);
                             }
                           }}
                           className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
