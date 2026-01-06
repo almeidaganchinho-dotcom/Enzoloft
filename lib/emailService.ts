@@ -3,8 +3,8 @@ import emailjs from '@emailjs/browser';
 // Configuração do EmailJS
 // IMPORTANTE: Substitua estas credenciais pelas suas após criar conta em https://www.emailjs.com/
 const EMAILJS_CONFIG = {
-  serviceId: 'YOUR_SERVICE_ID', // Substitua com seu Service ID
-  publicKey: 'YOUR_PUBLIC_KEY', // Substitua com sua Public Key
+  serviceId: 'service_lxelpqh', // Substitua com seu Service ID
+  publicKey: 'vQQD08CqAu_cZ6mU3', // Substitua com sua Public Key
   templates: {
     newReservation: 'template_new_reservation', // Template para nova reserva
     statusUpdate: 'template_status_update', // Template para mudança de status

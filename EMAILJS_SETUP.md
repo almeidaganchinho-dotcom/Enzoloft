@@ -113,7 +113,7 @@ Edite o arquivo `lib/emailService.ts` e substitua:
 ```typescript
 const EMAILJS_CONFIG = {
   serviceId: 'SEU_SERVICE_ID_AQUI',      // Cole aqui
-  publicKey: 'SUA_PUBLIC_KEY_AQUI',      // Cole aqui
+  publicKey: 'vQQD08CqAu_cZ6mU3',      // Cole aqui
   templates: {
     newReservation: 'template_new_reservation',
     statusUpdate: 'template_status_update',
