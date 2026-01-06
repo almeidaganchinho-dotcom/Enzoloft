@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs } from 'firebase/firestore';
+import { sendNewReservationEmail } from '../lib/emailService';
 
 interface BlockedDate {
   startDate: string;
@@ -306,7 +307,26 @@ export default function Home() {
       
       await addDoc(collection(db, 'reservations'), reservation);
       
-      setMessage('✅ Reserva criada com sucesso! Aguardando confirmação do admin.');
+      // Enviar email de confirmação
+      const emailSent = await sendNewReservationEmail({
+        guestName: formData.guestName,
+        guestEmail: formData.guestEmail,
+        guestPhone: formData.guestPhone,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        guestsCount: formData.guestsCount,
+        totalPrice: formData.totalPrice.toString(),
+        status: 'pending',
+        voucherCode: appliedVoucher?.code,
+        discount: discount
+      });
+
+      if (emailSent) {
+        setMessage('✅ Reserva criada com sucesso! Email de confirmação enviado. Aguardando confirmação do admin.');
+      } else {
+        setMessage('✅ Reserva criada com sucesso! Aguardando confirmação do admin. (Aviso: email não enviado)');
+      }
+      
       setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
       setAppliedVoucher(null);
       setVoucherCode('');
