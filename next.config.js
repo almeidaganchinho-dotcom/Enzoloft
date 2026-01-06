@@ -3,13 +3,19 @@ const nextConfig = {
   reactStrictMode: true,
   
   // Para Firebase Hosting (static export)
-  // Descomenta as linhas abaixo quando quiseres fazer deploy estático
-  // output: 'export',
-  // images: { unoptimized: true },
-  
-  // Configuração de imagens
-  images: {
-    domains: ['enzoloft.web.app', 'firebasestorage.googleapis.com'],
+  output: 'export',
+  images: { 
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'enzoloft.web.app',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
+    ],
   },
   
   // Variáveis de ambiente públicas
