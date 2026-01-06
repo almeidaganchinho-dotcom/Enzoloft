@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  name       String?
+  email      String   @unique
+  role       String   @default("admin")
+  createdAt  DateTime @default(now())
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  images      String[] @default([])
+  createdAt   DateTime @default(now())
+  reservations Reservation[]
+  availabilityRules AvailabilityRule[]
+  pricings Pricing[]
+}
+
+model Reservation {
+  id           String   @id @default(cuid())
+  propertyId   String
+  property     Property @relation(fields: [propertyId], references: [id])
+  guestName    String
+  guestEmail   String
+  guestPhone   String?
+  startDate    DateTime
+  endDate      DateTime
+  nights       Int
+  guestsCount  Int
+  totalPrice   Float
+  status       String   @default("pending") // pending, confirmed, cancelled, completed
+  createdAt    DateTime @default(now())
+  messages     Message[]
+}
+
+model AvailabilityRule {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  startDate  DateTime
+  endDate    DateTime
+  type       String   // blocked | override-price
+  price      Float?
+  createdAt  DateTime @default(now())
+}
+
+model Pricing {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  startDate  DateTime?
+  endDate    DateTime?
+  nightly    Float
+  minNights  Int      @default(1)
+  createdAt  DateTime @default(now())
+}
+
+model Message {
+  id            String   @id @default(cuid())
+  reservationId String?
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  fromEmail     String
+  toEmail       String
+  body          String
+  sentAt        DateTime @default(now())
+}
