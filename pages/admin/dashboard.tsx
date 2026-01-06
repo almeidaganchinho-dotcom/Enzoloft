@@ -22,9 +22,7 @@ export default function AdminDashboard() {
     { id: 2, season: 'Inverno', pricePerNight: 80, startDate: '2026-11-01', endDate: '2027-02-28' },
   ]);
   const [availability, setAvailability] = useState<any[]>([]);
-  const [vouchers, setVouchers] = useState<any[]>([
-    { id: 1, code: 'SUMMER20', type: 'percentage', value: 20, expiryDate: '2026-08-31' },
-  ]);
+  const [vouchers, setVouchers] = useState<any[]>([]);
   const [newPrice, setNewPrice] = useState({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
   const [newAvailability, setNewAvailability] = useState({ startDate: '', endDate: '', reason: '', status: 'blocked' });
   const [newVoucher, setNewVoucher] = useState({ code: '', type: 'percentage', value: 0, expiryDate: '' });
@@ -76,6 +74,7 @@ export default function AdminDashboard() {
       // Carregar vouchers do Firestore
       const vouchersSnapshot = await getDocs(collection(db, 'vouchers'));
       const vouchersData = vouchersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('Vouchers carregados do Firestore (admin):', vouchersData);
       setVouchers(vouchersData);
       
       // Carregar configurações de contacto
@@ -859,16 +858,19 @@ export default function AdminDashboard() {
                     e.preventDefault();
                     try {
                       const voucherData = {
-                        code: newVoucher.code.toUpperCase(),
+                        code: newVoucher.code.trim().toUpperCase(),
                         type: newVoucher.type,
                         value: newVoucher.value,
                         expiryDate: newVoucher.expiryDate,
                         createdAt: new Date().toISOString()
                       };
+                      console.log('Criando voucher:', voucherData);
                       const docRef = await addDoc(collection(db, 'vouchers'), voucherData);
+                      console.log('Voucher criado com ID:', docRef.id);
                       const newVoucherWithId = { ...voucherData, id: docRef.id };
                       setVouchers([...vouchers, newVoucherWithId]);
                       setNewVoucher({ code: '', type: 'percentage', value: 0, expiryDate: '' });
+                      alert('✅ Voucher criado com sucesso!');
                     } catch (error) {
                       console.error('Erro ao criar voucher:', error);
                       alert('Erro ao criar voucher: ' + (error as Error).message);
