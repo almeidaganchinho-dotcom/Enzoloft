@@ -58,7 +58,7 @@ export default function Home() {
         }
         
         if (hasBlockedDate) {
-          setDateError('âš ï¸ Uma ou mais datas selecionadas estÃ£o bloqueadas. Escolha outras datas.');
+          setDateError(' Uma ou mais datas selecionadas estão bloqueadas. Escolha outras datas.');
         }
       }
     }
@@ -70,7 +70,7 @@ export default function Home() {
     setMessage('');
 
     if (dateError) {
-      setMessage('âŒ Por favor, escolha datas vÃ¡lidas sem bloqueios.');
+      setMessage(' Por favor, escolha datas válidas sem bloqueios.');
       setLoading(false);
       return;
     }
@@ -84,30 +84,30 @@ export default function Home() {
 
       const data = await response.json();
       if (response.ok) {
-        setMessage('âœ… Reserva criada com sucesso! Aguardando confirmaÃ§Ã£o do admin.');
+        setMessage(' Reserva criada com sucesso! Aguardando confirmação do admin.');
         setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
       } else {
-        setMessage(`âŒ Erro: ${data.error}`);
+        setMessage(` Erro: ${data.error}`);
       }
     } catch (error) {
-      setMessage('âŒ Erro ao criar reserva.');
+      setMessage(' Erro ao criar reserva.');
     } finally {
       setLoading(false);
     }
   };
 
   const amenities = [
-    { icon: 'ðŸ“¶', label: 'Wi-Fi Gratuito' },
-    { icon: 'â„ï¸', label: 'Ar Condicionado' },
-    { icon: 'ðŸ³', label: 'Cozinha Equipada' },
-    { icon: 'ðŸš—', label: 'Estacionamento' },
-    { icon: 'ðŸŠ', label: 'Piscina' },
-    { icon: 'ðŸŒ¿', label: 'Jardim' },
+    { icon: '', label: 'Wi-Fi Gratuito' },
+    { icon: '', label: 'Ar Condicionado' },
+    { icon: '', label: 'Cozinha Equipada' },
+    { icon: '', label: 'Estacionamento' },
+    { icon: '', label: 'Piscina' },
+    { icon: '', label: 'Jardim' },
   ];
 
   const galleryImages = [
     { src: 'https://enzoloft.web.app/images/gallery/exterior.jpg', alt: 'Exterior' },
-    { src: 'https://enzoloft.web.app/images/gallery/patio.jpg', alt: 'PÃ¡tio' },
+    { src: 'https://enzoloft.web.app/images/gallery/patio.jpg', alt: 'Pátio' },
     { src: 'https://enzoloft.web.app/images/gallery/sala.jpg', alt: 'Sala' },
     { src: 'https://enzoloft.web.app/images/gallery/cozinha.jpg', alt: 'Cozinha' },
     { src: 'https://enzoloft.web.app/images/gallery/quarto.jpg', alt: 'Quarto' },
@@ -122,7 +122,7 @@ export default function Home() {
       <header className="bg-white border-b-2 border-orange-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="text-3xl">ðŸ¡</span>
+            <span className="text-3xl"></span>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">EnzoLoft</h1>
           </div>
           <a href="#booking" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold">
@@ -138,9 +138,9 @@ export default function Home() {
           <h2 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">Retiro Perfeito no Alentejo</h2>
           <p className="text-xl md:text-2xl mb-8 drop-shadow-md">Alojamento de charme em Vila Nova da Baronia</p>
           <div className="flex gap-6 text-lg flex-wrap justify-center">
-            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">âœ“ Wi-Fi Gratuito</span>
-            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">âœ“ Piscina</span>
-            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">âœ“ Jardim</span>
+            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm"> Wi-Fi Gratuito</span>
+            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm"> Piscina</span>
+            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm"> Jardim</span>
           </div>
         </div>
       </section>
@@ -173,7 +173,7 @@ export default function Home() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-orange-900 mb-2">HÃ³spedes</label>
+              <label className="block text-sm font-semibold text-orange-900 mb-2">Hóspedes</label>
               <input
                 type="number"
                 name="guestsCount"
@@ -188,13 +188,13 @@ export default function Home() {
               disabled={loading || dateError !== ''}
               className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-lg hover:shadow-lg hover:shadow-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
-              {loading ? 'â³ Verificando...' : 'âœ“ DisponÃ­vel?'}
+              {loading ? ' Verificando...' : ' Disponível?'}
             </button>
           </form>
           
           {dateError && (
             <div className="mt-6 bg-red-50 border-2 border-red-300 text-red-800 p-4 rounded-lg font-semibold">
-              ðŸš« {dateError}
+               {dateError}
             </div>
           )}
         </div>
@@ -207,20 +207,20 @@ export default function Home() {
             <div>
               <h2 className="text-4xl font-bold text-orange-900 mb-6">Sobre o EnzoLoft</h2>
               <p className="text-gray-700 text-lg mb-4 leading-relaxed">
-                Um refÃºgio encantador no coraÃ§Ã£o do Alentejo, onde a natureza, conforto e charme se encontram. 
-                Perfeito para casais, famÃ­lias ou amigos que procuram descanso e autenticidade.
+                Um refúgio encantador no coração do Alentejo, onde a natureza, conforto e charme se encontram. 
+                Perfeito para casais, famílias ou amigos que procuram descanso e autenticidade.
               </p>
               <p className="text-gray-700 text-lg mb-6 leading-relaxed">
-                Com piscina, jardim espaÃ§oso e todas as comodidades modernas, oferecemos uma experiÃªncia inesquecÃ­vel.
+                Com piscina, jardim espaçoso e todas as comodidades modernas, oferecemos uma experiência inesquecível.
               </p>
               <div className="flex gap-4">
                 <div className="bg-white p-4 rounded-lg shadow-md">
-                  <p className="text-2xl font-bold text-orange-600">4.9â˜…</p>
-                  <p className="text-sm text-gray-600">AvaliaÃ§Ã£o</p>
+                  <p className="text-2xl font-bold text-orange-600">4.9</p>
+                  <p className="text-sm text-gray-600">Avaliação</p>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow-md">
                   <p className="text-2xl font-bold text-orange-600">500+</p>
-                  <p className="text-sm text-gray-600">HÃ³spedes felizes</p>
+                  <p className="text-sm text-gray-600">Hóspedes felizes</p>
                 </div>
               </div>
             </div>
@@ -306,7 +306,7 @@ export default function Home() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-2">HÃ³spedes *</label>
+                <label className="block text-sm font-semibold text-orange-900 mb-2">Hóspedes *</label>
                 <input
                   type="number"
                   name="guestsCount"
@@ -339,7 +339,7 @@ export default function Home() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-orange-900 mb-2">PreÃ§o Total (â‚¬) *</label>
+                <label className="block text-sm font-semibold text-orange-900 mb-2">Preço Total (€) *</label>
                 <input
                   type="number"
                   name="totalPrice"
@@ -364,11 +364,11 @@ export default function Home() {
               disabled={loading || dateError !== ''}
               className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-lg font-bold text-lg hover:shadow-lg hover:shadow-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
-              {loading ? 'â³ Processando...' : 'ðŸŽ‰ Reservar Agora'}
+              {loading ? ' Processando...' : ' Reservar Agora'}
             </button>
             
             {message && (
-              <div className={`p-4 rounded-lg font-semibold ${message.includes('âŒ') ? 'bg-red-50 text-red-800 border-2 border-red-300' : 'bg-green-50 text-green-800 border-2 border-green-300'}`}>
+              <div className={`p-4 rounded-lg font-semibold ${message.includes('') ? 'bg-red-50 text-red-800 border-2 border-red-300' : 'bg-green-50 text-green-800 border-2 border-green-300'}`}>
                 {message}
               </div>
             )}
@@ -380,13 +380,13 @@ export default function Home() {
       <footer className="bg-gradient-to-r from-orange-900 to-red-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h3 className="text-2xl font-bold mb-4">EnzoLoft</h3>
-          <p className="mb-4">Retiro de charme no coraÃ§Ã£o do Alentejo</p>
+          <p className="mb-4">Retiro de charme no coração do Alentejo</p>
           <div className="flex justify-center gap-8 mb-6 text-sm">
-            <span>ðŸ“ Vila Nova da Baronia, Ã‰vora</span>
-            <span>ðŸ“§ info@enzoloft.com</span>
-            <span>ðŸ“± +351 XXX XXX XXX</span>
+            <span> Vila Nova da Baronia, Évora</span>
+            <span> info@enzoloft.com</span>
+            <span> +351 XXX XXX XXX</span>
           </div>
-          <p className="text-orange-200 text-sm">© 2026 EnzoLoft. Todos os direitos reservados.</p>
+          <p className="text-orange-200 text-sm"> 2026 EnzoLoft. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
