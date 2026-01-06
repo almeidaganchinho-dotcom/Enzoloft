@@ -74,7 +74,6 @@ export default function AdminDashboard() {
       // Carregar vouchers do Firestore
       const vouchersSnapshot = await getDocs(collection(db, 'vouchers'));
       const vouchersData = vouchersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log('Vouchers carregados do Firestore (admin):', vouchersData);
       setVouchers(vouchersData);
       
       // Carregar configurações de contacto
@@ -864,9 +863,7 @@ export default function AdminDashboard() {
                         expiryDate: newVoucher.expiryDate,
                         createdAt: new Date().toISOString()
                       };
-                      console.log('Criando voucher:', voucherData);
                       const docRef = await addDoc(collection(db, 'vouchers'), voucherData);
-                      console.log('Voucher criado com ID:', docRef.id);
                       const newVoucherWithId = { ...voucherData, id: docRef.id };
                       setVouchers([...vouchers, newVoucherWithId]);
                       setNewVoucher({ code: '', type: 'percentage', value: 0, expiryDate: '' });

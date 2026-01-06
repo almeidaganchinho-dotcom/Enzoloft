@@ -120,14 +120,9 @@ export default function Home() {
       const vouchersSnapshot = await getDocs(collection(db, 'vouchers'));
       const vouchers = vouchersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Voucher));
       
-      console.log('Vouchers disponíveis:', vouchers);
-      console.log('Código inserido:', voucherCode.trim().toUpperCase());
-      console.log('Códigos no sistema:', vouchers.map(v => v.code?.trim().toUpperCase()));
-      
       const voucher = vouchers.find(v => v.code?.trim().toUpperCase() === voucherCode.trim().toUpperCase());
       
       if (!voucher) {
-        console.log('Voucher não encontrado!');
         setVoucherError('Voucher inválido.');
         setAppliedVoucher(null);
         setDiscount(0);
