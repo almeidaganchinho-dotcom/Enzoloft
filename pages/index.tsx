@@ -234,7 +234,7 @@ export default function Home() {
       console.error('Erro ao calcular preço:', error);
       return nightsCount * 100;
     }
-  }, []);
+  }, [appliedVoucher]);
 
   const handleChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
