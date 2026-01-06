@@ -3,22 +3,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Reservations - qualquer um pode criar, só admin pode ler/atualizar
+    // Reservations - qualquer um pode criar e ler
     match /reservations/{reservationId} {
-      allow create: if true;  // Permite qualquer visitante criar reserva
-      allow read, update, delete: if request.auth != null;  // Só autenticados (admin)
+      allow read, create: if true;
+      allow update, delete: if true;  // Temporário para desenvolvimento
     }
     
-    // Prices - só admin pode escrever, todos podem ler
+    // Prices - todos podem ler e escrever
     match /prices/{priceId} {
-      allow read: if true;  // Todos podem ler preços
-      allow write: if request.auth != null;  // Só autenticados (admin) podem modificar
+      allow read, write: if true;
     }
     
-    // Settings - só admin pode escrever, todos podem ler
+    // Settings - todos podem ler e escrever
     match /settings/{settingId} {
-      allow read: if true;  // Todos podem ler configurações
-      allow write: if request.auth != null;  // Só autenticados (admin) podem modificar
+      allow read, write: if true;
     }
   }
 }
