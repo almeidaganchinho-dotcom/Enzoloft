@@ -65,16 +65,24 @@ export async function sendNewReservationEmail(data: ReservationEmailData): Promi
       property_email: 'info@enzoloft.com',
     };
 
+    console.log('Enviando email com config:', {
+      serviceId: EMAILJS_CONFIG.serviceId,
+      templateId: EMAILJS_CONFIG.templates.newReservation,
+      params: templateParams
+    });
+
     const response = await emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templates.newReservation,
       templateParams
     );
 
-    console.log('Email de nova reserva enviado:', response);
+    console.log('Email de nova reserva enviado com sucesso:', response);
     return response.status === 200;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao enviar email de nova reserva:', error);
+    console.error('Detalhes do erro:', error.text || error.message);
+    alert(`Erro ao enviar email: ${error.text || error.message || 'Erro desconhecido'}`);
     return false;
   }
 }
@@ -124,16 +132,24 @@ export async function sendStatusUpdateEmail(data: ReservationEmailData): Promise
       property_phone: '+351 XXX XXX XXX',
     };
 
+    console.log('Enviando email de atualização com config:', {
+      serviceId: EMAILJS_CONFIG.serviceId,
+      templateId: EMAILJS_CONFIG.templates.statusUpdate,
+      params: templateParams
+    });
+
     const response = await emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templates.statusUpdate,
       templateParams
     );
 
-    console.log('Email de atualização de status enviado:', response);
+    console.log('Email de atualização enviado com sucesso:', response);
     return response.status === 200;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao enviar email de atualização:', error);
+    console.error('Detalhes do erro:', error.text || error.message);
+    alert(`Erro EmailJS: ${error.text || error.message || 'Verifique se os templates foram criados no EmailJS'}`);
     return false;
   }
 }
