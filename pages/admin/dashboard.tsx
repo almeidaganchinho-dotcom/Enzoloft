@@ -29,7 +29,7 @@ export default function AdminDashboard() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedReservation, setSelectedReservation] = useState<any>(null);
   const [contactInfo, setContactInfo] = useState({
-    location: 'Vila Nova da Baronia, Évora',
+    location: 'Vila Ruiva, Cuba - Beja',
     email: 'info@enzoloft.com',
     phone: '+351 XXX XXX XXX',
     description: 'Retiro de charme no coração do Alentejo',
@@ -1017,7 +1017,7 @@ export default function AdminDashboard() {
                         value={contactInfo.location}
                         onChange={(e) => setContactInfo({ ...contactInfo, location: e.target.value })}
                         className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="Vila Nova da Baronia, Évora"
+                        placeholder="Vila Ruiva, Cuba - Beja"
                       />
                     </div>
                     <div>

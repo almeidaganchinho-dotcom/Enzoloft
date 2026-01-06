@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -14,18 +16,21 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      // Modo estático: validar credenciais de demonstração localmente
-      if (email === 'admin@enzoloft.com' && password === 'password123') {
-        localStorage.setItem('adminToken', 'demo-token');
-        localStorage.setItem('adminEmail', email);
-        router.push('/admin/dashboard');
-        return;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Login bem-sucedido
+      localStorage.setItem('adminToken', await userCredential.user.getIdToken());
+      localStorage.setItem('adminEmail', email);
+      router.push('/admin/dashboard');
+    } catch (err: any) {
+      console.error('Erro ao fazer login:', err);
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError('Email ou password incorretos');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Demasiadas tentativas. Tente novamente mais tarde.');
+      } else {
+        setError('Erro ao fazer login. Verifique suas credenciais.');
       }
-
-      // Credenciais inválidas no modo estático
-      setError('Credenciais inválidas. Usa: admin@enzoloft.com / password123');
-    } catch (err) {
-      setError('Erro ao fazer login');
     } finally {
       setLoading(false);
     }
@@ -46,7 +51,7 @@ export default function AdminLogin() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-              placeholder="admin@enzoloft.com"
+              placeholder="seu@email.com"
             />
           </div>
 
@@ -72,10 +77,6 @@ export default function AdminLogin() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-
-        <p className="text-xs text-gray-500 mt-6 text-center">
-          Demo credentials: admin@enzoloft.com / password123
-        </p>
       </div>
     </div>
   );

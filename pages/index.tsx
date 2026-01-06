@@ -60,8 +60,10 @@ export default function Home() {
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+  const [showFormCalendar, setShowFormCalendar] = useState<boolean>(false);
+  const [formCalendarMonth, setFormCalendarMonth] = useState<Date>(new Date());
   const [contactInfo, setContactInfo] = useState({
-    location: 'Vila Nova da Baronia, Évora',
+    location: 'Vila Ruiva, Cuba - Beja',
     email: 'info@enzoloft.com',
     phone: '+351 XXX XXX XXX',
     description: 'Retiro de charme no coração do Alentejo',
@@ -123,6 +125,44 @@ export default function Home() {
       return checkDate >= blockStart && checkDate <= blockEnd && block.status === 'blocked';
     });
   }, [blockedDates]);
+
+  const isDateReserved = useCallback((date: string): boolean => {
+    const checkDate = new Date(date);
+    return reservedDates.some(res => {
+      const resStart = new Date(res.startDate);
+      const resEnd = new Date(res.endDate);
+      return checkDate >= resStart && checkDate <= resEnd;
+    });
+  }, [reservedDates]);
+
+  const checkDateRangeConflict = useCallback((start: string, end: string): { hasConflict: boolean; message: string } => {
+    if (!start || !end) return { hasConflict: false, message: '' };
+    
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    if (endDate <= startDate) {
+      return { hasConflict: true, message: '❌ A data de check-out deve ser posterior à data de check-in.' };
+    }
+    
+    let currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      
+      if (isDateBlocked(dateStr)) {
+        return { hasConflict: true, message: '❌ Uma ou mais datas selecionadas estão bloqueadas pelo administrador.' };
+      }
+      
+      if (isDateReserved(dateStr)) {
+        return { hasConflict: true, message: '❌ Uma ou mais datas selecionadas já estão reservadas. Escolha outras datas.' };
+      }
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return { hasConflict: false, message: '' };
+  }, [isDateBlocked, isDateReserved]);
   const applyVoucher = useCallback(async () => {
     if (!voucherCode.trim()) {
       setVoucherError('Por favor, insira um código de voucher.');
@@ -273,30 +313,52 @@ export default function Home() {
       const end = name === 'endDate' ? value : formData.endDate;
       
       if (start && end) {
-        const startDate = new Date(start);
-        const endDate = new Date(end);
+        // Verificar conflitos de datas
+        const conflict = checkDateRangeConflict(start, end);
         
-        // Calcular preço total
-        const calculatedPrice = await calculateTotalPrice(start, end);
-        setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
-        
-        let hasBlockedDate = false;
-        let currentDate = new Date(startDate);
-        
-        while (currentDate <= endDate) {
-          if (isDateBlocked(currentDate.toISOString().split('T')[0])) {
-            hasBlockedDate = true;
-            break;
-          }
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-        
-        if (hasBlockedDate) {
-          setDateError('❌ Uma ou mais datas selecionadas estão bloqueadas. Escolha outras datas.');
+        if (conflict.hasConflict) {
+          setDateError(conflict.message);
+          setFormData(prev => ({ ...prev, totalPrice: 0 }));
+          setNights(0);
+        } else {
+          // Calcular preço total apenas se não houver conflito
+          const calculatedPrice = await calculateTotalPrice(start, end);
+          setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
         }
       }
     }
-  }, [formData.startDate, formData.endDate, isDateBlocked, calculateTotalPrice]);
+  }, [formData.startDate, formData.endDate, checkDateRangeConflict, calculateTotalPrice]);
+
+  const handleDateSelect = useCallback(async (dateStr: string, type: 'start' | 'end') => {
+    const newFormData = { ...formData };
+    
+    if (type === 'start') {
+      newFormData.startDate = dateStr;
+      // Se já existir endDate e for anterior ao novo startDate, limpar
+      if (newFormData.endDate && newFormData.endDate <= dateStr) {
+        newFormData.endDate = '';
+      }
+    } else {
+      newFormData.endDate = dateStr;
+    }
+    
+    setFormData(newFormData);
+    setDateError('');
+    
+    // Verificar conflitos e calcular preço se ambas as datas estiverem selecionadas
+    if (newFormData.startDate && newFormData.endDate) {
+      const conflict = checkDateRangeConflict(newFormData.startDate, newFormData.endDate);
+      
+      if (conflict.hasConflict) {
+        setDateError(conflict.message);
+        setFormData(prev => ({ ...prev, totalPrice: 0 }));
+        setNights(0);
+      } else {
+        const calculatedPrice = await calculateTotalPrice(newFormData.startDate, newFormData.endDate);
+        setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
+      }
+    }
+  }, [formData, checkDateRangeConflict, calculateTotalPrice]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,7 +453,7 @@ export default function Home() {
             {/* Hero Content - Left Side */}
             <div className="text-white">
               <h2 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">Retiro Perfeito no Alentejo</h2>
-              <p className="text-xl md:text-2xl mb-8 drop-shadow-md">Alojamento de charme em Vila Nova da Baronia</p>
+              <p className="text-xl md:text-2xl mb-8 drop-shadow-md">Alojamento de charme em Vila Ruiva, Cuba - Beja</p>
               <div className="flex gap-4 text-lg flex-wrap">
                 <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">📶 Wi-Fi Gratuito</span>
                 <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">🏊 Piscina</span>
@@ -439,44 +501,168 @@ export default function Home() {
                     className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-orange-900 mb-1 flex items-center gap-1">
-                      📅 Check-in
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="date"
-                        name="startDate"
-                        required
-                        value={formData.startDate}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-gradient-to-br from-white to-orange-50 transition text-sm font-medium text-gray-700 hover:border-orange-300 cursor-pointer"
-                        style={{
-                          colorScheme: 'light',
-                        }}
-                      />
+                <div>
+                  <label className="block text-xs font-semibold text-orange-900 mb-1">Selecione as datas</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowFormCalendar(!showFormCalendar)}
+                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg bg-gradient-to-br from-white to-orange-50 text-left text-sm font-medium text-gray-700 hover:border-orange-300 transition"
+                  >
+                    {formData.startDate && formData.endDate 
+                      ? `${new Date(formData.startDate).toLocaleDateString('pt-PT')} - ${new Date(formData.endDate).toLocaleDateString('pt-PT')}`
+                      : formData.startDate
+                      ? `Check-in: ${new Date(formData.startDate).toLocaleDateString('pt-PT')}`
+                      : '📅 Clique para selecionar datas'}
+                  </button>
+                  
+                  {showFormCalendar && (
+                    <div className="mt-1.5 border border-orange-300 rounded p-1.5 bg-white shadow-lg">
+                      {/* Navigation */}
+                      <div className="flex justify-between items-center mb-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMonth = new Date(formCalendarMonth);
+                            newMonth.setMonth(newMonth.getMonth() - 1);
+                            setFormCalendarMonth(newMonth);
+                          }}
+                          className="bg-orange-500 hover:bg-orange-600 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                        >
+                          ◀
+                        </button>
+                        <h4 className="text-xs font-bold text-orange-900">
+                          {formCalendarMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMonth = new Date(formCalendarMonth);
+                            newMonth.setMonth(newMonth.getMonth() + 1);
+                            setFormCalendarMonth(newMonth);
+                          }}
+                          className="bg-orange-500 hover:bg-orange-600 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                        >
+                          ▶
+                        </button>
+                      </div>
+                      
+                      {/* Calendar Grid */}
+                      <div className="grid grid-cols-7 gap-0.5">
+                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
+                          <div key={i} className="text-center font-bold text-orange-900 text-[9px] py-0.5">
+                            {day}
+                          </div>
+                        ))}
+                        
+                        {(() => {
+                          const year = formCalendarMonth.getFullYear();
+                          const month = formCalendarMonth.getMonth();
+                          const firstDay = new Date(year, month, 1).getDay();
+                          const daysInMonth = new Date(year, month + 1, 0).getDate();
+                          const days = [];
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          
+                          // Empty cells
+                          for (let i = 0; i < firstDay; i++) {
+                            days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
+                          }
+                          
+                          // Days
+                          for (let day = 1; day <= daysInMonth; day++) {
+                            const date = new Date(year, month, day);
+                            const dateStr = date.toISOString().split('T')[0];
+                            
+                            const isBlocked = blockedDates.some(block => {
+                              const blockStart = new Date(block.startDate);
+                              const blockEnd = new Date(block.endDate);
+                              return date >= blockStart && date <= blockEnd && block.status === 'blocked';
+                            });
+                            
+                            const isReserved = reservedDates.some(res => {
+                              const resStart = new Date(res.startDate);
+                              const resEnd = new Date(res.endDate);
+                              return date >= resStart && date <= resEnd;
+                            });
+                            
+                            const isPast = date < today;
+                            const isSelected = dateStr === formData.startDate || dateStr === formData.endDate;
+                            const isInRange = formData.startDate && formData.endDate && dateStr > formData.startDate && dateStr < formData.endDate;
+                            
+                            let bgColor = 'bg-green-100 border-green-300 hover:bg-green-200 cursor-pointer';
+                            let disabled = false;
+                            
+                            if (isPast) {
+                              bgColor = 'bg-gray-100 text-gray-400 cursor-not-allowed';
+                              disabled = true;
+                            } else if (isBlocked) {
+                              bgColor = 'bg-red-200 border-red-400 cursor-not-allowed';
+                              disabled = true;
+                            } else if (isReserved) {
+                              bgColor = 'bg-orange-200 border-orange-400 cursor-not-allowed';
+                              disabled = true;
+                            }
+                            
+                            if (isSelected) {
+                              bgColor = bgColor + ' ring-2 ring-blue-500 font-bold';
+                            } else if (isInRange) {
+                              bgColor = 'bg-blue-50 border-blue-200';
+                            }
+                            
+                            days.push(
+                              <button
+                                key={day}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => {
+                                  if (!formData.startDate || (formData.startDate && formData.endDate)) {
+                                    handleDateSelect(dateStr, 'start');
+                                  } else {
+                                    handleDateSelect(dateStr, 'end');
+                                  }
+                                }}
+                                className={`aspect-square border rounded p-0.5 text-center text-[10px] font-semibold transition-all ${bgColor}`}
+                              >
+                                {day}
+                              </button>
+                            );
+                          }
+                          
+                          return days;
+                        })()}
+                      </div>
+                      
+                      {/* Mini Legend */}
+                      <div className="flex gap-1.5 mt-1.5 text-[10px] justify-center">
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-2 h-2 bg-green-100 border border-green-300 rounded"></div>
+                          <span>Disponível</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-2 h-2 bg-orange-200 border border-orange-400 rounded"></div>
+                          <span>Reservado</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-2 h-2 bg-red-200 border border-red-400 rounded"></div>
+                          <span>Bloqueado</span>
+                        </div>
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={() => setShowFormCalendar(false)}
+                        className="w-full mt-1.5 bg-orange-500 hover:bg-orange-600 text-white py-0.5 rounded text-[10px] font-semibold"
+                      >
+                        Confirmar
+                      </button>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-orange-900 mb-1 flex items-center gap-1">
-                      📅 Check-out
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="date"
-                        name="endDate"
-                        required
-                        value={formData.endDate}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-gradient-to-br from-white to-orange-50 transition text-sm font-medium text-gray-700 hover:border-orange-300 cursor-pointer"
-                        style={{
-                          colorScheme: 'light',
-                        }}
-                      />
-                    </div>
-                  </div>
+                  )}
                 </div>
+                {dateError && (
+                  <div className="bg-red-50 border-2 border-red-300 rounded-lg p-2 text-xs text-red-700 font-semibold">
+                    {dateError}
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-semibold text-orange-900 mb-1">Número de Hóspedes</label>
                   <input
@@ -658,25 +844,25 @@ export default function Home() {
       </section>
 
       {/* Availability Calendar */}
-      <section id="availability-calendar" className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-4xl font-bold text-orange-900 mb-4 text-center">📅 Disponibilidade</h2>
-          <p className="text-center text-gray-600 mb-8">Consulte as datas disponíveis para a sua estadia</p>
+      <section id="availability-calendar" className="py-12 bg-white">
+        <div className="max-w-2xl mx-auto px-4">
+          <h2 className="text-3xl font-bold text-orange-900 mb-3 text-center">📅 Disponibilidade</h2>
+          <p className="text-center text-gray-600 mb-6 text-sm">Consulte as datas disponíveis para a sua estadia</p>
           
-          <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl shadow-xl p-6 border-2 border-orange-200">
+          <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl shadow-xl p-4 border-2 border-orange-200">
             {/* Calendar Navigation */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <button
                 onClick={() => {
                   const newMonth = new Date(calendarMonth);
                   newMonth.setMonth(newMonth.getMonth() - 1);
                   setCalendarMonth(newMonth);
                 }}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
               >
-                ◀ Anterior
+                ◀
               </button>
-              <h3 className="text-2xl font-bold text-orange-900">
+              <h3 className="text-xl font-bold text-orange-900">
                 {calendarMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
               </h3>
               <button
@@ -685,17 +871,17 @@ export default function Home() {
                   newMonth.setMonth(newMonth.getMonth() + 1);
                   setCalendarMonth(newMonth);
                 }}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
               >
-                Próximo ▶
+                ▶
               </button>
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1">
               {/* Day headers */}
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                <div key={day} className="text-center font-bold text-orange-900 py-2">
+                <div key={day} className="text-center font-bold text-orange-900 py-1 text-xs">
                   {day}
                 </div>
               ))}
@@ -736,24 +922,33 @@ export default function Home() {
                   
                   const isToday = today.getTime() === date.getTime();
                   const isPast = date < today;
-                  const isOccupied = isBlocked || isReserved;
+                  
+                  // Determinar estilo baseado no estado da data
+                  let bgColor = 'bg-green-100 border-green-300 hover:bg-green-200'; // Disponível
+                  let icon = '';
+                  
+                  if (isPast) {
+                    bgColor = 'bg-gray-100 text-gray-400 border-gray-200';
+                  } else if (isBlocked) {
+                    bgColor = 'bg-red-200 border-red-400 cursor-not-allowed';
+                    icon = '🔒';
+                  } else if (isReserved) {
+                    bgColor = 'bg-orange-200 border-orange-400 cursor-not-allowed';
+                    icon = '📅';
+                  }
+                  
+                  if (isToday) {
+                    bgColor = bgColor + ' ring-2 ring-blue-500';
+                  }
                   
                   days.push(
                     <div
                       key={day}
-                      className={`aspect-square border-2 rounded-lg p-2 text-center transition-all ${
-                        isToday ? 'border-blue-500 bg-blue-100' : 'border-gray-200'
-                      } ${
-                        isOccupied 
-                          ? 'bg-red-200 border-red-400 cursor-not-allowed' 
-                          : isPast
-                          ? 'bg-gray-100 text-gray-400'
-                          : 'bg-green-100 border-green-300 hover:bg-green-200'
-                      }`}
+                      className={`aspect-square border rounded-lg p-1 text-center transition-all ${bgColor}`}
                     >
-                      <div className="text-sm font-semibold">{day}</div>
-                      {isOccupied && (
-                        <div className="text-xs text-red-700 mt-1">🔒</div>
+                      <div className="text-xs font-semibold">{day}</div>
+                      {icon && (
+                        <div className="text-xs">{icon}</div>
                       )}
                     </div>
                   );
@@ -764,18 +959,18 @@ export default function Home() {
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap justify-center gap-4 mt-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-green-100 border-2 border-green-300 rounded"></div>
+            <div className="flex flex-wrap justify-center gap-3 mt-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
                 <span className="text-gray-700">Disponível</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-red-200 border-2 border-red-400 rounded"></div>
-                <span className="text-gray-700">Ocupado</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 bg-orange-200 border border-orange-400 rounded flex items-center justify-center text-xs">📅</div>
+                <span className="text-gray-700">Reservado</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-blue-100 border-2 border-blue-500 rounded"></div>
-                <span className="text-gray-700">Hoje</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 bg-red-200 border border-red-400 rounded flex items-center justify-center text-xs">🔒</div>
+                <span className="text-gray-700">Bloqueado</span>
               </div>
             </div>
           </div>

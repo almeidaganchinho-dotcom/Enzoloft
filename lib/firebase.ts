@@ -1,17 +1,19 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBVz9JxqL_3-m8vX5L4tQo0Y7cQ8KqJ9cA",
-  authDomain: "enzoloft.firebaseapp.com",
+  apiKey: "AIzaSyDU5_Lu7islxpFCkqjz7O0-DnliCB5JSeA",
+  authDomain: "enzoloft-51508.firebaseapp.com",
   projectId: "enzoloft",
   storageBucket: "enzoloft.firebasestorage.app",
-  messagingSenderId: "428656775658",
-  appId: "1:428656775658:web:9d8b0c5e8f3a4b1c2d3e4f"
+  messagingSenderId: "309372653282",
+  appId: "1:309372653282:web:01debfc2f683df49d658bb"
 };
 
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-export { db };
+export { db, auth };
