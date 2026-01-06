@@ -51,6 +51,7 @@ export default function Home() {
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [reservedDates, setReservedDates] = useState<{startDate: string, endDate: string}[]>([]);
   const [dateError, setDateError] = useState<string>('');
   const [nights, setNights] = useState<number>(0);
   const [voucherCode, setVoucherCode] = useState<string>('');
@@ -58,6 +59,7 @@ export default function Home() {
   const [voucherError, setVoucherError] = useState<string>('');
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Nova da Baronia, Évora',
     email: 'info@enzoloft.com',
@@ -78,6 +80,23 @@ export default function Home() {
       }
     };
     
+    // Carregar reservas confirmadas (sem dados pessoais)
+    const loadReservedDates = async () => {
+      try {
+        const reservationsSnapshot = await getDocs(collection(db, 'reservations'));
+        const confirmedReservations = reservationsSnapshot.docs
+          .map(doc => doc.data())
+          .filter(res => res.status === 'confirmed')
+          .map(res => ({
+            startDate: res.startDate,
+            endDate: res.endDate
+          }));
+        setReservedDates(confirmedReservations);
+      } catch (error) {
+        console.error('Erro ao carregar reservas:', error);
+      }
+    };
+    
     // Carregar informações de contacto do Firestore
     const loadContactInfo = async () => {
       try {
@@ -92,6 +111,7 @@ export default function Home() {
     };
     
     loadBlockedDates();
+    loadReservedDates();
     loadContactInfo();
   }, []);
 
@@ -625,6 +645,131 @@ export default function Home() {
                 <div className="absolute inset-0 bg-black opacity-0 hover:opacity-20 transition-opacity duration-300"></div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Availability Calendar */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4">
+          <h2 className="text-4xl font-bold text-orange-900 mb-4 text-center">📅 Disponibilidade</h2>
+          <p className="text-center text-gray-600 mb-8">Consulte as datas disponíveis para a sua estadia</p>
+          
+          <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl shadow-xl p-6 border-2 border-orange-200">
+            {/* Calendar Navigation */}
+            <div className="flex justify-between items-center mb-6">
+              <button
+                onClick={() => {
+                  const newMonth = new Date(calendarMonth);
+                  newMonth.setMonth(newMonth.getMonth() - 1);
+                  setCalendarMonth(newMonth);
+                }}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+              >
+                ◀ Anterior
+              </button>
+              <h3 className="text-2xl font-bold text-orange-900">
+                {calendarMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+              </h3>
+              <button
+                onClick={() => {
+                  const newMonth = new Date(calendarMonth);
+                  newMonth.setMonth(newMonth.getMonth() + 1);
+                  setCalendarMonth(newMonth);
+                }}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+              >
+                Próximo ▶
+              </button>
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7 gap-2">
+              {/* Day headers */}
+              {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                <div key={day} className="text-center font-bold text-orange-900 py-2">
+                  {day}
+                </div>
+              ))}
+              
+              {/* Calendar days */}
+              {(() => {
+                const year = calendarMonth.getFullYear();
+                const month = calendarMonth.getMonth();
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const days = [];
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                // Empty cells before first day
+                for (let i = 0; i < firstDay; i++) {
+                  days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
+                }
+                
+                // Days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                  const date = new Date(year, month, day);
+                  const dateStr = date.toISOString().split('T')[0];
+                  
+                  // Check if date is blocked
+                  const isBlocked = blockedDates.some(block => {
+                    const blockStart = new Date(block.startDate);
+                    const blockEnd = new Date(block.endDate);
+                    return date >= blockStart && date <= blockEnd && block.status === 'blocked';
+                  });
+                  
+                  // Check if date is reserved
+                  const isReserved = reservedDates.some(res => {
+                    const resStart = new Date(res.startDate);
+                    const resEnd = new Date(res.endDate);
+                    return date >= resStart && date <= resEnd;
+                  });
+                  
+                  const isToday = today.getTime() === date.getTime();
+                  const isPast = date < today;
+                  const isOccupied = isBlocked || isReserved;
+                  
+                  days.push(
+                    <div
+                      key={day}
+                      className={`aspect-square border-2 rounded-lg p-2 text-center transition-all ${
+                        isToday ? 'border-blue-500 bg-blue-100' : 'border-gray-200'
+                      } ${
+                        isOccupied 
+                          ? 'bg-red-200 border-red-400 cursor-not-allowed' 
+                          : isPast
+                          ? 'bg-gray-100 text-gray-400'
+                          : 'bg-green-100 border-green-300 hover:bg-green-200'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold">{day}</div>
+                      {isOccupied && (
+                        <div className="text-xs text-red-700 mt-1">🔒</div>
+                      )}
+                    </div>
+                  );
+                }
+                
+                return days;
+              })()}
+            </div>
+
+            {/* Legend */}
+            <div className="flex flex-wrap justify-center gap-4 mt-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-100 border-2 border-green-300 rounded"></div>
+                <span className="text-gray-700">Disponível</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-red-200 border-2 border-red-400 rounded"></div>
+                <span className="text-gray-700">Ocupado</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-blue-100 border-2 border-blue-500 rounded"></div>
+                <span className="text-gray-700">Hoje</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
