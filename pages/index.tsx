@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 export default function Home() {
@@ -14,35 +14,56 @@ export default function Home() {
   });
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [blockedDates, setBlockedDates] = useState<any[]>([]);
+  const [dateError, setDateError] = useState('');
+
+  useEffect(() => {
+    // Fetch blocked dates from API
+    fetch('/api/admin/availability')
+      .then(res => res.json())
+      .then(data => setBlockedDates(data))
+      .catch(err => console.error('Erro ao carregar datas bloqueadas:', err));
+  }, []);
+
+  const isDateBlocked = (date: string): boolean => {
+    const checkDate = new Date(date);
+    return blockedDates.some(block => {
+      const blockStart = new Date(block.startDate);
+      const blockEnd = new Date(block.endDate);
+      return checkDate >= blockStart && checkDate <= blockEnd && block.status === 'blocked';
+    });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
+    setDateError('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage('');
-
-    try {
-      const response = await fetch('/api/reservations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setMessage('Reserva criada com sucesso! Aguardando confirmação do admin.');
-        setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
-      } else {
-        setMessage(`Erro: ${data.error}`);
+    // Validate dates when user changes them
+    if (name === 'startDate' || name === 'endDate') {
+      const start = name === 'startDate' ? value : formData.startDate;
+      const end = name === 'endDate' ? value : formData.endDate;
+      
+      if (start && end) {
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        
+        // Check for blocked dates in range
+        let hasBlockedDate = false;
+        let currentDate = new Date(startDate);
+        
+        while (currentDate <= endDate) {
+          if (isDateBlocked(currentDate.toISOString().split('T')[0])) {
+            hasBlockedDate = true;
+            break;
+          }
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        if (hasBlockedDate) {
+          setDateError('⚠️ Uma ou mais datas selecionadas estão bloqueadas. Escolha outras datas.');
+        }
       }
-    } catch (error) {
-      setMessage('Erro ao criar reserva.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -272,15 +293,20 @@ export default function Home() {
                 />
               </div>
             </div>
+            {dateError && (
+              <div className="bg-red-50 border border-red-300 text-red-800 p-4 rounded-lg">
+                {dateError}
+              </div>
+            )}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-amber-600 text-white py-3 rounded-lg font-semibold hover:bg-amber-700 disabled:opacity-50 transition-colors"
+              disabled={loading || dateError !== ''}
+              className="w-full bg-amber-600 text-white py-3 rounded-lg font-semibold hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Booking...' : 'Book Now'}
             </button>
             {message && (
-              <div className={`p-4 rounded-lg ${message.includes('Erro') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'}`}>
+              <div className={`p-4 rounded-lg ${message.includes('Erro') || message.includes('❌') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'}`}>
                 {message}
               </div>
             )}

@@ -250,6 +250,98 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {/* Availability */}
+            {activeTab === 'availability' && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-2xl font-bold text-amber-900 mb-6">🚫 Bloquear Datas de Reservas</h2>
+                <p className="text-gray-600 mb-6">As datas bloqueadas não poderão ter novas reservas. Use isto para manutenção, limpeza ou períodos de encerramento.</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Add New Block */}
+                  <div className="border-2 border-dashed border-amber-300 rounded-lg p-6">
+                    <h3 className="text-lg font-bold text-amber-900 mb-4">+ Adicionar Novo Bloqueio</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Data de Início</label>
+                        <input type="date" id="newBlockStart" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Data de Fim</label>
+                        <input type="date" id="newBlockEnd" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Motivo</label>
+                        <input type="text" id="newBlockReason" placeholder="Ex: Manutenção, Limpeza..." className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                      </div>
+                      <button onClick={() => {
+                        const startDate = (document.getElementById('newBlockStart') as HTMLInputElement).value;
+                        const endDate = (document.getElementById('newBlockEnd') as HTMLInputElement).value;
+                        const reason = (document.getElementById('newBlockReason') as HTMLInputElement).value;
+                        
+                        if (startDate && endDate && reason) {
+                          const newBlock = {
+                            id: Math.max(...availability.map(a => a.id), 0) + 1,
+                            startDate,
+                            endDate,
+                            reason,
+                            status: 'blocked'
+                          };
+                          setAvailability([...availability, newBlock]);
+                          (document.getElementById('newBlockStart') as HTMLInputElement).value = '';
+                          (document.getElementById('newBlockEnd') as HTMLInputElement).value = '';
+                          (document.getElementById('newBlockReason') as HTMLInputElement).value = '';
+                        }
+                      }} className="w-full bg-amber-600 text-white font-bold py-2 rounded-lg hover:bg-amber-700 transition">
+                        🔒 Bloquear Período
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Calendar View */}
+                  <div className="border border-gray-200 rounded-lg p-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">📅 Períodos Bloqueados</h3>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {availability.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">Nenhuma data bloqueada</p>
+                      ) : (
+                        availability.map((block) => (
+                          <div key={block.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-red-600 font-bold">🚫</span>
+                                  <span className="font-semibold text-gray-900">{block.reason}</span>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  📍 {new Date(block.startDate).toLocaleDateString('pt-PT')} → {new Date(block.endDate).toLocaleDateString('pt-PT')}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {Math.ceil((new Date(block.endDate).getTime() - new Date(block.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1} dias bloqueados
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => setAvailability(availability.filter(a => a.id !== block.id))}
+                                className="text-red-600 hover:text-red-800 text-lg"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info Box */}
+                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>💡 Dica:</strong> Os períodos bloqueados aparecerão no site e os clientes não conseguirão fazer reservas nestas datas. O sistema valida automaticamente.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Vouchers */}
             {activeTab === 'vouchers' && (
               <div className="bg-white rounded-lg shadow p-6">
