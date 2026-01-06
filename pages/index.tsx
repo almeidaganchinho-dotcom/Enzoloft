@@ -249,72 +249,128 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative h-96 bg-gradient-to-r from-orange-600 via-red-500 to-orange-500">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
-        <div className="relative h-full flex flex-col justify-center items-center text-white text-center px-4">
-          <h2 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">Retiro Perfeito no Alentejo</h2>
-          <p className="text-xl md:text-2xl mb-8 drop-shadow-md">Alojamento de charme em Vila Nova da Baronia</p>
-          <div className="flex gap-6 text-lg flex-wrap justify-center">
-            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm"> Wi-Fi Gratuito</span>
-            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm"> Piscina</span>
-            <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm"> Jardim</span>
-          </div>
-        </div>
-      </section>
+      {/* Hero Section with Booking Form */}
+      <section id="booking" className="bg-gradient-to-r from-orange-600 via-red-500 to-orange-500 py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            {/* Hero Content - Left Side */}
+            <div className="text-white">
+              <h2 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">Retiro Perfeito no Alentejo</h2>
+              <p className="text-xl md:text-2xl mb-8 drop-shadow-md">Alojamento de charme em Vila Nova da Baronia</p>
+              <div className="flex gap-4 text-lg flex-wrap">
+                <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">📶 Wi-Fi Gratuito</span>
+                <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">🏊 Piscina</span>
+                <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">🌿 Jardim</span>
+              </div>
+            </div>
 
-      {/* Booking Section */}
-      <section id="booking" className="max-w-7xl mx-auto px-4 py-16">
-        <div className="bg-gradient-to-br from-orange-50 via-white to-orange-50 rounded-2xl p-10 shadow-xl border-2 border-orange-100">
-          <h2 className="text-4xl font-bold text-orange-900 mb-8 text-center">Verificar Disponibilidade</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="block text-sm font-semibold text-orange-900 mb-2">Check-in</label>
-              <input
-                type="date"
-                name="startDate"
-                required
-                value={formData.startDate}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
-              />
+            {/* Booking Form - Right Side */}
+            <div className="bg-white rounded-2xl p-8 shadow-2xl">
+              <h3 className="text-3xl font-bold text-orange-900 mb-6">Fazer Reserva</h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-orange-900 mb-2">Nome Completo</label>
+                  <input
+                    type="text"
+                    name="guestName"
+                    required
+                    value={formData.guestName}
+                    onChange={handleChange}
+                    placeholder="Seu nome"
+                    className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-orange-900 mb-2">Email</label>
+                  <input
+                    type="email"
+                    name="guestEmail"
+                    required
+                    value={formData.guestEmail}
+                    onChange={handleChange}
+                    placeholder="seu@email.com"
+                    className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-orange-900 mb-2">Telefone</label>
+                  <input
+                    type="tel"
+                    name="guestPhone"
+                    required
+                    value={formData.guestPhone}
+                    onChange={handleChange}
+                    placeholder="+351 ..."
+                    className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-orange-900 mb-2">Check-in</label>
+                    <input
+                      type="date"
+                      name="startDate"
+                      required
+                      value={formData.startDate}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-orange-900 mb-2">Check-out</label>
+                    <input
+                      type="date"
+                      name="endDate"
+                      required
+                      value={formData.endDate}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-orange-900 mb-2">Número de Hóspedes</label>
+                  <input
+                    type="number"
+                    name="guestsCount"
+                    min="1"
+                    value={formData.guestsCount}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
+                  />
+                </div>
+                
+                {formData.totalPrice > 0 && (
+                  <div className="bg-green-50 border-2 border-green-300 p-4 rounded-lg">
+                    <p className="text-sm text-green-700 font-semibold">Preço Total</p>
+                    <p className="text-3xl font-bold text-green-800">€{formData.totalPrice}</p>
+                  </div>
+                )}
+                
+                {dateError && (
+                  <div className="bg-red-50 border-2 border-red-300 text-red-800 p-4 rounded-lg font-semibold text-sm">
+                    ⚠️ {dateError}
+                  </div>
+                )}
+                
+                {message && (
+                  <div className={`border-2 p-4 rounded-lg font-semibold text-sm ${
+                    message.includes('✅') ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                  }`}>
+                    {message}
+                  </div>
+                )}
+                
+                <button
+                  type="submit"
+                  disabled={loading || dateError !== ''}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-4 rounded-lg hover:shadow-lg hover:shadow-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 text-lg"
+                >
+                  {loading ? '⏳ Processando...' : '🎯 Reservar Agora'}
+                </button>
+              </form>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-orange-900 mb-2">Check-out</label>
-              <input
-                type="date"
-                name="endDate"
-                required
-                value={formData.endDate}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-orange-900 mb-2">Hóspedes</label>
-              <input
-                type="number"
-                name="guestsCount"
-                min="1"
-                value={formData.guestsCount}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading || dateError !== ''}
-              className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-lg hover:shadow-lg hover:shadow-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-            >
-              {loading ? ' Verificando...' : ' Disponível?'}
-            </button>
-          </form>
-          
-          {dateError && (
-            <div className="mt-6 bg-red-50 border-2 border-red-300 text-red-800 p-4 rounded-lg font-semibold">
-               {dateError}
-            </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -382,124 +438,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Reservation Form */}
-      <section className="bg-white py-16">
-        <div className="max-w-2xl mx-auto px-4">
-          <h2 className="text-4xl font-bold text-orange-900 mb-8 text-center">Fazer Reserva</h2>
-          <form onSubmit={handleSubmit} className="bg-gradient-to-br from-orange-50 to-red-50 p-10 rounded-2xl shadow-xl border-2 border-orange-100 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-2">Nome *</label>
-                <input
-                  type="text"
-                  name="guestName"
-                  required
-                  value={formData.guestName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-2">Email *</label>
-                <input
-                  type="email"
-                  name="guestEmail"
-                  required
-                  value={formData.guestEmail}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-2">Telefone</label>
-                <input
-                  type="tel"
-                  name="guestPhone"
-                  value={formData.guestPhone}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-2">Hóspedes *</label>
-                <input
-                  type="number"
-                  name="guestsCount"
-                  min="1"
-                  value={formData.guestsCount}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-2">Check-in *</label>
-                <input
-                  type="date"
-                  name="startDate"
-                  required
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-2">Check-out *</label>
-                <input
-                  type="date"
-                  name="endDate"
-                  required
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-                />
-              </div>
-              <div className="md:col-span-2">
-                {formData.startDate && formData.endDate && formData.totalPrice > 0 && (
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 p-6 rounded-xl">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-lg font-semibold text-gray-700">💰 Resumo da Reserva</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-gray-600">
-                        <span>📅 Noites:</span>
-                        <span className="font-semibold">{nights} {nights === 1 ? 'noite' : 'noites'}</span>
-                      </div>
-                      <div className="border-t-2 border-green-200 pt-2 mt-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xl font-bold text-green-800">Total:</span>
-                          <span className="text-3xl font-bold text-green-600">€{formData.totalPrice.toFixed(2)}</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">* Preço calculado automaticamente baseado nas datas selecionadas</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {dateError && (
-              <div className="bg-red-50 border-2 border-red-300 text-red-800 p-4 rounded-lg font-semibold">
-                {dateError}
-              </div>
-            )}
-            
-            <button
-              type="submit"
-              disabled={loading || dateError !== ''}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-lg font-bold text-lg hover:shadow-lg hover:shadow-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-            >
-              {loading ? ' Processando...' : ' Reservar Agora'}
-            </button>
-            
-            {message && (
-              <div className={`p-4 rounded-lg font-semibold ${message.includes('') ? 'bg-red-50 text-red-800 border-2 border-red-300' : 'bg-green-50 text-green-800 border-2 border-green-300'}`}>
-                {message}
-              </div>
-            )}
-          </form>
         </div>
       </section>
 
