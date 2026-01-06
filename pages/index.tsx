@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import Head from 'next/head';
 import Image from 'next/image';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs } from 'firebase/firestore';
@@ -71,21 +72,20 @@ export default function Home() {
   });
 
   useEffect(() => {
-    // Carregar datas bloqueadas do Firestore
-    const loadBlockedDates = async () => {
+    const loadAllData = async () => {
       try {
-        const availabilitySnapshot = await getDocs(collection(db, 'availability'));
+        // Carregar tudo em paralelo para melhor performance
+        const [availabilitySnapshot, reservationsSnapshot, contactDoc] = await Promise.all([
+          getDocs(collection(db, 'availability')),
+          getDocs(collection(db, 'reservations')),
+          getDoc(doc(db, 'settings', 'contactInfo'))
+        ]);
+        
+        // Datas bloqueadas
         const blockedData = availabilitySnapshot.docs.map(doc => doc.data() as BlockedDate);
         setBlockedDates(blockedData);
-      } catch (error) {
-        console.error('Erro ao carregar datas bloqueadas:', error);
-      }
-    };
-    
-    // Carregar reservas confirmadas (sem dados pessoais)
-    const loadReservedDates = async () => {
-      try {
-        const reservationsSnapshot = await getDocs(collection(db, 'reservations'));
+        
+        // Reservas confirmadas
         const confirmedReservations = reservationsSnapshot.docs
           .map(doc => doc.data())
           .filter(res => res.status === 'confirmed')
@@ -94,27 +94,17 @@ export default function Home() {
             endDate: res.endDate
           }));
         setReservedDates(confirmedReservations);
-      } catch (error) {
-        console.error('Erro ao carregar reservas:', error);
-      }
-    };
-    
-    // Carregar informações de contacto do Firestore
-    const loadContactInfo = async () => {
-      try {
-        const docRef = doc(db, 'settings', 'contactInfo');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setContactInfo(docSnap.data() as any);
+        
+        // Informações de contacto
+        if (contactDoc.exists()) {
+          setContactInfo(contactDoc.data() as any);
         }
       } catch (error) {
-        console.error('Erro ao carregar informações de contacto:', error);
+        console.error('Erro ao carregar dados:', error);
       }
     };
     
-    loadBlockedDates();
-    loadReservedDates();
-    loadContactInfo();
+    loadAllData();
   }, []);
 
   const isDateBlocked = useCallback((date: string): boolean => {
@@ -365,16 +355,48 @@ export default function Home() {
     setLoading(true);
     setMessage('');
 
+    // Validações básicas
     if (dateError) {
       setMessage('❌ Por favor, escolha datas válidas sem bloqueios.');
       setLoading(false);
       return;
     }
 
+    if (!formData.guestName.trim() || formData.guestName.length < 3) {
+      setMessage('❌ Por favor, insira um nome válido (mínimo 3 caracteres).');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.guestEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setMessage('❌ Por favor, insira um email válido.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.guestPhone.trim() || formData.guestPhone.length < 9) {
+      setMessage('❌ Por favor, insira um telefone válido.');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.guestsCount < 1 || formData.guestsCount > 20) {
+      setMessage('❌ Número de hóspedes inválido (1-20).');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Guardar reserva no Firestore
+      // Sanitizar dados antes de guardar
       const reservation = {
-        ...formData,
+        propertyId: formData.propertyId,
+        guestName: formData.guestName.trim(),
+        guestEmail: formData.guestEmail.trim().toLowerCase(),
+        guestPhone: formData.guestPhone.trim(),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        guestsCount: Number(formData.guestsCount),
+        totalPrice: Number(formData.totalPrice),
         status: 'pending',
         createdAt: new Date().toISOString(),
         ...(appliedVoucher && {
@@ -425,6 +447,18 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Head>
+        <title>EnzoLoft - Alojamento de Charme em Vila Ruiva, Cuba - Beja</title>
+        <meta name="description" content="Retiro de charme no coração do Alentejo. Reserve agora o seu alojamento exclusivo em Vila Ruiva, Cuba - Beja. Casa completa com piscina, jardim e vistas deslumbrantes." />
+        <meta name="keywords" content="alojamento alentejo, casa férias beja, vila ruiva, cuba alentejo, casa com piscina, turismo rural" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta property="og:title" content="EnzoLoft - Alojamento de Charme no Alentejo" />
+        <meta property="og:description" content="Retiro de charme em Vila Ruiva, Cuba - Beja. Reserve a sua estadia exclusiva." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://enzoloft-51508.web.app" />
+        <link rel="canonical" href="https://enzoloft-51508.web.app" />
+      </Head>
+      
       {/* Header */}
       <header className="bg-white border-b-2 border-orange-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">

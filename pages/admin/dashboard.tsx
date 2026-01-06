@@ -42,16 +42,21 @@ export default function AdminDashboard() {
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    const email = localStorage.getItem('adminEmail');
+    const verifyAuth = async () => {
+      const token = localStorage.getItem('adminToken');
+      const email = localStorage.getItem('adminEmail');
 
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
+      if (!token || !email) {
+        router.push('/admin/login');
+        return;
+      }
 
-    setAdmin({ email: email || 'Admin' });
-    fetchAllData();
+      setAdmin({ email });
+      await fetchAllData();
+      setLoading(false);
+    };
+
+    verifyAuth();
   }, []);
 
   const fetchAllData = useCallback(async () => {
@@ -1090,6 +1095,15 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+      
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-amber-600 mx-auto"></div>
+            <p className="mt-4 text-gray-700 font-semibold">A carregar...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
