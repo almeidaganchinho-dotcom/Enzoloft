@@ -73,6 +73,11 @@ export default function AdminDashboard() {
       const availabilityData = availabilitySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAvailability(availabilityData);
       
+      // Carregar vouchers do Firestore
+      const vouchersSnapshot = await getDocs(collection(db, 'vouchers'));
+      const vouchersData = vouchersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setVouchers(vouchersData);
+      
       // Carregar configurações de contacto
       const contactDoc = await getDoc(doc(db, 'settings', 'contactInfo'));
       if (contactDoc.exists()) {
@@ -850,10 +855,24 @@ export default function AdminDashboard() {
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-gray-800">🎁 Vouchers</h2>
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    setVouchers([...vouchers, newVoucher]);
-                    setNewVoucher({ code: '', type: 'percentage', value: 0, expiryDate: '' });
+                    try {
+                      const voucherData = {
+                        code: newVoucher.code.toUpperCase(),
+                        type: newVoucher.type,
+                        value: newVoucher.value,
+                        expiryDate: newVoucher.expiryDate,
+                        createdAt: new Date().toISOString()
+                      };
+                      const docRef = await addDoc(collection(db, 'vouchers'), voucherData);
+                      const newVoucherWithId = { ...voucherData, id: docRef.id };
+                      setVouchers([...vouchers, newVoucherWithId]);
+                      setNewVoucher({ code: '', type: 'percentage', value: 0, expiryDate: '' });
+                    } catch (error) {
+                      console.error('Erro ao criar voucher:', error);
+                      alert('Erro ao criar voucher: ' + (error as Error).message);
+                    }
                   }}
                   className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200 space-y-4"
                 >
@@ -908,7 +927,21 @@ export default function AdminDashboard() {
                         </p>
                       </div>
                       <button
-                        onClick={() => setVouchers(vouchers.filter((_, i) => i !== idx))}
+                        onClick={async () => {
+                          if (!confirm('Deseja mesmo remover este voucher?')) return;
+                          try {
+                            const voucherId = vouchers[idx].id;
+                            if (!voucherId) {
+                              alert('Erro: ID do voucher não encontrado.');
+                              return;
+                            }
+                            await deleteDoc(doc(db, 'vouchers', voucherId));
+                            setVouchers(vouchers.filter((_, i) => i !== idx));
+                          } catch (error) {
+                            console.error('Erro ao remover voucher:', error);
+                            alert('Erro ao remover voucher: ' + (error as Error).message);
+                          }
+                        }}
                         className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
                       >
                         🗑️

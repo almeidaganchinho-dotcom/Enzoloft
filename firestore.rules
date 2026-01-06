@@ -19,6 +19,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
     
+    // Vouchers - todos podem ler e escrever
+    match /vouchers/{voucherId} {
+      allow read, write: if true;
+    }
+    
     // Settings - todos podem ler e escrever
     match /settings/{settingId} {
       allow read, write: if true;
