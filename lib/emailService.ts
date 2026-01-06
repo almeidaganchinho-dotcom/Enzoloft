@@ -12,7 +12,12 @@ const EMAILJS_CONFIG = {
 };
 
 // Inicializar EmailJS
-emailjs.init(EMAILJS_CONFIG.publicKey);
+try {
+  emailjs.init(EMAILJS_CONFIG.publicKey);
+  console.log('EmailJS inicializado com sucesso. Public Key:', EMAILJS_CONFIG.publicKey);
+} catch (error) {
+  console.error('Erro ao inicializar EmailJS:', error);
+}
 
 interface ReservationEmailData {
   guestName: string;

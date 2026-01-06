@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, doc, setDoc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { sendStatusUpdateEmail } from '../../lib/emailService';
 
 interface Admin {
   email: string;
@@ -106,27 +105,8 @@ export default function AdminDashboard() {
       try {
         const reservationId = reservation.id;
         await updateDoc(doc(db, 'reservations', reservationId), { status });
-        
-        // Enviar email de notificação ao cliente
-        const emailSent = await sendStatusUpdateEmail({
-          guestName: reservation.guestName,
-          guestEmail: reservation.guestEmail,
-          guestPhone: reservation.guestPhone,
-          startDate: reservation.startDate,
-          endDate: reservation.endDate,
-          guestsCount: reservation.guestsCount,
-          totalPrice: reservation.totalPrice.toString(),
-          status: status
-        });
-
-        if (emailSent) {
-          alert(`✅ Status atualizado e email enviado para ${reservation.guestEmail}`);
-        } else {
-          alert(`⚠️ Status atualizado mas falha ao enviar email`);
-        }
       } catch (error) {
         console.error('Erro ao atualizar status:', error);
-        alert('❌ Erro ao atualizar status');
       }
     }
   }, [reservations]);
