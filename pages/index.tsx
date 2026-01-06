@@ -67,6 +67,39 @@ export default function Home() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    // Validate dates before submission
+    if (dateError) {
+      setMessage('❌ Por favor, escolha datas válidas sem bloqueios.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setMessage('✅ Reserva criada com sucesso! Aguardando confirmação do admin.');
+        setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
+      } else {
+        setMessage(`❌ Erro: ${data.error}`);
+      }
+    } catch (error) {
+      setMessage('❌ Erro ao criar reserva.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const amenities = [
     { icon: '📶', label: 'Free Wi-Fi' },
     { icon: '❄️', label: 'Air conditioning' },
