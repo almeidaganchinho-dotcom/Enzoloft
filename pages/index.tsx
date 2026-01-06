@@ -1,10 +1,21 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
+import { db } from '../lib/firebase';
+import { collection, addDoc, doc, getDoc, getDocs } from 'firebase/firestore';
 
 interface BlockedDate {
   startDate: string;
   endDate: string;
   status: string;
+}
+
+interface Price {
+  id: string;
+  season: string;
+  description?: string;
+  pricePerNight: number;
+  startDate: string;
+  endDate: string;
 }
 
 interface FormData {
@@ -46,11 +57,20 @@ export default function Home() {
     // API desativada no modo estático - sem datas bloqueadas
     setBlockedDates([]);
     
-    // Carregar informações de contacto
-    const storedContact = localStorage.getItem('contactInfo');
-    if (storedContact) {
-      setContactInfo(JSON.parse(storedContact));
-    }
+    // Carregar informações de contacto do Firestore
+    const loadContactInfo = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'contactInfo');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setContactInfo(docSnap.data() as any);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar informações de contacto:', error);
+      }
+    };
+    
+    loadContactInfo();
   }, []);
 
   const isDateBlocked = useCallback((date: string): boolean => {
@@ -62,7 +82,7 @@ export default function Home() {
     });
   }, [blockedDates]);
 
-  const calculateTotalPrice = useCallback((startDate: string, endDate: string): number => {
+  const calculateTotalPrice = useCallback(async (startDate: string, endDate: string): Promise<number> => {
     if (!startDate || !endDate) return 0;
     
     const start = new Date(startDate + 'T00:00:00');
@@ -73,49 +93,53 @@ export default function Home() {
     const nightsCount = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     setNights(nightsCount);
     
-    // Carregar preços do localStorage
-    const storedPrices = localStorage.getItem('prices');
-    console.log('Preços carregados:', storedPrices);
-    
-    if (!storedPrices) {
-      // Preço padrão se não houver preços definidos
-      console.log('Usando preço padrão: €100/noite');
-      return nightsCount * 100;
-    }
-    
-    const prices = JSON.parse(storedPrices);
-    console.log('Preços parseados:', prices);
-    let totalPrice = 0;
-    
-    // Calcular preço para cada noite
-    let currentDate = new Date(start);
-    for (let i = 0; i < nightsCount; i++) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+    try {
+      // Carregar preços do Firestore
+      const pricesSnapshot = await getDocs(collection(db, 'prices'));
+      const prices: Price[] = pricesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Price));
       
-      // Encontrar preço aplicável para esta data
-      const applicablePrice = prices.find((p: any) => {
-        const priceStart = new Date(p.startDate + 'T00:00:00');
-        const priceEnd = new Date(p.endDate + 'T00:00:00');
-        const checkDate = new Date(dateStr + 'T00:00:00');
-        return checkDate >= priceStart && checkDate <= priceEnd;
-      });
+      console.log('Preços carregados do Firestore:', prices);
       
-      if (applicablePrice) {
-        console.log(`Data ${dateStr}: €${applicablePrice.pricePerNight} (${applicablePrice.season})`);
-        totalPrice += parseFloat(applicablePrice.pricePerNight);
-      } else {
-        console.log(`Data ${dateStr}: €100 (preço padrão)`);
-        totalPrice += 100;
+      if (prices.length === 0) {
+        console.log('Usando preço padrão: €100/noite');
+        return nightsCount * 100;
       }
       
-      currentDate.setDate(currentDate.getDate() + 1);
+      let totalPrice = 0;
+      
+      // Calcular preço para cada noite
+      let currentDate = new Date(start);
+      for (let i = 0; i < nightsCount; i++) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        
+        // Encontrar preço aplicável para esta data
+        const applicablePrice = prices.find((p: Price) => {
+          const priceStart = new Date(p.startDate + 'T00:00:00');
+          const priceEnd = new Date(p.endDate + 'T00:00:00');
+          const checkDate = new Date(dateStr + 'T00:00:00');
+          return checkDate >= priceStart && checkDate <= priceEnd;
+        });
+        
+        if (applicablePrice) {
+          console.log(`Data ${dateStr}: €${applicablePrice.pricePerNight} (${applicablePrice.season})`);
+          totalPrice += parseFloat(applicablePrice.pricePerNight.toString());
+        } else {
+          console.log(`Data ${dateStr}: €100 (preço padrão)`);
+          totalPrice += 100;
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      console.log('Total calculado:', totalPrice);
+      return totalPrice;
+    } catch (error) {
+      console.error('Erro ao calcular preço:', error);
+      return nightsCount * 100;
     }
-    
-    console.log('Total calculado:', totalPrice);
-    return totalPrice;
   }, []);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setDateError('');
@@ -129,7 +153,7 @@ export default function Home() {
         const endDate = new Date(end);
         
         // Calcular preço total
-        const calculatedPrice = calculateTotalPrice(start, end);
+        const calculatedPrice = await calculateTotalPrice(start, end);
         setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
         
         let hasBlockedDate = false;
@@ -156,29 +180,26 @@ export default function Home() {
     setMessage('');
 
     if (dateError) {
-      setMessage(' Por favor, escolha datas válidas sem bloqueios.');
+      setMessage('❌ Por favor, escolha datas válidas sem bloqueios.');
       setLoading(false);
       return;
     }
 
     try {
-      // Modo estático: guardar reserva no localStorage
+      // Guardar reserva no Firestore
       const reservation = {
-        id: Date.now().toString(),
         ...formData,
         status: 'pending',
         createdAt: new Date().toISOString()
       };
       
-      // Obter reservas existentes
-      const existingReservations = JSON.parse(localStorage.getItem('reservations') || '[]');
-      existingReservations.push(reservation);
-      localStorage.setItem('reservations', JSON.stringify(existingReservations));
+      await addDoc(collection(db, 'reservations'), reservation);
       
       setMessage('✅ Reserva criada com sucesso! Aguardando confirmação do admin.');
       setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
     } catch (error) {
-      setMessage('❌ Erro ao criar reserva.');
+      console.error('Erro ao criar reserva:', error);
+      setMessage('❌ Erro ao criar reserva. Tente novamente.');
     } finally {
       setLoading(false);
     }

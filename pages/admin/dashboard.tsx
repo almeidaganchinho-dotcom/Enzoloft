@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useRouter } from 'next/router';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { db } from '../../lib/firebase';
+import { collection, getDocs, addDoc, doc, setDoc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 interface Admin {
   email: string;
@@ -49,27 +51,27 @@ export default function AdminDashboard() {
     }
 
     setAdmin({ email: email || 'Admin' });
-    
-    // Carregar preços do localStorage
-    const storedPrices = localStorage.getItem('prices');
-    if (storedPrices) {
-      setPrices(JSON.parse(storedPrices));
-    }
-    
-    // Carregar configurações de contacto
-    const storedContact = localStorage.getItem('contactInfo');
-    if (storedContact) {
-      setContactInfo(JSON.parse(storedContact));
-    }
-    
     fetchAllData();
   }, []);
 
   const fetchAllData = useCallback(async () => {
     try {
-      // Modo estático: carregar reservas do localStorage
-      const storedReservations = JSON.parse(localStorage.getItem('reservations') || '[]');
-      setReservations(storedReservations);
+      // Carregar reservas do Firestore
+      const reservationsSnapshot = await getDocs(collection(db, 'reservations'));
+      const reservationsData = reservationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setReservations(reservationsData);
+      
+      // Carregar preços do Firestore
+      const pricesSnapshot = await getDocs(collection(db, 'prices'));
+      const pricesData = pricesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPrices(pricesData);
+      
+      // Carregar configurações de contacto
+      const contactDoc = await getDoc(doc(db, 'settings', 'contactInfo'));
+      if (contactDoc.exists()) {
+        setContactInfo(contactDoc.data() as any);
+      }
+      
       setAvailability([]);
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -84,13 +86,19 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   }, [router]);
 
-  const updateReservationStatus = useCallback((idx: number, status: string) => {
+  const updateReservationStatus = useCallback(async (idx: number, status: string) => {
     const updated = [...reservations];
     if (updated[idx]) {
       updated[idx].status = status;
       setReservations(updated);
-      // Atualizar no localStorage
-      localStorage.setItem('reservations', JSON.stringify(updated));
+      
+      // Atualizar no Firestore
+      try {
+        const reservationId = updated[idx].id;
+        await updateDoc(doc(db, 'reservations', reservationId), { status });
+      } catch (error) {
+        console.error('Erro ao atualizar status:', error);
+      }
     }
   }, [reservations]);
 
@@ -349,13 +357,19 @@ export default function AdminDashboard() {
                   </p>
                 </div>
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    const newPriceWithId = { ...newPrice, id: Date.now() };
-                    const updatedPrices = [...prices, newPriceWithId];
-                    setPrices(updatedPrices);
-                    localStorage.setItem('prices', JSON.stringify(updatedPrices));
-                    setNewPrice({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
+                    try {
+                      // Adicionar preço ao Firestore
+                      const docRef = await addDoc(collection(db, 'prices'), newPrice);
+                      const newPriceWithId = { ...newPrice, id: docRef.id };
+                      const updatedPrices = [...prices, newPriceWithId];
+                      setPrices(updatedPrices);
+                      setNewPrice({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
+                    } catch (error) {
+                      console.error('Erro ao adicionar preço:', error);
+                      alert('Erro ao adicionar preço. Tente novamente.');
+                    }
                   }}
                   className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200 space-y-4"
                 >
@@ -435,10 +449,16 @@ export default function AdminDashboard() {
                           </p>
                         </div>
                         <button
-                          onClick={() => {
-                            const updatedPrices = prices.filter((_, i) => i !== idx);
-                            setPrices(updatedPrices);
-                            localStorage.setItem('prices', JSON.stringify(updatedPrices));
+                          onClick={async () => {
+                            try {
+                              const priceToDelete = prices[idx];
+                              await deleteDoc(doc(db, 'prices', priceToDelete.id));
+                              const updatedPrices = prices.filter((_, i) => i !== idx);
+                              setPrices(updatedPrices);
+                            } catch (error) {
+                              console.error('Erro ao remover preço:', error);
+                              alert('Erro ao remover preço. Tente novamente.');
+                            }
                           }}
                           className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-all ml-4"
                         >
@@ -706,9 +726,14 @@ export default function AdminDashboard() {
                       </p>
                     </div>
                     <button
-                      onClick={() => {
-                        localStorage.setItem('contactInfo', JSON.stringify(contactInfo));
-                        alert('✅ Configurações guardadas com sucesso!');
+                      onClick={async () => {
+                        try {
+                          await setDoc(doc(db, 'settings', 'contactInfo'), contactInfo);
+                          alert('✅ Configurações guardadas com sucesso!');
+                        } catch (error) {
+                          console.error('Erro ao guardar configurações:', error);
+                          alert('❌ Erro ao guardar configurações. Tente novamente.');
+                        }
                       }}
                       className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:shadow-purple-300 transition-all"
                     >
