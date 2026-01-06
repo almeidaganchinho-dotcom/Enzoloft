@@ -508,7 +508,7 @@ export default function Home() {
           </div>
           
           {/* Google Maps */}
-          {contactInfo.mapsUrl && (
+          {contactInfo.mapsUrl && contactInfo.mapsUrl.trim() !== '' && (
             <div className="mb-8">
               <div className="max-w-4xl mx-auto">
                 <iframe
@@ -520,6 +520,7 @@ export default function Home() {
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   className="shadow-xl"
+                  title="Google Maps Location"
                 ></iframe>
               </div>
             </div>
