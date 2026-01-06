@@ -1,6 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useRouter } from 'next/router';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+interface Admin {
+  email: string;
+}
+
+interface Tab {
+  id: string;
+  label: string;
+  icon: string;
+}
 
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
@@ -20,7 +30,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const router = useRouter();
 
-  const COLORS = ['#b45309', '#f59e0b'];
+  const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -35,7 +45,7 @@ export default function AdminDashboard() {
     fetchAllData();
   }, []);
 
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
     try {
       const [resRes, availRes] = await Promise.all([
         fetch('/api/admin/reservations'),
@@ -49,59 +59,59 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminEmail');
     router.push('/admin/login');
-  };
+  }, [router]);
 
-  const updateReservationStatus = (idx: number, status: string) => {
+  const updateReservationStatus = useCallback((idx: number, status: string) => {
     const updated = [...reservations];
     if (updated[idx]) updated[idx].status = status;
     setReservations(updated);
-  };
+  }, [reservations]);
 
-  const dashboardData = [
+  const dashboardData = useMemo(() => [
     { day: 'Seg', visitors: 450, conversions: 65 },
     { day: 'Ter', visitors: 520, conversions: 78 },
     { day: 'Qua', visitors: 480, conversions: 72 },
     { day: 'Qui', visitors: 610, conversions: 92 },
     { day: 'Sex', visitors: 720, conversions: 120 },
     { day: 'Sab', visitors: 890, conversions: 156 },
-  ];
+  ], []);
 
-  const occupancyData = [
+  const occupancyData = useMemo(() => [
     { name: 'Ocupado', value: 78 },
     { name: 'Disponível', value: 22 },
-  ];
+  ], []);
 
-  const analyticsData = [
+  const analyticsData = useMemo(() => [
     { day: '1-6', visitors: 2400, conversions: 350 },
     { day: '7-12', visitors: 2800, conversions: 420 },
     { day: '13-18', visitors: 3200, conversions: 520 },
     { day: '19-24', visitors: 2900, conversions: 450 },
     { day: '25-30', visitors: 3500, conversions: 620 },
-  ];
+  ], []);
 
-  const revenueData = [
+  const revenueData = useMemo(() => [
     { month: 'Janeiro', revenue: 4200 },
     { month: 'Fevereiro', revenue: 3800 },
     { month: 'Março', revenue: 5100 },
     { month: 'Abril', revenue: 6200 },
     { month: 'Maio', revenue: 7500 },
     { month: 'Junho', revenue: 8900 },
-  ];
+  ], []);
 
-  const tabs = [
+  const tabs = useMemo<Tab[]>(() => [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'reservations', label: 'Reservas', icon: '📋' },
     { id: 'prices', label: 'Preços', icon: '💰' },
     { id: 'availability', label: 'Disponibilidade', icon: '📅' },
     { id: 'vouchers', label: 'Vouchers', icon: '🎁' },
     { id: 'analytics', label: 'Analíticas', icon: '📈' },
-  ];
+  ], []);
 
   const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;

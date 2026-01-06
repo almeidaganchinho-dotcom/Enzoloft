@@ -1,8 +1,25 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 
+interface BlockedDate {
+  startDate: string;
+  endDate: string;
+  status: string;
+}
+
+interface FormData {
+  propertyId: string;
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string;
+  startDate: string;
+  endDate: string;
+  guestsCount: number;
+  totalPrice: number;
+}
+
 export default function Home() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     propertyId: '1',
     guestName: '',
     guestEmail: '',
@@ -12,10 +29,10 @@ export default function Home() {
     guestsCount: 1,
     totalPrice: 0,
   });
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [blockedDates, setBlockedDates] = useState<any[]>([]);
-  const [dateError, setDateError] = useState('');
+  const [message, setMessage] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [dateError, setDateError] = useState<string>('');
 
   useEffect(() => {
     fetch('/api/admin/availability')
@@ -24,16 +41,16 @@ export default function Home() {
       .catch(err => console.error('Erro ao carregar datas bloqueadas:', err));
   }, []);
 
-  const isDateBlocked = (date: string): boolean => {
+  const isDateBlocked = useCallback((date: string): boolean => {
     const checkDate = new Date(date);
     return blockedDates.some(block => {
       const blockStart = new Date(block.startDate);
       const blockEnd = new Date(block.endDate);
       return checkDate >= blockStart && checkDate <= blockEnd && block.status === 'blocked';
     });
-  };
+  }, [blockedDates]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setDateError('');
@@ -62,9 +79,9 @@ export default function Home() {
         }
       }
     }
-  };
+  }, [formData.startDate, formData.endDate, isDateBlocked]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
@@ -94,18 +111,18 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateError, formData]);
 
-  const amenities = [
-    { icon: '', label: 'Wi-Fi Gratuito' },
-    { icon: '', label: 'Ar Condicionado' },
-    { icon: '', label: 'Cozinha Equipada' },
-    { icon: '', label: 'Estacionamento' },
-    { icon: '', label: 'Piscina' },
-    { icon: '', label: 'Jardim' },
-  ];
+  const amenities = useMemo(() => [
+    { icon: '📶', label: 'Wi-Fi Gratuito' },
+    { icon: '❄️', label: 'Ar Condicionado' },
+    { icon: '🍳', label: 'Cozinha Equipada' },
+    { icon: '🚗', label: 'Estacionamento' },
+    { icon: '🏊', label: 'Piscina' },
+    { icon: '🌿', label: 'Jardim' },
+  ], []);
 
-  const galleryImages = [
+  const galleryImages = useMemo(() => [
     { src: 'https://enzoloft.web.app/images/gallery/exterior.jpg', alt: 'Exterior' },
     { src: 'https://enzoloft.web.app/images/gallery/patio.jpg', alt: 'Pátio' },
     { src: 'https://enzoloft.web.app/images/gallery/sala.jpg', alt: 'Sala' },
@@ -114,7 +131,7 @@ export default function Home() {
     { src: 'https://enzoloft.web.app/images/gallery/casa-banho.jpg', alt: 'Casa de banho' },
     { src: 'https://enzoloft.web.app/images/gallery/vista.jpg', alt: 'Vista' },
     { src: 'https://enzoloft.web.app/images/gallery/piscina.jpg', alt: 'Piscina' },
-  ];
+  ], []);
 
   return (
     <div className="min-h-screen bg-white">
