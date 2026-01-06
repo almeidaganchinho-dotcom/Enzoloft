@@ -26,6 +26,13 @@ export default function AdminDashboard() {
   const [newPrice, setNewPrice] = useState({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
   const [newAvailability, setNewAvailability] = useState({ startDate: '', endDate: '', reason: '', status: 'blocked' });
   const [newVoucher, setNewVoucher] = useState({ code: '', type: 'percentage', value: 0, expiryDate: '' });
+  const [contactInfo, setContactInfo] = useState({
+    location: 'Vila Nova da Baronia, Évora',
+    email: 'info@enzoloft.com',
+    phone: '+351 XXX XXX XXX',
+    description: 'Retiro de charme no coração do Alentejo',
+    mapsUrl: ''
+  });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const router = useRouter();
@@ -47,6 +54,12 @@ export default function AdminDashboard() {
     const storedPrices = localStorage.getItem('prices');
     if (storedPrices) {
       setPrices(JSON.parse(storedPrices));
+    }
+    
+    // Carregar configurações de contacto
+    const storedContact = localStorage.getItem('contactInfo');
+    if (storedContact) {
+      setContactInfo(JSON.parse(storedContact));
     }
     
     fetchAllData();
@@ -119,6 +132,7 @@ export default function AdminDashboard() {
     { id: 'availability', label: 'Disponibilidade', icon: '📅' },
     { id: 'vouchers', label: 'Vouchers', icon: '🎁' },
     { id: 'analytics', label: 'Analíticas', icon: '📈' },
+    { id: 'settings', label: 'Configurações', icon: '⚙️' },
   ], []);
 
   const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -627,6 +641,86 @@ export default function AdminDashboard() {
                     <p className="text-yellow-700 font-semibold mb-2">Duração Média</p>
                     <p className="text-3xl font-bold text-yellow-900">3.2 dias</p>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Settings Tab */}
+            {activeTab === 'settings' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-800">⚙️ Configurações de Contacto</h2>
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
+                  <h3 className="font-semibold text-gray-800 text-lg mb-4">Informações do Footer</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📍 Localização</label>
+                      <input
+                        type="text"
+                        value={contactInfo.location}
+                        onChange={(e) => setContactInfo({ ...contactInfo, location: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Vila Nova da Baronia, Évora"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📧 Email</label>
+                      <input
+                        type="email"
+                        value={contactInfo.email}
+                        onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="info@enzoloft.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📞 Telefone</label>
+                      <input
+                        type="tel"
+                        value={contactInfo.phone}
+                        onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="+351 XXX XXX XXX"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📝 Descrição</label>
+                      <input
+                        type="text"
+                        value={contactInfo.description}
+                        onChange={(e) => setContactInfo({ ...contactInfo, description: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="Retiro de charme no coração do Alentejo"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">🗺️ Google Maps (URL de incorporação)</label>
+                      <input
+                        type="url"
+                        value={contactInfo.mapsUrl}
+                        onChange={(e) => setContactInfo({ ...contactInfo, mapsUrl: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="https://www.google.com/maps/embed?pb=..."
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 Como obter: Google Maps → Partilhar → Incorporar um mapa → Copiar HTML (só o URL do src)
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        localStorage.setItem('contactInfo', JSON.stringify(contactInfo));
+                        alert('✅ Configurações guardadas com sucesso!');
+                      }}
+                      className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:shadow-purple-300 transition-all"
+                    >
+                      💾 Guardar Configurações
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>ℹ️ Informação:</strong> Estas informações aparecerão no rodapé (footer) da página principal do site.
+                  </p>
                 </div>
               </div>
             )}

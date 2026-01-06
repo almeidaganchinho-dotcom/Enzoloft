@@ -34,10 +34,23 @@ export default function Home() {
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [dateError, setDateError] = useState<string>('');
   const [nights, setNights] = useState<number>(0);
+  const [contactInfo, setContactInfo] = useState({
+    location: 'Vila Nova da Baronia, Évora',
+    email: 'info@enzoloft.com',
+    phone: '+351 XXX XXX XXX',
+    description: 'Retiro de charme no coração do Alentejo',
+    mapsUrl: ''
+  });
 
   useEffect(() => {
     // API desativada no modo estático - sem datas bloqueadas
     setBlockedDates([]);
+    
+    // Carregar informações de contacto
+    const storedContact = localStorage.getItem('contactInfo');
+    if (storedContact) {
+      setContactInfo(JSON.parse(storedContact));
+    }
   }, []);
 
   const isDateBlocked = useCallback((date: string): boolean => {
@@ -462,16 +475,37 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="bg-gradient-to-r from-orange-900 to-red-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h3 className="text-2xl font-bold mb-4">EnzoLoft</h3>
-          <p className="mb-4">Retiro de charme no coração do Alentejo</p>
-          <div className="flex justify-center gap-8 mb-6 text-sm">
-            <span> Vila Nova da Baronia, Évora</span>
-            <span> info@enzoloft.com</span>
-            <span> +351 XXX XXX XXX</span>
-          </div>          
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold mb-4">EnzoLoft</h3>
+            <p className="mb-4">{contactInfo.description}</p>
+            <div className="flex justify-center gap-8 mb-6 text-sm">
+              <span>📍 {contactInfo.location}</span>
+              <span>📧 {contactInfo.email}</span>
+              <span>📞 {contactInfo.phone}</span>
+            </div>
+          </div>
+          
+          {/* Google Maps */}
+          {contactInfo.mapsUrl && (
+            <div className="mb-8">
+              <div className="max-w-4xl mx-auto">
+                <iframe
+                  src={contactInfo.mapsUrl}
+                  width="100%"
+                  height="400"
+                  style={{ border: 0, borderRadius: '12px' }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="shadow-xl"
+                ></iframe>
+              </div>
+            </div>
+          )}
+          
           {/* Admin Access Button */}
-          <div className="mb-6">
+          <div className="text-center mb-6">
             <a
               href="/admin/login"
               className="inline-flex items-center gap-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 backdrop-blur-sm border border-white border-opacity-20 hover:border-opacity-40"
@@ -479,7 +513,7 @@ export default function Home() {
               🔐 Acesso Admin
             </a>
           </div>
-                    <p className="text-orange-200 text-sm"> 2026 EnzoLoft. Todos os direitos reservados.</p>
+          <p className="text-orange-200 text-sm text-center">© 2026 EnzoLoft. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
