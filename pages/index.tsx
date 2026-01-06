@@ -18,6 +18,14 @@ interface Price {
   endDate: string;
 }
 
+interface Voucher {
+  id: string;
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  expiryDate: string;
+}
+
 interface FormData {
   propertyId: string;
   guestName: string;
@@ -45,6 +53,11 @@ export default function Home() {
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [dateError, setDateError] = useState<string>('');
   const [nights, setNights] = useState<number>(0);
+  const [voucherCode, setVoucherCode] = useState<string>('');
+  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const [voucherError, setVoucherError] = useState<string>('');
+  const [originalPrice, setOriginalPrice] = useState<number>(0);
+  const [discount, setDiscount] = useState<number>(0);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Nova da Baronia, Évora',
     email: 'info@enzoloft.com',
@@ -90,7 +103,65 @@ export default function Home() {
       return checkDate >= blockStart && checkDate <= blockEnd && block.status === 'blocked';
     });
   }, [blockedDates]);
+  const applyVoucher = useCallback(async () => {
+    if (!voucherCode.trim()) {
+      setVoucherError('Por favor, insira um código de voucher.');
+      return;
+    }
 
+    if (originalPrice === 0) {
+      setVoucherError('Selecione as datas primeiro para aplicar o voucher.');
+      return;
+    }
+
+    try {
+      const vouchersSnapshot = await getDocs(collection(db, 'vouchers'));
+      const vouchers = vouchersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Voucher));
+      
+      const voucher = vouchers.find(v => v.code.toUpperCase() === voucherCode.toUpperCase());
+      
+      if (!voucher) {
+        setVoucherError('Voucher inválido.');
+        setAppliedVoucher(null);
+        setDiscount(0);
+        setFormData(prev => ({ ...prev, totalPrice: originalPrice }));
+        return;
+      }
+      
+      // Verificar se o voucher expirou
+      const today = new Date();
+      const expiryDate = new Date(voucher.expiryDate);
+      if (today > expiryDate) {
+        setVoucherError('Este voucher expirou.');
+        setAppliedVoucher(null);
+        setDiscount(0);
+        setFormData(prev => ({ ...prev, totalPrice: originalPrice }));
+        return;
+      }
+      
+      // Calcular desconto
+      let discountAmount = 0;
+      if (voucher.type === 'percentage') {
+        discountAmount = (originalPrice * voucher.value) / 100;
+      } else {
+        discountAmount = voucher.value;
+      }
+      
+      // Não permitir desconto maior que o preço
+      if (discountAmount > originalPrice) {
+        discountAmount = originalPrice;
+      }
+      
+      setAppliedVoucher(voucher);
+      setDiscount(discountAmount);
+      setFormData(prev => ({ ...prev, totalPrice: originalPrice - discountAmount }));
+      setVoucherError('');
+      setMessage(`✅ Voucher "${voucher.code}" aplicado com sucesso!`);
+    } catch (error) {
+      console.error('Erro ao validar voucher:', error);
+      setVoucherError('Erro ao validar voucher. Tente novamente.');
+    }
+  }, [voucherCode, originalPrice]);
   const calculateTotalPrice = useCallback(async (startDate: string, endDate: string): Promise<number> => {
     if (!startDate || !endDate) return 0;
     
@@ -141,6 +212,23 @@ export default function Home() {
       }
       
       console.log('Total calculado:', totalPrice);
+      setOriginalPrice(totalPrice);
+      
+      // Recalcular com desconto se houver voucher aplicado
+      if (appliedVoucher) {
+        let discountAmount = 0;
+        if (appliedVoucher.type === 'percentage') {
+          discountAmount = (totalPrice * appliedVoucher.value) / 100;
+        } else {
+          discountAmount = appliedVoucher.value;
+        }
+        if (discountAmount > totalPrice) {
+          discountAmount = totalPrice;
+        }
+        setDiscount(discountAmount);
+        return totalPrice - discountAmount;
+      }
+      
       return totalPrice;
     } catch (error) {
       console.error('Erro ao calcular preço:', error);
@@ -199,13 +287,25 @@ export default function Home() {
       const reservation = {
         ...formData,
         status: 'pending',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        ...(appliedVoucher && {
+          voucher: {
+            code: appliedVoucher.code,
+            discount: discount,
+            originalPrice: originalPrice
+          }
+        })
       };
       
       await addDoc(collection(db, 'reservations'), reservation);
       
       setMessage('✅ Reserva criada com sucesso! Aguardando confirmação do admin.');
       setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
+      setAppliedVoucher(null);
+      setVoucherCode('');
+      setDiscount(0);
+      setOriginalPrice(0);
+      setVoucherError('');
     } catch (error) {
       console.error('Erro ao criar reserva:', error);
       setMessage('❌ Erro ao criar reserva. Tente novamente.');
@@ -340,10 +440,75 @@ export default function Home() {
                   />
                 </div>
                 
+                {/* Voucher Section */}
+                <div className="border-t pt-3">
+                  <label className="block text-xs font-semibold text-orange-900 mb-1">Código de Voucher (opcional)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={voucherCode}
+                      onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                      placeholder="CÓDIGO"
+                      className="flex-1 px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm uppercase"
+                      disabled={originalPrice === 0}
+                    />
+                    <button
+                      type="button"
+                      onClick={applyVoucher}
+                      disabled={originalPrice === 0}
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                  {voucherError && (
+                    <p className="text-xs text-red-600 mt-1">❌ {voucherError}</p>
+                  )}
+                  {appliedVoucher && (
+                    <div className="mt-2 flex items-center justify-between bg-purple-50 border border-purple-200 p-2 rounded-lg">
+                      <p className="text-xs text-purple-800 font-semibold">
+                        🎁 {appliedVoucher.code}: {appliedVoucher.type === 'percentage' ? `${appliedVoucher.value}%` : `€${appliedVoucher.value}`} desconto
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAppliedVoucher(null);
+                          setVoucherCode('');
+                          setDiscount(0);
+                          setVoucherError('');
+                          setFormData(prev => ({ ...prev, totalPrice: originalPrice }));
+                          setMessage('');
+                        }}
+                        className="text-purple-600 hover:text-purple-800 text-xs font-semibold"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
                 {formData.totalPrice > 0 && (
                   <div className="bg-green-50 border-2 border-green-300 p-3 rounded-lg">
-                    <p className="text-xs text-green-700 font-semibold">Preço Total</p>
-                    <p className="text-2xl font-bold text-green-800">€{formData.totalPrice}</p>
+                    <p className="text-xs text-green-700 font-semibold mb-2">Resumo do Preço</p>
+                    {appliedVoucher ? (
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-gray-700">
+                          <span>Preço Original:</span>
+                          <span>€{originalPrice.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-purple-700 font-semibold">
+                          <span>Desconto ({appliedVoucher.code}):</span>
+                          <span>-€{discount.toFixed(2)}</span>
+                        </div>
+                        <div className="border-t border-green-300 pt-1 mt-1"></div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold text-green-800">Total Final:</span>
+                          <span className="text-2xl font-bold text-green-800">€{formData.totalPrice.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-2xl font-bold text-green-800">€{formData.totalPrice.toFixed(2)}</p>
+                    )}
                   </div>
                 )}
                 
