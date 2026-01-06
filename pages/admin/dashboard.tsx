@@ -250,40 +250,6 @@ export default function AdminDashboard() {
               </div>
             )}
 
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-amber-900">Gestão de Disponibilidade</h2>
-                  <button onClick={addAvailability} className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700">+ Adicionar Período</button>
-                </div>
-                <div className="space-y-4">
-                  {availability.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Data Início</label>
-                          <input type="date" defaultValue={item.startDate} className="w-full px-3 py-2 border rounded" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Data Fim</label>
-                          <input type="date" defaultValue={item.endDate} className="w-full px-3 py-2 border rounded" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Status</label>
-                        <select defaultValue={item.status} className="w-full px-3 py-2 border rounded">
-                          <option value="available">Disponível</option>
-                          <option value="blocked">Bloqueado</option>
-                        </select>
-                      </div>
-                      {item.status === 'blocked' && (
-                        <input type="text" defaultValue={item.reason} className="w-full px-3 py-2 border rounded" placeholder="Motivo do bloqueio" />
-                      )}
-                      <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Guardar</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Vouchers */}
             {activeTab === 'vouchers' && (
               <div className="bg-white rounded-lg shadow p-6">
