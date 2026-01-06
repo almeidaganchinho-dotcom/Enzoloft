@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Para Firebase Hosting (static export)
+  // Static export for Firebase Hosting
   output: 'export',
   images: { 
     unoptimized: true,
