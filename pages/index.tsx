@@ -109,7 +109,9 @@ export default function Home() {
       return;
     }
 
-    if (originalPrice === 0) {
+    const currentPrice = originalPrice > 0 ? originalPrice : formData.totalPrice;
+    
+    if (currentPrice === 0) {
       setVoucherError('Selecione as datas primeiro para aplicar o voucher.');
       return;
     }
@@ -124,7 +126,7 @@ export default function Home() {
         setVoucherError('Voucher inválido.');
         setAppliedVoucher(null);
         setDiscount(0);
-        setFormData(prev => ({ ...prev, totalPrice: originalPrice }));
+        setFormData(prev => ({ ...prev, totalPrice: currentPrice }));
         return;
       }
       
@@ -135,33 +137,38 @@ export default function Home() {
         setVoucherError('Este voucher expirou.');
         setAppliedVoucher(null);
         setDiscount(0);
-        setFormData(prev => ({ ...prev, totalPrice: originalPrice }));
+        setFormData(prev => ({ ...prev, totalPrice: currentPrice }));
         return;
+      }
+      
+      // Salvar preço original se ainda não foi salvo
+      if (originalPrice === 0) {
+        setOriginalPrice(currentPrice);
       }
       
       // Calcular desconto
       let discountAmount = 0;
       if (voucher.type === 'percentage') {
-        discountAmount = (originalPrice * voucher.value) / 100;
+        discountAmount = (currentPrice * voucher.value) / 100;
       } else {
         discountAmount = voucher.value;
       }
       
       // Não permitir desconto maior que o preço
-      if (discountAmount > originalPrice) {
-        discountAmount = originalPrice;
+      if (discountAmount > currentPrice) {
+        discountAmount = currentPrice;
       }
       
       setAppliedVoucher(voucher);
       setDiscount(discountAmount);
-      setFormData(prev => ({ ...prev, totalPrice: originalPrice - discountAmount }));
+      setFormData(prev => ({ ...prev, totalPrice: currentPrice - discountAmount }));
       setVoucherError('');
       setMessage(`✅ Voucher "${voucher.code}" aplicado com sucesso!`);
     } catch (error) {
       console.error('Erro ao validar voucher:', error);
       setVoucherError('Erro ao validar voucher. Tente novamente.');
     }
-  }, [voucherCode, originalPrice]);
+  }, [voucherCode, originalPrice, formData.totalPrice]);
   const calculateTotalPrice = useCallback(async (startDate: string, endDate: string): Promise<number> => {
     if (!startDate || !endDate) return 0;
     
@@ -454,13 +461,13 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={applyVoucher}
-                      disabled={originalPrice === 0}
+                      disabled={formData.totalPrice === 0}
                       className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Aplicar
                     </button>
                   </div>
-                  {originalPrice === 0 && voucherCode && (
+                  {formData.totalPrice === 0 && voucherCode && (
                     <p className="text-xs text-gray-600 mt-1">💡 Selecione as datas primeiro para aplicar o voucher</p>
                   )}
                   {voucherError && (
