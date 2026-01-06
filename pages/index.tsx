@@ -450,7 +450,6 @@ export default function Home() {
                       onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
                       placeholder="CÓDIGO"
                       className="flex-1 px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm uppercase"
-                      disabled={originalPrice === 0}
                     />
                     <button
                       type="button"
@@ -461,6 +460,9 @@ export default function Home() {
                       Aplicar
                     </button>
                   </div>
+                  {originalPrice === 0 && voucherCode && (
+                    <p className="text-xs text-gray-600 mt-1">💡 Selecione as datas primeiro para aplicar o voucher</p>
+                  )}
                   {voucherError && (
                     <p className="text-xs text-red-600 mt-1">❌ {voucherError}</p>
                   )}
