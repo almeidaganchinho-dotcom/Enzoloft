@@ -370,9 +370,17 @@ export default function Home() {
             <span className="text-3xl"></span>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">EnzoLoft</h1>
           </div>
-          <a href="#booking" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold">
-            Reservar Agora
-          </a>
+          <div className="flex gap-3">
+            <button
+              onClick={() => document.getElementById('availability-calendar')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-300 transition-all font-semibold"
+            >
+              📅 Verificar Disponibilidade
+            </button>
+            <a href="#booking" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold">
+              Reservar Agora
+            </a>
+          </div>
         </div>
       </header>
 
@@ -650,7 +658,7 @@ export default function Home() {
       </section>
 
       {/* Availability Calendar */}
-      <section className="py-16 bg-white">
+      <section id="availability-calendar" className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4">
           <h2 className="text-4xl font-bold text-orange-900 mb-4 text-center">📅 Disponibilidade</h2>
           <p className="text-center text-gray-600 mb-8">Consulte as datas disponíveis para a sua estadia</p>
