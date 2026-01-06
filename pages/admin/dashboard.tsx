@@ -63,7 +63,14 @@ export default function AdminDashboard() {
     try {
       // Carregar reservas do Firestore
       const reservationsSnapshot = await getDocs(collection(db, 'reservations'));
-      const reservationsData = reservationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const reservationsData = reservationsSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a: any, b: any) => {
+          // Ordenar por data de criação (mais recente primeiro)
+          const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+          const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
       setReservations(reservationsData);
       
       // Carregar preços do Firestore
@@ -257,15 +264,15 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <header className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-6 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">🏢 Painel Admin</h1>
-            <p className="text-purple-100">EnzoLoft Management</p>
+      <header className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 md:py-6 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
+          <div className="text-center md:text-left">
+            <h1 className="text-2xl md:text-3xl font-bold">🏢 Painel Admin</h1>
+            <p className="text-purple-100 text-sm md:text-base">EnzoLoft Management</p>
           </div>
           <button
             onClick={logout}
-            className="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-lg font-semibold transition-all"
+            className="bg-red-500 hover:bg-red-600 px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-all text-sm md:text-base"
           >
             🚪 Sair
           </button>
@@ -322,50 +329,54 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
-          <div className="flex border-b border-gray-200 overflow-x-auto">
+          <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center gap-2 px-6 py-4 font-semibold transition-all whitespace-nowrap ${
+                className={`flex items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-3 md:py-4 font-semibold transition-all whitespace-nowrap text-xs md:text-base ${
                   activeTab === tab.id
                     ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white border-b-4 border-transparent'
                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                <span>{tab.icon}</span>
-                {tab.label}
+                <span className="text-sm md:text-base">{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
 
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             {/* Dashboard Tab */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800">📈 Visão Geral</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-lg border-2 border-blue-100">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Visitantes & Conversões (últimos 6 dias)</h3>
-                    <LineChart width={400} height={300} data={dashboardData}>
-                      <CartesianGrid stroke="#e5e7eb" />
-                      <XAxis dataKey="day" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} />
-                      <Line type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} />
-                    </LineChart>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">📈 Visão Geral</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6 rounded-lg border-2 border-blue-100">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Visitantes & Conversões (últimos 6 dias)</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={dashboardData}>
+                        <CartesianGrid stroke="#e5e7eb" />
+                        <XAxis dataKey="day" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} />
+                        <Line type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-lg border-2 border-orange-100">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Taxa de Ocupação</h3>
-                    <PieChart width={400} height={300}>
-                      <Pie data={occupancyData} cx={200} cy={150} labelLine={false} label={<CustomLabel />} outerRadius={80} fill="#8884d8" dataKey="value">
-                        <Cell fill="#10b981" />
-                        <Cell fill="#e5e7eb" />
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 md:p-6 rounded-lg border-2 border-orange-100">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Taxa de Ocupação</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie data={occupancyData} cx="50%" cy="50%" labelLine={false} label={<CustomLabel />} outerRadius={80} fill="#8884d8" dataKey="value">
+                          <Cell fill="#10b981" />
+                          <Cell fill="#e5e7eb" />
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>
@@ -374,22 +385,22 @@ export default function AdminDashboard() {
             {/* Calendar Tab */}
             {activeTab === 'calendar' && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold text-gray-800">🗓️ Calendário de Reservas</h2>
-                  <div className="flex gap-2">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-800">🗓️ Calendário de Reservas</h2>
+                  <div className="flex gap-2 justify-center md:justify-end">
                     <button
                       onClick={() => {
                         const newMonth = new Date(currentMonth);
                         newMonth.setMonth(newMonth.getMonth() - 1);
                         setCurrentMonth(newMonth);
                       }}
-                      className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-3 md:px-4 py-2 rounded-lg font-semibold transition-all text-sm md:text-base"
                     >
-                      ◀ Anterior
+                      ◀ <span className="hidden sm:inline">Anterior</span>
                     </button>
                     <button
                       onClick={() => setCurrentMonth(new Date())}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg font-semibold transition-all text-sm md:text-base"
                     >
                       Hoje
                     </button>
@@ -399,23 +410,24 @@ export default function AdminDashboard() {
                         newMonth.setMonth(newMonth.getMonth() + 1);
                         setCurrentMonth(newMonth);
                       }}
-                      className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold transition-all"
+                      className="bg-purple-500 hover:bg-purple-600 text-white px-3 md:px-4 py-2 rounded-lg font-semibold transition-all text-sm md:text-base"
                     >
-                      Próximo ▶
+                      <span className="hidden sm:inline">Próximo</span> ▶
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl border-2 border-purple-200 p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
+                <div className="bg-white rounded-xl border-2 border-purple-200 p-3 md:p-6">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-4 text-center">
                     {currentMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
                   </h3>
                   
                   {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-7 gap-1 md:gap-2">
                     {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                      <div key={day} className="text-center font-bold text-gray-700 py-2">
-                        {day}
+                      <div key={day} className="text-center font-bold text-gray-700 py-2 text-xs md:text-base">
+                        <span className="hidden sm:inline">{day}</span>
+                        <span className="sm:hidden">{day.substring(0, 1)}</span>
                       </div>
                     ))}
                     
@@ -449,7 +461,7 @@ export default function AdminDashboard() {
                         days.push(
                           <div
                             key={day}
-                            className={`aspect-square border-2 rounded-lg p-1 cursor-pointer transition-all ${
+                            className={`aspect-square border-2 rounded-lg p-0.5 md:p-1 cursor-pointer transition-all ${
                               isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                             } ${
                               dayReservations.length > 0 ? 'bg-green-100 hover:bg-green-200' : 'hover:bg-gray-50'
@@ -460,14 +472,15 @@ export default function AdminDashboard() {
                               }
                             }}
                           >
-                            <div className="text-sm font-semibold text-gray-700">{day}</div>
+                            <div className="text-xs md:text-sm font-semibold text-gray-700">{day}</div>
                             {dayReservations.length > 0 && (
-                              <div className="mt-1">
-                                <div className="text-xs font-semibold text-green-800 truncate">
-                                  {dayReservations[0].guestName}
+                              <div className="mt-0.5 md:mt-1">
+                                <div className="text-[0.6rem] md:text-xs font-semibold text-green-800 truncate">
+                                  <span className="hidden md:inline">{dayReservations[0].guestName}</span>
+                                  <span className="md:hidden">●</span>
                                 </div>
                                 {dayReservations.length > 1 && (
-                                  <div className="text-xs text-gray-600">+{dayReservations.length - 1}</div>
+                                  <div className="text-[0.6rem] md:text-xs text-gray-600">+{dayReservations.length - 1}</div>
                                 )}
                               </div>
                             )}
@@ -560,16 +573,20 @@ export default function AdminDashboard() {
             {/* Reservations Tab */}
             {activeTab === 'reservations' && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800">📋 Reservas</h2>
-                <div className="overflow-x-auto">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">📋 Reservas</h2>
+                
+                {/* Desktop Table */}
+                <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gradient-to-r from-purple-50 to-blue-50 border-b-2 border-purple-200">
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspede</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Email</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Datas</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Noites</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspedes</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Preço</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Pedido em</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
                         <th className="px-6 py-4 text-center font-semibold text-gray-700">Ações</th>
                       </tr>
@@ -577,7 +594,7 @@ export default function AdminDashboard() {
                     <tbody>
                       {reservations.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                          <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                             Nenhuma reserva ainda
                           </td>
                         </tr>
@@ -590,11 +607,24 @@ export default function AdminDashboard() {
                               {new Date(res.startDate).toLocaleDateString('pt-PT')} -{' '}
                               {new Date(res.endDate).toLocaleDateString('pt-PT')}
                             </td>
+                            <td className="px-6 py-4 text-gray-900 font-semibold">
+                              🌙 {Math.ceil((new Date(res.endDate).getTime() - new Date(res.startDate).getTime()) / (1000 * 60 * 60 * 24))}
+                            </td>
                             <td className="px-6 py-4 text-gray-700">👥 {res.guestsCount}</td>
                             <td className="px-6 py-4 font-semibold text-blue-600">€{res.totalPrice}</td>
+                            <td className="px-6 py-4 text-gray-600 text-xs">
+                              {res.createdAt ? (
+                                <>
+                                  {new Date(res.createdAt.toDate ? res.createdAt.toDate() : res.createdAt).toLocaleDateString('pt-PT')}<br />
+                                  <span className="text-gray-400">{new Date(res.createdAt.toDate ? res.createdAt.toDate() : res.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</span>
+                                </>
+                              ) : (
+                                <span className="text-gray-400">N/A</span>
+                              )}
+                            </td>
                             <td className="px-6 py-4">
                               <span
-                                className={`px-4 py-2 rounded-full font-semibold text-sm ${
+                                className={`inline-block px-3 py-1.5 rounded-full font-semibold text-sm whitespace-nowrap ${
                                   res.status === 'confirmed'
                                     ? 'bg-green-100 text-green-800'
                                     : res.status === 'cancelled'
@@ -625,13 +655,88 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile Cards */}
+                <div className="lg:hidden space-y-4">
+                  {reservations.length === 0 ? (
+                    <div className="bg-gray-50 p-8 rounded-lg text-center text-gray-500">
+                      Nenhuma reserva ainda
+                    </div>
+                  ) : (
+                    reservations.map((res, idx) => (
+                      <div key={idx} className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4 shadow-lg">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-lg">{res.guestName}</h3>
+                            <p className="text-gray-600 text-sm">{res.guestEmail}</p>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full font-semibold text-xs ${
+                              res.status === 'confirmed'
+                                ? 'bg-green-100 text-green-800'
+                                : res.status === 'cancelled'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                          >
+                            {res.status === 'confirmed' ? '✓' : res.status === 'cancelled' ? '✗' : '⏳'}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2 mb-4">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Datas:</span>
+                            <span className="font-semibold text-gray-900">
+                              {new Date(res.startDate).toLocaleDateString('pt-PT')} - {new Date(res.endDate).toLocaleDateString('pt-PT')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Noites:</span>
+                            <span className="font-semibold text-gray-900">🌙 {Math.ceil((new Date(res.endDate).getTime() - new Date(res.startDate).getTime()) / (1000 * 60 * 60 * 24))}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Hóspedes:</span>
+                            <span className="font-semibold text-gray-900">👥 {res.guestsCount}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Preço:</span>
+                            <span className="font-bold text-blue-600 text-lg">€{res.totalPrice}</span>
+                          </div>
+                          {res.createdAt && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Pedido em:</span>
+                              <span className="text-gray-500 text-xs">
+                                {new Date(res.createdAt.toDate ? res.createdAt.toDate() : res.createdAt).toLocaleDateString('pt-PT')} {new Date(res.createdAt.toDate ? res.createdAt.toDate() : res.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => updateReservationStatus(idx, 'confirmed')}
+                            className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                          >
+                            ✓ Confirmar
+                          </button>
+                          <button
+                            onClick={() => updateReservationStatus(idx, 'cancelled')}
+                            className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                          >
+                            ✗ Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
 
             {/* Prices Tab */}
             {activeTab === 'prices' && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800">💰 Preços</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">💰 Preços</h2>
                 <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg mb-4">
                   <p className="text-sm text-blue-800">
                     <strong>💡 Dica:</strong> Defina preços diferentes para períodos especiais como Verão, Natal, Páscoa, Fim de Semana, etc.
@@ -960,49 +1065,53 @@ export default function AdminDashboard() {
             {/* Analytics Tab */}
             {activeTab === 'analytics' && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800">📊 Analíticas</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border-2 border-blue-200">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">📈 Visitantes & Conversões (6 dias)</h3>
-                    <LineChart width={450} height={300} data={analyticsData}>
-                      <CartesianGrid stroke="#e0e7ff" />
-                      <XAxis dataKey="day" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} name="Visitantes" />
-                      <Line type="monotone" dataKey="conversions" stroke="#06b6d4" strokeWidth={2} name="Conversões" />
-                    </LineChart>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">📊 Analíticas</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 md:p-6 rounded-xl border-2 border-blue-200">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">📈 Visitantes & Conversões (6 dias)</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={analyticsData}>
+                        <CartesianGrid stroke="#e0e7ff" />
+                        <XAxis dataKey="day" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} name="Visitantes" />
+                        <Line type="monotone" dataKey="conversions" stroke="#06b6d4" strokeWidth={2} name="Conversões" />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
 
-                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-xl border-2 border-orange-200">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">💹 Receita Mensal</h3>
-                    <BarChart width={450} height={300} data={revenueData}>
-                      <CartesianGrid stroke="#fed7aa" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="revenue" fill="#f59e0b" name="Receita (€)" radius={[8, 8, 0, 0]} />
-                    </BarChart>
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 md:p-6 rounded-xl border-2 border-orange-200">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">💹 Receita Mensal</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={revenueData}>
+                        <CartesianGrid stroke="#fed7aa" />
+                        <XAxis dataKey="month" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip />
+                        <Bar dataKey="revenue" fill="#f59e0b" name="Receita (€)" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200">
-                    <p className="text-blue-700 font-semibold mb-2">Visitantes/dia</p>
-                    <p className="text-3xl font-bold text-blue-900">473</p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 md:p-6 rounded-xl border-2 border-blue-200">
+                    <p className="text-blue-700 font-semibold mb-2 text-xs md:text-base">Visitantes/dia</p>
+                    <p className="text-2xl md:text-3xl font-bold text-blue-900">473</p>
                   </div>
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200">
-                    <p className="text-green-700 font-semibold mb-2">Taxa Conversão</p>
-                    <p className="text-3xl font-bold text-green-900">16.8%</p>
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-3 md:p-6 rounded-xl border-2 border-green-200">
+                    <p className="text-green-700 font-semibold mb-2 text-xs md:text-base">Taxa Conversão</p>
+                    <p className="text-2xl md:text-3xl font-bold text-green-900">16.8%</p>
                   </div>
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
-                    <p className="text-purple-700 font-semibold mb-2">Média/Reserva</p>
-                    <p className="text-3xl font-bold text-purple-900">€420</p>
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-3 md:p-6 rounded-xl border-2 border-purple-200">
+                    <p className="text-purple-700 font-semibold mb-2 text-xs md:text-base">Média/Reserva</p>
+                    <p className="text-2xl md:text-3xl font-bold text-purple-900">€420</p>
                   </div>
-                  <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl border-2 border-yellow-200">
-                    <p className="text-yellow-700 font-semibold mb-2">Duração Média</p>
-                    <p className="text-3xl font-bold text-yellow-900">3.2 dias</p>
+                  <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-3 md:p-6 rounded-xl border-2 border-yellow-200">
+                    <p className="text-yellow-700 font-semibold mb-2 text-xs md:text-base">Duração Média</p>
+                    <p className="text-2xl md:text-3xl font-bold text-yellow-900">3.2 dias</p>
                   </div>
                 </div>
               </div>
@@ -1011,7 +1120,7 @@ export default function AdminDashboard() {
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800">⚙️ Configurações de Contacto</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">⚙️ Configurações de Contacto</h2>
                 <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
                   <h3 className="font-semibold text-gray-800 text-lg mb-4">Informações do Footer</h3>
                   <div className="space-y-4">

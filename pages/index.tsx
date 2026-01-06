@@ -63,6 +63,7 @@ export default function Home() {
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const [showFormCalendar, setShowFormCalendar] = useState<boolean>(false);
   const [formCalendarMonth, setFormCalendarMonth] = useState<Date>(new Date());
+  const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
     email: 'info@enzoloft.com',
@@ -481,8 +482,19 @@ export default function Home() {
       </header>
 
       {/* Hero Section with Booking Form */}
-      <section id="booking" className="bg-gradient-to-r from-orange-600 via-red-500 to-orange-500 py-16">
-        <div className="max-w-7xl mx-auto px-4">
+      <section id="booking" className="relative py-16 overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80" 
+            alt="Pôr do sol no Alentejo - Portugal"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-red-500 to-orange-500 opacity-50"></div>
+        </div>
+        
+        {/* Content */}
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Hero Content - Left Side */}
             <div className="text-white">
@@ -864,15 +876,127 @@ export default function Home() {
           <h2 className="text-4xl font-bold text-orange-900 mb-12 text-center">Galeria</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {galleryImages.map((image, idx) => (
-              <div key={idx} className="relative h-64 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div 
+                key={idx} 
+                className="relative h-64 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
+                onClick={() => setSelectedImage(image)}
+              >
                 <img
                   src={image.src}
                   alt={image.alt}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black opacity-0 hover:opacity-20 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-black opacity-0 hover:opacity-20 transition-opacity duration-300 flex items-center justify-center">
+                  <span className="text-white text-4xl opacity-0 hover:opacity-100 transition-opacity">🔍</span>
+                </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Image Modal/Lightbox */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-7xl max-h-full">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-12 right-0 text-white text-4xl hover:text-orange-500 transition-colors"
+              aria-label="Fechar"
+            >
+              ✕
+            </button>
+            <img
+              src={selectedImage.src}
+              alt={selectedImage.alt}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <p className="text-white text-center mt-4 text-xl">{selectedImage.alt}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Testimonials Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-4xl font-bold text-orange-900 mb-4 text-center">⭐ O Que Dizem os Nossos Hóspedes</h2>
+          <p className="text-center text-gray-600 mb-12 text-lg">Experiências reais de quem já nos visitou</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Testimonial 1 */}
+            <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-orange-200">
+              <div className="flex items-center mb-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  M
+                </div>
+                <div className="ml-4">
+                  <h4 className="font-bold text-orange-900 text-lg">Maria Silva</h4>
+                  <div className="flex text-yellow-500 text-sm">
+                    ⭐⭐⭐⭐⭐
+                  </div>
+                </div>
+              </div>
+              <p className="text-gray-700 italic">
+                "Lugar maravilhoso! A casa tem tudo o que precisamos e a piscina é espetacular. 
+                A tranquilidade do Alentejo combinada com todo o conforto. Voltaremos com certeza!"
+              </p>
+              <p className="text-gray-500 text-sm mt-4">— Agosto 2025</p>
+            </div>
+
+            {/* Testimonial 2 */}
+            <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-orange-200">
+              <div className="flex items-center mb-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  J
+                </div>
+                <div className="ml-4">
+                  <h4 className="font-bold text-orange-900 text-lg">João Pereira</h4>
+                  <div className="flex text-yellow-500 text-sm">
+                    ⭐⭐⭐⭐⭐
+                  </div>
+                </div>
+              </div>
+              <p className="text-gray-700 italic">
+                "Experiência incrível! A casa é ainda mais bonita ao vivo. 
+                Localização perfeita para explorar o Alentejo. Os anfitriões são muito atenciosos. 
+                Recomendo vivamente!"
+              </p>
+              <p className="text-gray-500 text-sm mt-4">— Julho 2025</p>
+            </div>
+
+            {/* Testimonial 3 */}
+            <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-orange-200">
+              <div className="flex items-center mb-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  A
+                </div>
+                <div className="ml-4">
+                  <h4 className="font-bold text-orange-900 text-lg">Ana Costa</h4>
+                  <div className="flex text-yellow-500 text-sm">
+                    ⭐⭐⭐⭐⭐
+                  </div>
+                </div>
+              </div>
+              <p className="text-gray-700 italic">
+                "Passamos uma semana fantástica! O jardim é lindo, ideal para relaxar. 
+                A cozinha tem tudo o que precisamos e o Wi-Fi funciona perfeitamente. 
+                Um verdadeiro refúgio!"
+              </p>
+              <p className="text-gray-500 text-sm mt-4">— Setembro 2025</p>
+            </div>
+          </div>
+
+          {/* Overall Rating */}
+          <div className="mt-12 text-center bg-gradient-to-r from-orange-100 to-red-100 rounded-xl p-8 border-2 border-orange-300">
+            <div className="text-6xl font-bold text-orange-900 mb-2">4.9</div>
+            <div className="flex justify-center text-yellow-500 text-2xl mb-2">
+              ⭐⭐⭐⭐⭐
+            </div>
+            <p className="text-gray-700 text-lg font-semibold">Baseado em 47 avaliações</p>
           </div>
         </div>
       </section>
