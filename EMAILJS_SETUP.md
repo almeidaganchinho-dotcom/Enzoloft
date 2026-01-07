@@ -1,6 +1,13 @@
-# Configuração do EmailJS para EnzoLoft
+# ⚠️ DEPRECADO - Configuração do EmailJS para EnzoLoft
 
-Este projeto usa EmailJS para envio de emails automáticos. Siga os passos abaixo para configurar:
+**NOTA:** Este projeto agora usa **Resend.com** para envio de emails.  
+Consulte [RESEND_SETUP.md](RESEND_SETUP.md) para a configuração atual.
+
+---
+
+## Histórico (EmailJS - não mais usado)
+
+Este projeto anteriormente usava EmailJS para envio de emails automáticos. Siga os passos abaixo para configurar:
 
 ## 1. Criar Conta no EmailJS
 

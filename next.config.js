@@ -2,8 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Static export for Firebase Hosting
-  output: 'export',
+  // NOTA: API routes requerem servidor Node.js
+  // Removido 'output: export' para permitir API routes (Resend emails)
+  // Para deploy no Firebase, use Firebase Functions + Firebase Hosting
+  
   images: { 
     unoptimized: true,
     remotePatterns: [

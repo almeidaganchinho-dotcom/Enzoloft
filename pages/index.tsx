@@ -409,9 +409,55 @@ export default function Home() {
         })
       };
       
+      // Criar reserva no Firestore
       await addDoc(collection(db, 'reservations'), reservation);
       
-      setMessage('✅ Reserva criada com sucesso! Aguardando confirmação do admin.');
+      // Enviar emails (confirmação para hóspede + notificação para admin)
+      try {
+        // Email de confirmação para o hóspede
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'reservation_confirmation',
+            data: {
+              guestName: reservation.guestName,
+              guestEmail: reservation.guestEmail,
+              startDate: reservation.startDate,
+              endDate: reservation.endDate,
+              nights: nights,
+              guestsCount: reservation.guestsCount,
+              totalPrice: reservation.totalPrice,
+              discount: discount || 0,
+              propertyName: 'Enzo Loft'
+            }
+          })
+        });
+
+        // Email de notificação para o admin
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'admin_notification',
+            data: {
+              guestName: reservation.guestName,
+              guestEmail: reservation.guestEmail,
+              guestPhone: reservation.guestPhone,
+              startDate: reservation.startDate,
+              endDate: reservation.endDate,
+              nights: nights,
+              guestsCount: reservation.guestsCount,
+              totalPrice: reservation.totalPrice
+            }
+          })
+        });
+      } catch (emailError) {
+        console.error('Erro ao enviar emails:', emailError);
+        // Não bloquear a reserva se o email falhar
+      }
+      
+      setMessage('✅ Reserva criada com sucesso! Verifique o seu email para mais informações.');
       setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
       setAppliedVoucher(null);
       setVoucherCode('');

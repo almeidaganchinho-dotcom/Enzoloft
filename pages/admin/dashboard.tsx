@@ -110,6 +110,7 @@ export default function AdminDashboard() {
     const updated = [...reservations];
     if (updated[idx]) {
       const reservation = updated[idx];
+      const oldStatus = reservation.status;
       updated[idx].status = status;
       setReservations(updated);
       
@@ -117,6 +118,28 @@ export default function AdminDashboard() {
       try {
         const reservationId = reservation.id;
         await updateDoc(doc(db, 'reservations', reservationId), { status });
+        
+        // Enviar email de cancelamento se o status mudou para cancelled
+        if (status === 'cancelled' && oldStatus !== 'cancelled') {
+          try {
+            await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'reservation_cancelled',
+                data: {
+                  guestName: reservation.guestName,
+                  guestEmail: reservation.guestEmail,
+                  startDate: reservation.startDate,
+                  endDate: reservation.endDate,
+                  reason: 'Cancelada pelo administrador'
+                }
+              })
+            });
+          } catch (emailError) {
+            console.error('Erro ao enviar email de cancelamento:', emailError);
+          }
+        }
       } catch (error) {
         console.error('Erro ao atualizar status:', error);
       }
