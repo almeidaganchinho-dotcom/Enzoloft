@@ -2,9 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // NOTA: API routes requerem servidor Node.js
-  // Removido 'output: export' para permitir API routes (Resend emails)
-  // Para deploy no Firebase, use Firebase Functions + Firebase Hosting
+  // Removido output:export para permitir API routes
+  // Firebase Hosting: apenas páginas estáticas
+  // Vercel: suporte completo para API routes + SSR
   
   images: { 
     unoptimized: true,
@@ -16,6 +16,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'enzoloft.vercel.app',
       },
     ],
   },

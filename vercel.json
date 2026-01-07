@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "env": {
+    "RESEND_API_KEY": "@resend_api_key",
+    "ADMIN_EMAIL": "@admin_email",
+    "NEXT_PUBLIC_APP_URL": "@app_url"
+  }
+}
