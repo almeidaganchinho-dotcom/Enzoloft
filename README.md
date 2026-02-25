@@ -25,12 +25,19 @@ Sistema completo de reservas para alojamento turístico com Firebase (Firestore 
 
 ## Setup Local
 
-### 1. Instalar dependências
+### 1. Alinhar versão do Node (recomendado)
+```bash
+nvm use
+```
+
+Se não tiver `nvm`, use Node `20.19.0` (ou qualquer `20.x`) com `npm >= 10`.
+
+### 2. Instalar dependências
 ```bash
 npm install
 ```
 
-### 2. Configurar variáveis de ambiente
+### 3. Configurar variáveis de ambiente
 
 Crie o arquivo `.env.local` na raiz do projeto:
 
@@ -42,7 +49,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 Veja [.env.example](.env.example) para referência.
 
-### 3. Executar em desenvolvimento
+### 4. Executar em desenvolvimento
 ```bash
 npm run dev
 ```

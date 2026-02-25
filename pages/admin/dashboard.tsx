@@ -41,24 +41,6 @@ export default function AdminDashboard() {
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
 
-  useEffect(() => {
-    const verifyAuth = async () => {
-      const token = localStorage.getItem('adminToken');
-      const email = localStorage.getItem('adminEmail');
-
-      if (!token || !email) {
-        router.push('/admin/login');
-        return;
-      }
-
-      setAdmin({ email });
-      await fetchAllData();
-      setLoading(false);
-    };
-
-    verifyAuth();
-  }, []);
-
   const fetchAllData = useCallback(async () => {
     try {
       // Carregar reservas do Firestore
@@ -99,6 +81,24 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const token = localStorage.getItem('adminToken');
+      const email = localStorage.getItem('adminEmail');
+
+      if (!token || !email) {
+        router.push('/admin/login');
+        return;
+      }
+
+      setAdmin({ email });
+      await fetchAllData();
+      setLoading(false);
+    };
+
+    verifyAuth();
+  }, [fetchAllData, router]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('adminToken');

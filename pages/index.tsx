@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
+import Link from 'next/link';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs } from 'firebase/firestore';
 
@@ -470,7 +471,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [dateError, formData]);
+  }, [appliedVoucher, dateError, discount, formData, nights, originalPrice]);
 
   const amenities = useMemo(() => [
     { icon: '📶', label: 'Wi-Fi Gratuito' },
@@ -530,11 +531,14 @@ export default function Home() {
       {/* Hero Section with Booking Form */}
       <section id="booking" className="relative py-16 overflow-hidden">
         {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80" 
+        <div className="absolute inset-0 z-0 relative">
+          <Image
+            src="https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80"
             alt="Pôr do sol no Alentejo - Portugal"
-            className="w-full h-full object-cover"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-red-500 to-orange-500 opacity-50"></div>
         </div>
@@ -892,11 +896,15 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <img
-              src="https://enzoloft.web.app/images/about/casa-exterior.jpg"
-              alt="Casa exterior"
-              className="w-full h-80 object-cover rounded-xl shadow-xl"
-            />
+            <div className="relative w-full h-80 rounded-xl shadow-xl overflow-hidden">
+              <Image
+                src="https://enzoloft.web.app/images/about/casa-exterior.jpg"
+                alt="Casa exterior"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -927,10 +935,12 @@ export default function Home() {
                 className="relative h-64 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
                 onClick={() => setSelectedImage(image)}
               >
-                <img
+                <Image
                   src={image.src}
                   alt={image.alt}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 25vw"
+                  className="object-cover"
                 />
                 <div className="absolute inset-0 bg-black opacity-0 hover:opacity-20 transition-opacity duration-300 flex items-center justify-center">
                   <span className="text-white text-4xl opacity-0 hover:opacity-100 transition-opacity">🔍</span>
@@ -955,10 +965,13 @@ export default function Home() {
             >
               ✕
             </button>
-            <img
+            <Image
               src={selectedImage.src}
               alt={selectedImage.alt}
-              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              width={1600}
+              height={900}
+              sizes="100vw"
+              className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
             <p className="text-white text-center mt-4 text-xl">{selectedImage.alt}</p>
@@ -987,8 +1000,8 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-gray-700 italic">
-                "Lugar maravilhoso! A casa tem tudo o que precisamos e a piscina é espetacular. 
-                A tranquilidade do Alentejo combinada com todo o conforto. Voltaremos com certeza!"
+                &ldquo;Lugar maravilhoso! A casa tem tudo o que precisamos e a piscina é espetacular. 
+                A tranquilidade do Alentejo combinada com todo o conforto. Voltaremos com certeza!&rdquo;
               </p>
               <p className="text-gray-500 text-sm mt-4">— Agosto 2025</p>
             </div>
@@ -1007,9 +1020,9 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-gray-700 italic">
-                "Experiência incrível! A casa é ainda mais bonita ao vivo. 
+                &ldquo;Experiência incrível! A casa é ainda mais bonita ao vivo. 
                 Localização perfeita para explorar o Alentejo. Os anfitriões são muito atenciosos. 
-                Recomendo vivamente!"
+                Recomendo vivamente!&rdquo;
               </p>
               <p className="text-gray-500 text-sm mt-4">— Julho 2025</p>
             </div>
@@ -1028,9 +1041,9 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-gray-700 italic">
-                "Passamos uma semana fantástica! O jardim é lindo, ideal para relaxar. 
+                &ldquo;Passamos uma semana fantástica! O jardim é lindo, ideal para relaxar. 
                 A cozinha tem tudo o que precisamos e o Wi-Fi funciona perfeitamente. 
-                Um verdadeiro refúgio!"
+                Um verdadeiro refúgio!&rdquo;
               </p>
               <p className="text-gray-500 text-sm mt-4">— Setembro 2025</p>
             </div>
@@ -1217,12 +1230,12 @@ export default function Home() {
           
           {/* Admin Access Button */}
           <div className="text-center mb-6">
-            <a
+            <Link
               href="/admin/login"
               className="inline-flex items-center gap-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 backdrop-blur-sm border border-white border-opacity-20 hover:border-opacity-40"
             >
               🔐 Acesso Admin
-            </a>
+            </Link>
           </div>
           <p className="text-orange-200 text-sm text-center">© 2026 EnzoLoft. Todos os direitos reservados.</p>
         </div>

@@ -21,6 +21,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'enzoloft.vercel.app',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
   
