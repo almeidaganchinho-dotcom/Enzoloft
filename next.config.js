@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'export',
   
-  // Removido output:export para permitir API routes
+  // Firebase Hosting: gerar site estático na pasta out
   // Firebase Hosting: apenas páginas estáticas
   // Vercel: suporte completo para API routes + SSR
   
