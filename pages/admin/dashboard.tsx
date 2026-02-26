@@ -590,6 +590,23 @@ export default function AdminDashboard() {
     return geoHotspots.reduce((maxTotal, hotspot) => Math.max(maxTotal, hotspot.total), 1);
   }, [geoHotspots]);
 
+  const geoCoverageMetrics = useMemo(() => {
+    const totalVisits = visitEvents.length;
+    const visitsWithGeo = visitEvents.filter((visitEvent) => {
+      const latitude = Number(visitEvent.latitude || 0);
+      const longitude = Number(visitEvent.longitude || 0);
+      return latitude !== 0 && longitude !== 0;
+    }).length;
+    const visitsWithoutGeo = Math.max(totalVisits - visitsWithGeo, 0);
+
+    return {
+      totalVisits,
+      visitsWithGeo,
+      visitsWithoutGeo,
+      withoutGeoShare: totalVisits > 0 ? (visitsWithoutGeo / totalVisits) * 100 : 0,
+    };
+  }, [visitEvents]);
+
   const deviceMetrics = useMemo(() => {
     const now = new Date();
     const periodStart = new Date(now);
@@ -1741,6 +1758,22 @@ export default function AdminDashboard() {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
                     <h3 className="text-base md:text-lg font-semibold text-gray-800">🗺️ Mapa de Origem das Visitas</h3>
                     <p className="text-xs text-gray-500">Hotspots: {geoHotspots.length} zonas</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                    <div className="bg-white rounded-lg border border-blue-100 p-3">
+                      <p className="text-xs text-gray-500">Visitas (total)</p>
+                      <p className="text-lg font-bold text-slate-900">{geoCoverageMetrics.totalVisits}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-blue-100 p-3">
+                      <p className="text-xs text-gray-500">Com geolocalização</p>
+                      <p className="text-lg font-bold text-emerald-700">{geoCoverageMetrics.visitsWithGeo}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-blue-100 p-3">
+                      <p className="text-xs text-gray-500">Sem geolocalização</p>
+                      <p className="text-lg font-bold text-amber-700">{geoCoverageMetrics.visitsWithoutGeo}</p>
+                      <p className="text-[11px] text-gray-500">{geoCoverageMetrics.withoutGeoShare.toFixed(1)}%</p>
+                    </div>
                   </div>
 
                   <div className="bg-white rounded-lg border border-blue-100 p-3">
