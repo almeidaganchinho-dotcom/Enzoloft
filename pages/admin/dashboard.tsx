@@ -63,6 +63,20 @@ const detectDeviceTypeFromUserAgent = (userAgent: string): 'Mobile' | 'Tablet' |
   return 'Desktop';
 };
 
+const detectMobileOsFromUserAgent = (userAgent: string): 'iOS' | 'Android' | 'Outro' => {
+  const ua = (userAgent || '').toLowerCase();
+
+  if (/iphone|ipod/.test(ua)) {
+    return 'iOS';
+  }
+
+  if (/android/.test(ua)) {
+    return 'Android';
+  }
+
+  return 'Outro';
+};
+
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -586,6 +600,46 @@ export default function AdminDashboard() {
       counts,
       chartData,
       total: chartData.reduce((sum, item) => sum + item.total, 0),
+    };
+  }, [devicePeriod, getVisitEventDate, visitEvents]);
+
+  const mobileOsMetrics = useMemo(() => {
+    const now = new Date();
+    const periodStart = new Date(now);
+    if (devicePeriod === '24h') {
+      periodStart.setHours(now.getHours() - 24);
+    } else if (devicePeriod === '7d') {
+      periodStart.setDate(now.getDate() - 7);
+    } else {
+      periodStart.setDate(now.getDate() - 30);
+    }
+
+    const counts = {
+      iOS: 0,
+      Android: 0,
+      Outro: 0,
+    };
+
+    visitEvents.forEach((visitEvent) => {
+      const visitDate = getVisitEventDate(visitEvent);
+      if (visitDate < periodStart || visitDate > now) return;
+
+      const normalizedDeviceType = (visitEvent.deviceType || '').toLowerCase();
+      const inferredType = visitEvent.userAgent ? detectDeviceTypeFromUserAgent(visitEvent.userAgent) : 'Desktop';
+      const isMobile = normalizedDeviceType === 'mobile' || inferredType === 'Mobile';
+      if (!isMobile) return;
+
+      const mobileOs = detectMobileOsFromUserAgent(visitEvent.userAgent || '');
+      counts[mobileOs] += 1;
+    });
+
+    const total = counts.iOS + counts.Android + counts.Outro;
+
+    return {
+      ...counts,
+      total,
+      iosShare: total > 0 ? (counts.iOS / total) * 100 : 0,
+      androidShare: total > 0 ? (counts.Android / total) * 100 : 0,
     };
   }, [devicePeriod, getVisitEventDate, visitEvents]);
 
@@ -1758,6 +1812,27 @@ export default function AdminDashboard() {
                         <Bar dataKey="total" fill="#10b981" name="Visitas" radius={[8, 8, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  <div className="mt-4 bg-white rounded-lg border border-emerald-100 p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3">Dentro de Mobile: iOS vs Android</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="rounded-lg border border-gray-100 p-3">
+                        <p className="text-xs text-gray-500">iOS</p>
+                        <p className="text-xl font-bold text-slate-900">{mobileOsMetrics.iOS}</p>
+                        <p className="text-xs text-gray-500">{mobileOsMetrics.iosShare.toFixed(1)}%</p>
+                      </div>
+                      <div className="rounded-lg border border-gray-100 p-3">
+                        <p className="text-xs text-gray-500">Android</p>
+                        <p className="text-xl font-bold text-slate-900">{mobileOsMetrics.Android}</p>
+                        <p className="text-xs text-gray-500">{mobileOsMetrics.androidShare.toFixed(1)}%</p>
+                      </div>
+                      <div className="rounded-lg border border-gray-100 p-3">
+                        <p className="text-xs text-gray-500">Outro</p>
+                        <p className="text-xl font-bold text-slate-900">{mobileOsMetrics.Outro}</p>
+                        <p className="text-xs text-gray-500">Total mobile: {mobileOsMetrics.total}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
