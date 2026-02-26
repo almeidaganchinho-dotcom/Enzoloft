@@ -2,6 +2,7 @@
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
+import PresentationModePage from '../components/PresentationModePage';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs } from 'firebase/firestore';
 
@@ -39,6 +40,10 @@ interface FormData {
   totalPrice: number;
 }
 
+interface SiteMode {
+  presentationModeEnabled?: boolean;
+}
+
 export default function Home() {
   const [formData, setFormData] = useState<FormData>({
     propertyId: '1',
@@ -65,6 +70,8 @@ export default function Home() {
   const [showFormCalendar, setShowFormCalendar] = useState<boolean>(false);
   const [formCalendarMonth, setFormCalendarMonth] = useState<Date>(new Date());
   const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
+  const [presentationModeEnabled, setPresentationModeEnabled] = useState<boolean>(false);
+  const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
     email: 'info@enzoloft.com',
@@ -77,10 +84,11 @@ export default function Home() {
     const loadAllData = async () => {
       try {
         // Carregar tudo em paralelo para melhor performance
-        const [availabilitySnapshot, reservationsSnapshot, contactDoc] = await Promise.all([
+        const [availabilitySnapshot, reservationsSnapshot, contactDoc, siteModeDoc] = await Promise.all([
           getDocs(collection(db, 'availability')),
           getDocs(collection(db, 'reservations')),
-          getDoc(doc(db, 'settings', 'contactInfo'))
+          getDoc(doc(db, 'settings', 'contactInfo')),
+          getDoc(doc(db, 'settings', 'siteMode'))
         ]);
         
         // Datas bloqueadas
@@ -101,8 +109,15 @@ export default function Home() {
         if (contactDoc.exists()) {
           setContactInfo(contactDoc.data() as any);
         }
+
+        if (siteModeDoc.exists()) {
+          const siteModeData = siteModeDoc.data() as SiteMode;
+          setPresentationModeEnabled(Boolean(siteModeData.presentationModeEnabled));
+        }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
+      } finally {
+        setSiteModeLoaded(true);
       }
     };
     
@@ -492,6 +507,24 @@ export default function Home() {
     { src: 'https://enzoloft.web.app/images/gallery/vista.jpg', alt: 'Vista' },
     { src: 'https://enzoloft.web.app/images/gallery/piscina.jpg', alt: 'Piscina' },
   ], []);
+
+  if (!siteModeLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-600"></div>
+      </div>
+    );
+  }
+
+  if (presentationModeEnabled) {
+    return (
+      <PresentationModePage
+        amenities={amenities}
+        galleryImages={galleryImages}
+        contactInfo={contactInfo}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

@@ -14,6 +14,10 @@ interface Tab {
   icon: string;
 }
 
+interface SiteMode {
+  presentationModeEnabled: boolean;
+}
+
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -34,6 +38,9 @@ export default function AdminDashboard() {
     phone: '+351 XXX XXX XXX',
     description: 'Retiro de charme no coração do Alentejo',
     mapsUrl: ''
+  });
+  const [siteMode, setSiteMode] = useState<SiteMode>({
+    presentationModeEnabled: false,
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -74,6 +81,11 @@ export default function AdminDashboard() {
       const contactDoc = await getDoc(doc(db, 'settings', 'contactInfo'));
       if (contactDoc.exists()) {
         setContactInfo(contactDoc.data() as any);
+      }
+
+      const siteModeDoc = await getDoc(doc(db, 'settings', 'siteMode'));
+      if (siteModeDoc.exists()) {
+        setSiteMode(siteModeDoc.data() as SiteMode);
       }
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -1143,7 +1155,29 @@ export default function AdminDashboard() {
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800">⚙️ Configurações de Contacto</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">⚙️ Configurações do Site</h2>
+                <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-xl border-2 border-orange-200">
+                  <h3 className="font-semibold text-gray-800 text-lg mb-4">Modo de Apresentação</h3>
+                  <label className="flex items-center justify-between gap-4 cursor-pointer">
+                    <div>
+                      <p className="font-semibold text-gray-800">Ativar página sem reservas</p>
+                      <p className="text-sm text-gray-600">
+                        Quando ativo, o site público mostra apenas a apresentação e comodidades da casa.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={siteMode.presentationModeEnabled}
+                      onChange={(e) =>
+                        setSiteMode((prev) => ({
+                          ...prev,
+                          presentationModeEnabled: e.target.checked,
+                        }))
+                      }
+                      className="h-5 w-5 accent-orange-600"
+                    />
+                  </label>
+                </div>
                 <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
                   <h3 className="font-semibold text-gray-800 text-lg mb-4">Informações do Footer</h3>
                   <div className="space-y-4">
@@ -1203,7 +1237,10 @@ export default function AdminDashboard() {
                     <button
                       onClick={async () => {
                         try {
-                          await setDoc(doc(db, 'settings', 'contactInfo'), contactInfo);
+                          await Promise.all([
+                            setDoc(doc(db, 'settings', 'contactInfo'), contactInfo),
+                            setDoc(doc(db, 'settings', 'siteMode'), siteMode),
+                          ]);
                           alert('✅ Configurações guardadas com sucesso!');
                         } catch (error) {
                           console.error('Erro ao guardar configurações:', error);
