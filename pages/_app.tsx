@@ -9,9 +9,22 @@ import {
   type TrackingConsentStatus,
 } from '../lib/consent'
 
+const CONSENT_BANNER_DISMISSED_SESSION_KEY = 'enzoloft_consent_banner_dismissed_session'
+
 export default function App({ Component, pageProps }: AppProps) {
   const [consentStatus, setConsentStatus] = useState<TrackingConsentStatus>(() => getTrackingConsentStatus())
-  const [isConsentBannerVisible, setIsConsentBannerVisible] = useState<boolean>(() => getTrackingConsentStatus() === 'unknown')
+  const [isConsentBannerVisible, setIsConsentBannerVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return getTrackingConsentStatus() === 'unknown'
+
+    let isDismissedInSession = false
+    try {
+      isDismissedInSession = window.sessionStorage.getItem(CONSENT_BANNER_DISMISSED_SESSION_KEY) === '1'
+    } catch {
+      // ignore
+    }
+
+    return !isDismissedInSession && getTrackingConsentStatus() === 'unknown'
+  })
 
   useEffect(() => {
     if (consentStatus === 'granted') {
@@ -25,7 +38,12 @@ export default function App({ Component, pageProps }: AppProps) {
     const updateConsentFromStorage = () => {
       const currentStatus = getTrackingConsentStatus()
       setConsentStatus(currentStatus)
-      setIsConsentBannerVisible(currentStatus === 'unknown')
+      setIsConsentBannerVisible((isCurrentlyVisible) => {
+        if (currentStatus === 'unknown') {
+          return isCurrentlyVisible
+        }
+        return false
+      })
     }
 
     window.addEventListener(TRACKING_CONSENT_CHANGED_EVENT, updateConsentFromStorage)
@@ -40,6 +58,13 @@ export default function App({ Component, pageProps }: AppProps) {
   const handleConsentChoice = (status: Exclude<TrackingConsentStatus, 'unknown'>) => {
     setConsentStatus(status)
     setIsConsentBannerVisible(false)
+
+    try {
+      window.sessionStorage.setItem(CONSENT_BANNER_DISMISSED_SESSION_KEY, '1')
+    } catch {
+      // ignore
+    }
+
     setTrackingConsentStatus(status)
 
     if (status === 'granted') {
