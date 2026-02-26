@@ -117,6 +117,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [devicePeriod, setDevicePeriod] = useState<'24h' | '7d' | '30d'>('30d');
   const [refreshingAnalytics, setRefreshingAnalytics] = useState(false);
+  const [reservationPeriod, setReservationPeriod] = useState<'all' | '7d' | '30d' | '90d'>('all');
+  const [reservationSearch, setReservationSearch] = useState('');
   const router = useRouter();
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
@@ -277,8 +279,41 @@ export default function AdminDashboard() {
     }
   }, [fetchAllData]);
 
+  const filteredReservations = useMemo(() => {
+    const now = new Date();
+    const searchValue = reservationSearch.trim().toLowerCase();
+
+    return reservations.filter((reservation) => {
+      const createdAt = reservation?.createdAt?.toDate
+        ? reservation.createdAt.toDate()
+        : reservation?.createdAt
+        ? new Date(reservation.createdAt)
+        : reservation?.startDate
+        ? new Date(reservation.startDate)
+        : new Date(0);
+
+      if (reservationPeriod !== 'all') {
+        const days = reservationPeriod === '7d' ? 7 : reservationPeriod === '30d' ? 30 : 90;
+        const periodStart = new Date(now);
+        periodStart.setDate(now.getDate() - days);
+        if (createdAt < periodStart) return false;
+      }
+
+      if (!searchValue) return true;
+
+      const fields = [
+        reservation.guestName,
+        reservation.guestEmail,
+        reservation.guestPhone,
+        reservation.status,
+      ];
+
+      return fields.some((field) => String(field || '').toLowerCase().includes(searchValue));
+    });
+  }, [reservationPeriod, reservationSearch, reservations]);
+
   const exportReservationsCsv = useCallback(async () => {
-    if (reservations.length === 0) {
+    if (filteredReservations.length === 0) {
       alert('Não existem reservas para exportar.');
       return;
     }
@@ -303,7 +338,7 @@ export default function AdminDashboard() {
       'VoucherDesconto',
     ];
 
-    const rows = reservations.map((reservation) => {
+    const rows = filteredReservations.map((reservation) => {
       const createdAt = reservation?.createdAt?.toDate
         ? reservation.createdAt.toDate()
         : reservation?.createdAt
@@ -337,14 +372,21 @@ export default function AdminDashboard() {
     const link = document.createElement('a');
     const stamp = new Date().toISOString().slice(0, 10);
     link.href = url;
-    link.download = `reservas-enzoloft-${stamp}.csv`;
+    link.download = `reservas-enzoloft-${reservationPeriod}-${stamp}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    await logClientEvent({ event: 'admin_reservations_csv_exported', context: { total: reservations.length } });
-  }, [reservations]);
+    await logClientEvent({
+      event: 'admin_reservations_csv_exported',
+      context: {
+        total: filteredReservations.length,
+        period: reservationPeriod,
+        hasSearch: reservationSearch.trim().length > 0,
+      },
+    });
+  }, [filteredReservations, reservationPeriod, reservationSearch]);
 
   useEffect(() => {
     if (!admin) return;
@@ -370,8 +412,9 @@ export default function AdminDashboard() {
     };
   }, [admin, logout]);
 
-  const updateReservationStatus = useCallback(async (idx: number, status: string) => {
+  const updateReservationStatus = useCallback(async (reservationId: string, status: string) => {
     const updated = [...reservations];
+    const idx = updated.findIndex((reservation) => reservation.id === reservationId);
     if (updated[idx]) {
       const reservation = updated[idx];
       const oldStatus = reservation.status;
@@ -1302,6 +1345,31 @@ export default function AdminDashboard() {
                     ⬇️ Exportar CSV
                   </button>
                 </div>
+
+                <div className="bg-white border border-gray-200 rounded-xl p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      value={reservationSearch}
+                      onChange={(e) => setReservationSearch(e.target.value)}
+                      placeholder="Pesquisar por nome, email, telefone ou estado"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    <select
+                      value={reservationPeriod}
+                      onChange={(e) => setReservationPeriod(e.target.value as 'all' | '7d' | '30d' | '90d')}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="all">Todos os períodos</option>
+                      <option value="7d">Últimos 7 dias</option>
+                      <option value="30d">Últimos 30 dias</option>
+                      <option value="90d">Últimos 90 dias</option>
+                    </select>
+                    <div className="flex items-center text-sm text-gray-600">
+                      A mostrar <strong className="mx-1 text-gray-900">{filteredReservations.length}</strong> de {reservations.length}
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Desktop Table */}
                 <div className="hidden lg:block overflow-x-auto">
@@ -1320,15 +1388,15 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {reservations.length === 0 ? (
+                      {filteredReservations.length === 0 ? (
                         <tr>
                           <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
-                            Nenhuma reserva ainda
+                            Nenhuma reserva encontrada para os filtros atuais
                           </td>
                         </tr>
                       ) : (
-                        reservations.map((res, idx) => (
-                          <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                        filteredReservations.map((res) => (
+                          <tr key={res.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
                             <td className="px-6 py-4 font-semibold text-gray-900">{res.guestName}</td>
                             <td className="px-6 py-4 text-gray-700">{res.guestEmail}</td>
                             <td className="px-6 py-4 text-gray-700">
@@ -1365,13 +1433,13 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-6 py-4 text-center space-x-2 flex justify-center">
                               <button
-                                onClick={() => updateReservationStatus(idx, 'confirmed')}
+                                onClick={() => updateReservationStatus(res.id, 'confirmed')}
                                 className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all"
                               >
                                 ✓
                               </button>
                               <button
-                                onClick={() => updateReservationStatus(idx, 'cancelled')}
+                                onClick={() => updateReservationStatus(res.id, 'cancelled')}
                                 className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all"
                               >
                                 ✗
@@ -1386,13 +1454,13 @@ export default function AdminDashboard() {
 
                 {/* Mobile Cards */}
                 <div className="lg:hidden space-y-4">
-                  {reservations.length === 0 ? (
+                  {filteredReservations.length === 0 ? (
                     <div className="bg-gray-50 p-8 rounded-lg text-center text-gray-500">
-                      Nenhuma reserva ainda
+                      Nenhuma reserva encontrada para os filtros atuais
                     </div>
                   ) : (
-                    reservations.map((res, idx) => (
-                      <div key={idx} className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4 shadow-lg">
+                    filteredReservations.map((res) => (
+                      <div key={res.id} className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4 shadow-lg">
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h3 className="font-bold text-gray-900 text-lg">{res.guestName}</h3>
@@ -1442,13 +1510,13 @@ export default function AdminDashboard() {
                         
                         <div className="flex gap-2">
                           <button
-                            onClick={() => updateReservationStatus(idx, 'confirmed')}
+                            onClick={() => updateReservationStatus(res.id, 'confirmed')}
                             className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all"
                           >
                             ✓ Confirmar
                           </button>
                           <button
-                            onClick={() => updateReservationStatus(idx, 'cancelled')}
+                            onClick={() => updateReservationStatus(res.id, 'cancelled')}
                             className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all"
                           >
                             ✗ Cancelar

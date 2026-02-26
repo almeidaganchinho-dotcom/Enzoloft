@@ -197,6 +197,11 @@ export default function Home() {
     mapsUrl: ''
   });
 
+  const deferredSectionStyle = useMemo<React.CSSProperties>(() => ({
+    contentVisibility: 'auto',
+    containIntrinsicSize: '1px 1000px',
+  }), []);
+
   useEffect(() => {
     const registerVisit = async () => {
       if (typeof window === 'undefined') return;
@@ -1273,7 +1278,7 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="bg-gradient-to-r from-orange-50 to-red-50 py-16">
+      <section className="bg-gradient-to-r from-orange-50 to-red-50 py-16" style={deferredSectionStyle}>
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
@@ -1301,8 +1306,10 @@ export default function Home() {
                 src="https://enzoloft.web.app/images/about/casa-exterior.jpg"
                 alt="Casa exterior"
                 fill
-                quality={75}
+                quality={70}
                 sizes="(max-width: 768px) 100vw, 50vw"
+                loading="lazy"
+                decoding="async"
                 className="object-cover"
               />
             </div>
@@ -1311,7 +1318,7 @@ export default function Home() {
       </section>
 
       {/* Amenities */}
-      <section className="bg-white py-16">
+      <section className="bg-white py-16" style={deferredSectionStyle}>
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-4xl font-bold text-orange-900 mb-12 text-center">Comodidades</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
@@ -1326,7 +1333,7 @@ export default function Home() {
       </section>
 
       {/* Gallery */}
-      <section className="bg-gradient-to-r from-orange-50 to-red-50 py-16">
+      <section className="bg-gradient-to-r from-orange-50 to-red-50 py-16" style={deferredSectionStyle}>
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-4xl font-bold text-orange-900 mb-12 text-center">Galeria</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1340,8 +1347,10 @@ export default function Home() {
                   src={image.src}
                   alt={image.alt}
                   fill
-                  quality={70}
+                  quality={60}
                   sizes="(max-width: 768px) 100vw, 25vw"
+                  loading="lazy"
+                  decoding="async"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-black opacity-0 hover:opacity-20 transition-opacity duration-300 flex items-center justify-center">
@@ -1383,7 +1392,7 @@ export default function Home() {
       )}
 
       {/* Testimonials Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white" style={deferredSectionStyle}>
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-4xl font-bold text-orange-900 mb-4 text-center">⭐ O Que Dizem os Nossos Hóspedes</h2>
           <p className="text-center text-gray-600 mb-12 text-lg">Experiências reais de quem já nos visitou</p>
@@ -1464,7 +1473,7 @@ export default function Home() {
       </section>
 
       {/* Availability Calendar */}
-      <section id="availability-calendar" className="py-12 bg-white">
+      <section id="availability-calendar" className="py-12 bg-white" style={deferredSectionStyle}>
         <div className="max-w-2xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-orange-900 mb-3 text-center">📅 Disponibilidade</h2>
           <p className="text-center text-gray-600 mb-6 text-sm">Consulte as datas disponíveis para a sua estadia</p>
