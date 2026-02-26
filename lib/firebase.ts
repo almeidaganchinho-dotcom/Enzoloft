@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getAnalytics, isSupported, logEvent } from 'firebase/analytics';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
@@ -17,6 +17,7 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
 const auth = getAuth(app);
+let analyticsPromise: ReturnType<typeof initAnalytics> | null = null;
 
 const initAnalytics = async () => {
   if (typeof window === 'undefined') return null;
@@ -25,4 +26,29 @@ const initAnalytics = async () => {
   return getAnalytics(app);
 };
 
-export { app, db, auth, initAnalytics };
+const trackAnalyticsEvent = async (
+  eventName: string,
+  params?: Record<string, string | number | boolean | null | undefined>
+) => {
+  try {
+    if (!analyticsPromise) {
+      analyticsPromise = initAnalytics();
+    }
+
+    const analytics = await analyticsPromise;
+    if (!analytics) return;
+
+    const eventParams = Object.entries(params || {}).reduce<Record<string, string | number | boolean>>((accumulator, [key, value]) => {
+      if (value !== undefined && value !== null) {
+        accumulator[key] = value;
+      }
+      return accumulator;
+    }, {});
+
+    logEvent(analytics, eventName, eventParams);
+  } catch (error) {
+    console.error('Erro ao registar evento GA4:', error);
+  }
+};
+
+export { app, db, auth, initAnalytics, trackAnalyticsEvent };

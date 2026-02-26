@@ -3,7 +3,7 @@ import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 import PresentationModePage from '../components/PresentationModePage';
-import { db } from '../lib/firebase';
+import { db, trackAnalyticsEvent } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs, runTransaction } from 'firebase/firestore';
 import { logClientError, logClientEvent } from '../lib/monitoring';
 
@@ -277,6 +277,7 @@ export default function Home() {
   const applyVoucher = useCallback(async () => {
     if (!voucherCode.trim()) {
       setVoucherError('Por favor, insira um código de voucher.');
+      void trackAnalyticsEvent('voucher_apply_failed', { reason: 'empty_code' });
       return;
     }
 
@@ -284,6 +285,7 @@ export default function Home() {
     
     if (currentPrice === 0) {
       setVoucherError('Selecione as datas primeiro para aplicar o voucher.');
+      void trackAnalyticsEvent('voucher_apply_failed', { reason: 'missing_dates_or_price' });
       return;
     }
 
@@ -298,6 +300,7 @@ export default function Home() {
         setAppliedVoucher(null);
         setDiscount(0);
         setFormData(prev => ({ ...prev, totalPrice: currentPrice }));
+        void trackAnalyticsEvent('voucher_apply_failed', { reason: 'invalid_code' });
         return;
       }
       
@@ -309,6 +312,7 @@ export default function Home() {
         setAppliedVoucher(null);
         setDiscount(0);
         setFormData(prev => ({ ...prev, totalPrice: currentPrice }));
+        void trackAnalyticsEvent('voucher_apply_failed', { reason: 'expired' });
         return;
       }
       
@@ -335,10 +339,17 @@ export default function Home() {
       setFormData(prev => ({ ...prev, totalPrice: currentPrice - discountAmount }));
       setVoucherError('');
       setMessage(`✅ Voucher "${voucher.code}" aplicado com sucesso!`);
+      void trackAnalyticsEvent('voucher_applied', {
+        voucher_type: voucher.type,
+        discount_amount: Number(discountAmount.toFixed(2)),
+        original_price: Number(currentPrice.toFixed(2)),
+        final_price: Number((currentPrice - discountAmount).toFixed(2)),
+      });
     } catch (error) {
       console.error('Erro ao validar voucher:', error);
       await logClientError('booking_voucher_validation_failed', error, { voucherCode });
       setVoucherError('Erro ao validar voucher. Tente novamente.');
+      void trackAnalyticsEvent('voucher_apply_failed', { reason: 'exception' });
     }
   }, [voucherCode, originalPrice, formData.totalPrice]);
   const calculateTotalPrice = useCallback(async (startDate: string, endDate: string): Promise<number> => {
@@ -423,6 +434,7 @@ export default function Home() {
       bookingStartedRef.current = true;
       setBookingStarted(true);
       await logClientEvent({ event: 'booking_started', context: { field: name } });
+      void trackAnalyticsEvent('booking_started', { source: 'form_field', field: name });
     }
 
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -454,6 +466,7 @@ export default function Home() {
       bookingStartedRef.current = true;
       setBookingStarted(true);
       await logClientEvent({ event: 'booking_started', context: { field: 'calendar' } });
+      void trackAnalyticsEvent('booking_started', { source: 'calendar' });
     }
 
     const newFormData = { ...formData };
@@ -490,6 +503,9 @@ export default function Home() {
             totalPrice: calculatedPrice,
           },
         });
+        void trackAnalyticsEvent('booking_dates_selected', {
+          total_price: Number(calculatedPrice.toFixed(2)),
+        });
       }
     }
   }, [formData, checkDateRangeConflict, calculateTotalPrice]);
@@ -503,6 +519,7 @@ export default function Home() {
     // Validações básicas
     if (dateError) {
       await logClientEvent({ event: 'booking_submit_blocked', level: 'warning', context: { reason: 'date_error' } });
+      void trackAnalyticsEvent('booking_submit_blocked', { reason: 'date_error' });
       setMessage('❌ Por favor, escolha datas válidas sem bloqueios.');
       setLoading(false);
       setSubmittingReservation(false);
@@ -510,6 +527,7 @@ export default function Home() {
     }
 
     if (!formData.guestName.trim() || formData.guestName.length < 3) {
+      void trackAnalyticsEvent('booking_submit_blocked', { reason: 'invalid_name' });
       setMessage('❌ Por favor, insira um nome válido (mínimo 3 caracteres).');
       setLoading(false);
       setSubmittingReservation(false);
@@ -517,6 +535,7 @@ export default function Home() {
     }
 
     if (!formData.guestEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      void trackAnalyticsEvent('booking_submit_blocked', { reason: 'invalid_email' });
       setMessage('❌ Por favor, insira um email válido.');
       setLoading(false);
       setSubmittingReservation(false);
@@ -524,6 +543,7 @@ export default function Home() {
     }
 
     if (!formData.guestPhone.trim() || formData.guestPhone.length < 9) {
+      void trackAnalyticsEvent('booking_submit_blocked', { reason: 'invalid_phone' });
       setMessage('❌ Por favor, insira um telefone válido.');
       setLoading(false);
       setSubmittingReservation(false);
@@ -531,11 +551,18 @@ export default function Home() {
     }
 
     if (formData.guestsCount < 1 || formData.guestsCount > 20) {
+      void trackAnalyticsEvent('booking_submit_blocked', { reason: 'invalid_guests_count' });
       setMessage('❌ Número de hóspedes inválido (1-20).');
       setLoading(false);
       setSubmittingReservation(false);
       return;
     }
+
+    void trackAnalyticsEvent('booking_submit_attempt', {
+      guests_count: formData.guestsCount,
+      total_price: Number(formData.totalPrice.toFixed(2)),
+      has_voucher: !!appliedVoucher,
+    });
 
     try {
       // Sanitizar dados antes de guardar
@@ -569,6 +596,11 @@ export default function Home() {
           totalPrice: reservation.totalPrice,
           guestsCount: reservation.guestsCount,
         },
+      });
+      void trackAnalyticsEvent('booking_submit_success', {
+        guests_count: reservation.guestsCount,
+        total_price: Number(reservation.totalPrice.toFixed(2)),
+        has_voucher: !!appliedVoucher,
       });
       
       // Enviar emails (confirmação para hóspede + notificação para admin)
@@ -629,6 +661,7 @@ export default function Home() {
     } catch (error) {
       console.error('Erro ao criar reserva:', error);
       await logClientError('booking_submit_failed', error);
+      void trackAnalyticsEvent('booking_submit_failed');
       setMessage('❌ Erro ao criar reserva. Tente novamente.');
     } finally {
       setLoading(false);
