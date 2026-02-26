@@ -6,8 +6,48 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isValidDateString(value) {
+      return value is string && value.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    function isValidIsoDateTimeString(value) {
+      return value is string && value.matches('^\\d{4}-\\d{2}-\\d{2}T.*Z$');
+    }
+
+    function isValidEmail(value) {
+      return value is string
+        && value.size() >= 5
+        && value.size() <= 120
+        && value.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+    }
+
+    function isValidPhone(value) {
+      return value is string
+        && value.size() >= 9
+        && value.size() <= 25
+        && value.matches('^[0-9+()\\-\\s]+$');
+    }
+
+    function hasValidVoucher() {
+      return !request.resource.data.keys().hasAny(['voucher'])
+        || (
+          request.resource.data.voucher is map
+          && request.resource.data.voucher.keys().hasOnly(['code', 'discount', 'originalPrice'])
+          && request.resource.data.voucher.code is string
+          && request.resource.data.voucher.code.size() >= 3
+          && request.resource.data.voucher.code.size() <= 40
+          && request.resource.data.voucher.discount is number
+          && request.resource.data.voucher.discount >= 0
+          && request.resource.data.voucher.discount <= 20000
+          && request.resource.data.voucher.originalPrice is number
+          && request.resource.data.voucher.originalPrice >= 0
+          && request.resource.data.voucher.originalPrice <= 20000
+          && request.resource.data.voucher.originalPrice >= request.resource.data.totalPrice
+        );
+    }
+
     function isValidPublicReservationCreate() {
-      return request.resource.data.keys().hasAll([
+      return request.resource.data.keys().hasOnly([
         'propertyId',
         'guestName',
         'guestEmail',
@@ -17,18 +57,29 @@ service cloud.firestore {
         'guestsCount',
         'totalPrice',
         'status',
-        'createdAt'
+        'createdAt',
+        'voucher'
       ])
       && request.resource.data.propertyId is string
+      && request.resource.data.propertyId.size() >= 1
+      && request.resource.data.propertyId.size() <= 30
       && request.resource.data.guestName is string
-      && request.resource.data.guestEmail is string
-      && request.resource.data.guestPhone is string
-      && request.resource.data.startDate is string
-      && request.resource.data.endDate is string
+      && request.resource.data.guestName.size() >= 3
+      && request.resource.data.guestName.size() <= 120
+      && isValidEmail(request.resource.data.guestEmail)
+      && isValidPhone(request.resource.data.guestPhone)
+      && isValidDateString(request.resource.data.startDate)
+      && isValidDateString(request.resource.data.endDate)
+      && request.resource.data.endDate > request.resource.data.startDate
       && request.resource.data.guestsCount is int
+      && request.resource.data.guestsCount >= 1
+      && request.resource.data.guestsCount <= 20
       && request.resource.data.totalPrice is number
+      && request.resource.data.totalPrice > 0
+      && request.resource.data.totalPrice <= 20000
       && request.resource.data.status == 'pending'
-      && request.resource.data.createdAt is string;
+      && isValidIsoDateTimeString(request.resource.data.createdAt)
+      && hasValidVoucher();
     }
 
     function isValidPublicSiteStatsWrite() {
