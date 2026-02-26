@@ -43,8 +43,25 @@ interface VisitEvent {
   city?: string;
   latitude?: number;
   longitude?: number;
+  deviceType?: string;
+  userAgent?: string;
+  platform?: string;
   createdAt?: any;
 }
+
+const detectDeviceTypeFromUserAgent = (userAgent: string): 'Mobile' | 'Tablet' | 'Desktop' => {
+  const ua = (userAgent || '').toLowerCase();
+
+  if (/ipad|tablet|playbook|silk|kindle/.test(ua)) {
+    return 'Tablet';
+  }
+
+  if (/mobile|android|iphone|ipod|blackberry|windows phone|opera mini/.test(ua)) {
+    return 'Mobile';
+  }
+
+  return 'Desktop';
+};
 
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
@@ -512,6 +529,45 @@ export default function AdminDashboard() {
   const maxGeoHotspotTotal = useMemo(() => {
     return geoHotspots.reduce((maxTotal, hotspot) => Math.max(maxTotal, hotspot.total), 1);
   }, [geoHotspots]);
+
+  const deviceMetrics = useMemo(() => {
+    const counts = {
+      Desktop: 0,
+      Mobile: 0,
+      Tablet: 0,
+      Outro: 0,
+    };
+
+    visitEvents.forEach((visitEvent) => {
+      const normalizedDeviceType = (visitEvent.deviceType || '').toLowerCase();
+
+      if (normalizedDeviceType === 'desktop') {
+        counts.Desktop += 1;
+      } else if (normalizedDeviceType === 'mobile') {
+        counts.Mobile += 1;
+      } else if (normalizedDeviceType === 'tablet') {
+        counts.Tablet += 1;
+      } else if (visitEvent.userAgent) {
+        const inferredType = detectDeviceTypeFromUserAgent(visitEvent.userAgent);
+        counts[inferredType] += 1;
+      } else {
+        counts.Outro += 1;
+      }
+    });
+
+    const chartData = [
+      { name: 'Desktop', total: counts.Desktop },
+      { name: 'Mobile', total: counts.Mobile },
+      { name: 'Tablet', total: counts.Tablet },
+      { name: 'Outro', total: counts.Outro },
+    ];
+
+    return {
+      counts,
+      chartData,
+      total: chartData.reduce((sum, item) => sum + item.total, 0),
+    };
+  }, [visitEvents]);
 
   const tabs = useMemo<Tab[]>(() => [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -1611,6 +1667,44 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     )}
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-4 md:p-6 rounded-xl border-2 border-emerald-200">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800">📱 Tipos de Dispositivo</h3>
+                    <p className="text-xs text-gray-500">Visitas analisadas: {deviceMetrics.total}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Desktop</p>
+                      <p className="text-xl font-bold text-slate-900">{deviceMetrics.counts.Desktop}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Mobile</p>
+                      <p className="text-xl font-bold text-slate-900">{deviceMetrics.counts.Mobile}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Tablet</p>
+                      <p className="text-xl font-bold text-slate-900">{deviceMetrics.counts.Tablet}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Outro</p>
+                      <p className="text-xl font-bold text-slate-900">{deviceMetrics.counts.Outro}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={deviceMetrics.chartData}>
+                        <CartesianGrid stroke="#d1fae5" />
+                        <XAxis dataKey="name" fontSize={12} />
+                        <YAxis allowDecimals={false} fontSize={12} />
+                        <Tooltip />
+                        <Bar dataKey="total" fill="#10b981" name="Visitas" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>

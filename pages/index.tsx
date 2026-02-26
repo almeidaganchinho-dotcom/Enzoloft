@@ -60,6 +60,20 @@ interface GeoLookupResponse {
   longitude?: number;
 }
 
+const detectDeviceType = (userAgent: string): 'mobile' | 'tablet' | 'desktop' => {
+  const ua = userAgent.toLowerCase();
+
+  if (/ipad|tablet|playbook|silk|kindle/.test(ua)) {
+    return 'tablet';
+  }
+
+  if (/mobile|android|iphone|ipod|blackberry|windows phone|opera mini/.test(ua)) {
+    return 'mobile';
+  }
+
+  return 'desktop';
+};
+
 export default function Home() {
   const canonicalUrl = 'https://enzoloft.pt';
   const siteTitle = 'EnzoLoft - Alojamento de Charme em Vila Ruiva, Cuba - Beja';
@@ -115,6 +129,10 @@ export default function Home() {
         return;
       }
 
+      const userAgent = window.navigator.userAgent || '';
+      const platform = window.navigator.platform || '';
+      const deviceType = detectDeviceType(userAgent);
+
       try {
         const siteStatsRef = doc(db, 'settings', 'siteStats');
         await runTransaction(db, async (transaction) => {
@@ -145,6 +163,9 @@ export default function Home() {
               city: geoData.city || 'Desconhecido',
               latitude: Number(geoData.latitude || 0),
               longitude: Number(geoData.longitude || 0),
+              deviceType,
+              userAgent,
+              platform,
               createdAt: new Date().toISOString(),
             });
           }
