@@ -3,7 +3,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { auth, db } from '../../lib/firebase';
-import { collection, getDocs, addDoc, doc, setDoc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, setDoc, getDoc, deleteDoc, updateDoc, query, orderBy, limit } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { logClientError, logClientEvent } from '../../lib/monitoring';
 
@@ -26,6 +26,15 @@ interface SiteStats {
   lastVisitAt?: string;
 }
 
+interface ClientEvent {
+  id: string;
+  event: string;
+  level?: 'info' | 'warning' | 'error';
+  context?: Record<string, unknown>;
+  path?: string;
+  createdAt?: any;
+}
+
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -35,6 +44,7 @@ export default function AdminDashboard() {
   ]);
   const [availability, setAvailability] = useState<any[]>([]);
   const [vouchers, setVouchers] = useState<any[]>([]);
+  const [clientEvents, setClientEvents] = useState<ClientEvent[]>([]);
   const [newPrice, setNewPrice] = useState({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
   const [newAvailability, setNewAvailability] = useState({ startDate: '', endDate: '', reason: '', status: 'blocked' });
   const [newVoucher, setNewVoucher] = useState({ code: '', type: 'percentage', value: 0, expiryDate: '' });
@@ -87,6 +97,18 @@ export default function AdminDashboard() {
       const vouchersSnapshot = await getDocs(collection(db, 'vouchers'));
       const vouchersData = vouchersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setVouchers(vouchersData);
+
+      const clientEventsQuery = query(
+        collection(db, 'clientEvents'),
+        orderBy('createdAt', 'desc'),
+        limit(200)
+      );
+      const clientEventsSnapshot = await getDocs(clientEventsQuery);
+      const clientEventsData = clientEventsSnapshot.docs.map((eventDoc) => ({
+        id: eventDoc.id,
+        ...eventDoc.data(),
+      })) as ClientEvent[];
+      setClientEvents(clientEventsData);
       
       // Carregar configurações de contacto
       const contactDoc = await getDoc(doc(db, 'settings', 'contactInfo'));
@@ -395,6 +417,42 @@ export default function AdminDashboard() {
       averageStay,
     };
   }, [getReservationCreatedDate, reservations, stats]);
+
+  const getClientEventDate = useCallback((event: ClientEvent) => {
+    if (event?.createdAt?.toDate) return event.createdAt.toDate();
+    if (event?.createdAt) return new Date(event.createdAt);
+    return new Date(0);
+  }, []);
+
+  const eventMetrics = useMemo(() => {
+    const now = new Date();
+    const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const events24h = clientEvents.filter((event) => getClientEventDate(event) >= last24Hours);
+    const errors24h = events24h.filter((event) => event.level === 'error').length;
+    const bookingSuccess24h = events24h.filter((event) => event.event === 'booking_submit_success').length;
+    const bookingStarted24h = events24h.filter((event) => event.event === 'booking_started').length;
+    const funnelConversion = bookingStarted24h > 0 ? (bookingSuccess24h / bookingStarted24h) * 100 : 0;
+
+    const eventCounts = events24h.reduce((accumulator: Record<string, number>, event) => {
+      accumulator[event.event] = (accumulator[event.event] || 0) + 1;
+      return accumulator;
+    }, {});
+
+    const topEvents = Object.entries(eventCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([eventName, total]) => ({ eventName, total }));
+
+    return {
+      total24h: events24h.length,
+      errors24h,
+      bookingSuccess24h,
+      bookingStarted24h,
+      funnelConversion,
+      topEvents,
+    };
+  }, [clientEvents, getClientEventDate]);
 
   const tabs = useMemo<Tab[]>(() => [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -1358,6 +1416,83 @@ export default function AdminDashboard() {
                   <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-3 md:p-6 rounded-xl border-2 border-yellow-200">
                     <p className="text-yellow-700 font-semibold mb-2 text-xs md:text-base">Duração Média</p>
                     <p className="text-2xl md:text-3xl font-bold text-yellow-900">{analyticsSummary.averageStay.toFixed(1)} dias</p>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-4 md:p-6 rounded-xl border-2 border-slate-200">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800">🛰️ Monitorização (clientEvents, 24h)</h3>
+                    <p className="text-xs text-gray-500">Eventos carregados: {clientEvents.length}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
+                    <div className="bg-white p-3 rounded-lg border border-slate-200">
+                      <p className="text-xs text-gray-500">Eventos 24h</p>
+                      <p className="text-xl font-bold text-slate-900">{eventMetrics.total24h}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-red-200">
+                      <p className="text-xs text-red-500">Erros 24h</p>
+                      <p className="text-xl font-bold text-red-700">{eventMetrics.errors24h}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-500">Inícios de Reserva 24h</p>
+                      <p className="text-xl font-bold text-blue-700">{eventMetrics.bookingStarted24h}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-emerald-200">
+                      <p className="text-xs text-emerald-600">Conversão Funil 24h</p>
+                      <p className="text-xl font-bold text-emerald-700">{eventMetrics.funnelConversion.toFixed(1)}%</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg border border-slate-200 p-4">
+                      <h4 className="font-semibold text-gray-800 mb-3">Top Eventos (24h)</h4>
+                      {eventMetrics.topEvents.length === 0 ? (
+                        <p className="text-sm text-gray-500">Sem eventos nas últimas 24 horas.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {eventMetrics.topEvents.map((eventItem) => (
+                            <div key={eventItem.eventName} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
+                              <span className="text-gray-700 font-medium">{eventItem.eventName}</span>
+                              <span className="text-gray-900 font-bold">{eventItem.total}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-white rounded-lg border border-slate-200 p-4">
+                      <h4 className="font-semibold text-gray-800 mb-3">Últimos Eventos</h4>
+                      {clientEvents.length === 0 ? (
+                        <p className="text-sm text-gray-500">Sem eventos registados.</p>
+                      ) : (
+                        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                          {clientEvents.slice(0, 20).map((eventItem) => {
+                            const eventDate = getClientEventDate(eventItem);
+                            return (
+                              <div key={eventItem.id} className="border border-gray-100 rounded-lg p-2 text-xs">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="font-semibold text-gray-800 truncate">{eventItem.event}</p>
+                                  <span className={`px-2 py-0.5 rounded-full font-semibold ${
+                                    eventItem.level === 'error'
+                                      ? 'bg-red-100 text-red-700'
+                                      : eventItem.level === 'warning'
+                                      ? 'bg-amber-100 text-amber-700'
+                                      : 'bg-blue-100 text-blue-700'
+                                  }`}>
+                                    {eventItem.level || 'info'}
+                                  </span>
+                                </div>
+                                <p className="text-gray-500 mt-1">{eventDate.toLocaleString('pt-PT')}</p>
+                                {eventItem.path && (
+                                  <p className="text-gray-600 mt-1">Path: {eventItem.path}</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
