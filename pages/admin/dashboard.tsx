@@ -94,6 +94,7 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [devicePeriod, setDevicePeriod] = useState<'24h' | '7d' | '30d'>('30d');
   const router = useRouter();
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
@@ -465,6 +466,12 @@ export default function AdminDashboard() {
     return new Date(0);
   }, []);
 
+  const getVisitEventDate = useCallback((event: VisitEvent) => {
+    if (event?.createdAt?.toDate) return event.createdAt.toDate();
+    if (event?.createdAt) return new Date(event.createdAt);
+    return new Date(0);
+  }, []);
+
   const eventMetrics = useMemo(() => {
     const now = new Date();
     const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -531,6 +538,16 @@ export default function AdminDashboard() {
   }, [geoHotspots]);
 
   const deviceMetrics = useMemo(() => {
+    const now = new Date();
+    const periodStart = new Date(now);
+    if (devicePeriod === '24h') {
+      periodStart.setHours(now.getHours() - 24);
+    } else if (devicePeriod === '7d') {
+      periodStart.setDate(now.getDate() - 7);
+    } else {
+      periodStart.setDate(now.getDate() - 30);
+    }
+
     const counts = {
       Desktop: 0,
       Mobile: 0,
@@ -539,6 +556,9 @@ export default function AdminDashboard() {
     };
 
     visitEvents.forEach((visitEvent) => {
+      const visitDate = getVisitEventDate(visitEvent);
+      if (visitDate < periodStart || visitDate > now) return;
+
       const normalizedDeviceType = (visitEvent.deviceType || '').toLowerCase();
 
       if (normalizedDeviceType === 'desktop') {
@@ -567,7 +587,7 @@ export default function AdminDashboard() {
       chartData,
       total: chartData.reduce((sum, item) => sum + item.total, 0),
     };
-  }, [visitEvents]);
+  }, [devicePeriod, getVisitEventDate, visitEvents]);
 
   const tabs = useMemo<Tab[]>(() => [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -1673,8 +1693,41 @@ export default function AdminDashboard() {
                 <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-4 md:p-6 rounded-xl border-2 border-emerald-200">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
                     <h3 className="text-base md:text-lg font-semibold text-gray-800">📱 Tipos de Dispositivo</h3>
-                    <p className="text-xs text-gray-500">Visitas analisadas: {deviceMetrics.total}</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setDevicePeriod('24h')}
+                        className={`px-3 py-1 rounded-md text-xs font-semibold border transition-all ${
+                          devicePeriod === '24h'
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-white text-gray-600 border-emerald-200 hover:border-emerald-300'
+                        }`}
+                      >
+                        24h
+                      </button>
+                      <button
+                        onClick={() => setDevicePeriod('7d')}
+                        className={`px-3 py-1 rounded-md text-xs font-semibold border transition-all ${
+                          devicePeriod === '7d'
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-white text-gray-600 border-emerald-200 hover:border-emerald-300'
+                        }`}
+                      >
+                        7d
+                      </button>
+                      <button
+                        onClick={() => setDevicePeriod('30d')}
+                        className={`px-3 py-1 rounded-md text-xs font-semibold border transition-all ${
+                          devicePeriod === '30d'
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-white text-gray-600 border-emerald-200 hover:border-emerald-300'
+                        }`}
+                      >
+                        30d
+                      </button>
+                    </div>
                   </div>
+
+                  <p className="text-xs text-gray-500 mb-3">Visitas analisadas: {deviceMetrics.total}</p>
 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                     <div className="bg-white rounded-lg border border-emerald-100 p-3">
