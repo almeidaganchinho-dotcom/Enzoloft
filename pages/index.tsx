@@ -579,53 +579,63 @@ export default function Home() {
     [amenities, contactInfo.email, contactInfo.phone]
   );
 
+  const seoHead = (
+    <Head>
+      <title>{siteTitle}</title>
+      <meta name="description" content={siteDescription} />
+      <meta name="keywords" content="alojamento alentejo, casa férias beja, vila ruiva, cuba alentejo, casa com piscina, turismo rural" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="robots" content="index, follow, max-image-preview:large" />
+      <meta name="author" content="EnzoLoft" />
+      <meta property="og:title" content={siteTitle} />
+      <meta property="og:description" content={siteDescription} />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content={canonicalUrl} />
+      <meta property="og:site_name" content="EnzoLoft" />
+      <meta property="og:locale" content="pt_PT" />
+      <meta property="og:image" content={ogImageUrl} />
+      <meta property="og:image:alt" content="EnzoLoft no Alentejo" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={siteTitle} />
+      <meta name="twitter:description" content={siteDescription} />
+      <meta name="twitter:image" content={ogImageUrl} />
+      <link rel="canonical" href={canonicalUrl} />
+      <link rel="alternate" hrefLang="pt-PT" href={canonicalUrl} />
+      <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+    </Head>
+  );
+
   if (!siteModeLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-600"></div>
-      </div>
+      <>
+        {seoHead}
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-orange-600"></div>
+        </div>
+      </>
     );
   }
 
   if (presentationModeEnabled) {
     return (
-      <PresentationModePage
-        amenities={amenities}
-        galleryImages={galleryImages}
-        contactInfo={contactInfo}
-      />
+      <>
+        {seoHead}
+        <PresentationModePage
+          amenities={amenities}
+          galleryImages={galleryImages}
+          contactInfo={contactInfo}
+        />
+      </>
     );
   }
 
   return (
     <div className="min-h-screen bg-white">
-      <Head>
-        <title>{siteTitle}</title>
-        <meta name="description" content={siteDescription} />
-        <meta name="keywords" content="alojamento alentejo, casa férias beja, vila ruiva, cuba alentejo, casa com piscina, turismo rural" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="robots" content="index, follow, max-image-preview:large" />
-        <meta name="author" content="EnzoLoft" />
-        <meta property="og:title" content={siteTitle} />
-        <meta property="og:description" content={siteDescription} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:site_name" content="EnzoLoft" />
-        <meta property="og:locale" content="pt_PT" />
-        <meta property="og:image" content={ogImageUrl} />
-        <meta property="og:image:alt" content="EnzoLoft no Alentejo" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={siteTitle} />
-        <meta name="twitter:description" content={siteDescription} />
-        <meta name="twitter:image" content={ogImageUrl} />
-        <link rel="canonical" href={canonicalUrl} />
-        <link rel="alternate" hrefLang="pt-PT" href={canonicalUrl} />
-        <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
-      </Head>
+      {seoHead}
       
       {/* Header */}
       <header className="bg-white border-b-2 border-orange-100 sticky top-0 z-50 shadow-sm">
