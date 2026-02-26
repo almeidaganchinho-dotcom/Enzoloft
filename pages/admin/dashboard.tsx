@@ -411,6 +411,34 @@ export default function AdminDashboard() {
               <div className="space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-800">📈 Visão Geral</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-4 md:p-6 rounded-lg border-2 border-amber-100">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Receita Mensal</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={revenueData}>
+                        <CartesianGrid stroke="#fed7aa" />
+                        <XAxis dataKey="month" fontSize={12} />
+                        <YAxis fontSize={12} />
+                        <Tooltip />
+                        <Bar dataKey="revenue" fill="#f59e0b" name="Receita (€)" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 md:p-6 rounded-lg border-2 border-orange-100">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Taxa de Ocupação</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie data={occupancyData} cx="50%" cy="50%" labelLine={false} label={<CustomLabel />} outerRadius={80} fill="#8884d8" dataKey="value">
+                          <Cell fill="#10b981" />
+                          <Cell fill="#e5e7eb" />
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                   <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6 rounded-lg border-2 border-blue-100">
                     <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Visitantes & Conversões (últimos 6 dias)</h3>
                     <ResponsiveContainer width="100%" height={300}>
@@ -425,16 +453,26 @@ export default function AdminDashboard() {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-red-50 p-4 md:p-6 rounded-lg border-2 border-orange-100">
-                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Taxa de Ocupação</h3>
+
+                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-4 md:p-6 rounded-lg border-2 border-emerald-100">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Estado das Reservas</h3>
                     <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie data={occupancyData} cx="50%" cy="50%" labelLine={false} label={<CustomLabel />} outerRadius={80} fill="#8884d8" dataKey="value">
-                          <Cell fill="#10b981" />
-                          <Cell fill="#e5e7eb" />
-                        </Pie>
+                      <BarChart
+                        data={[
+                          { status: 'Pendentes', total: stats.pendingCount },
+                          { status: 'Confirmadas', total: stats.confirmedCount },
+                          {
+                            status: 'Canceladas',
+                            total: Math.max(stats.totalReservations - stats.pendingCount - stats.confirmedCount, 0),
+                          },
+                        ]}
+                      >
+                        <CartesianGrid stroke="#d1fae5" />
+                        <XAxis dataKey="status" fontSize={12} />
+                        <YAxis fontSize={12} allowDecimals={false} />
                         <Tooltip />
-                      </PieChart>
+                        <Bar dataKey="total" fill="#10b981" name="Reservas" radius={[8, 8, 0, 0]} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
