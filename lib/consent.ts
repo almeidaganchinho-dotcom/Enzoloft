@@ -4,6 +4,31 @@ const TRACKING_CONSENT_KEY = 'enzoloft_tracking_consent';
 export const TRACKING_CONSENT_CHANGED_EVENT = 'enzoloft:tracking-consent-changed';
 let inMemoryConsentStatus: TrackingConsentStatus = 'unknown';
 
+const getFromStorage = (storageType: 'localStorage' | 'sessionStorage'): TrackingConsentStatus => {
+  if (typeof window === 'undefined') return 'unknown';
+
+  try {
+    const value = window[storageType].getItem(TRACKING_CONSENT_KEY);
+    if (value === 'granted' || value === 'denied') {
+      return value;
+    }
+  } catch {
+    // Ignore storage access errors
+  }
+
+  return 'unknown';
+};
+
+const saveToStorage = (storageType: 'localStorage' | 'sessionStorage', status: Exclude<TrackingConsentStatus, 'unknown'>) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window[storageType].setItem(TRACKING_CONSENT_KEY, status);
+  } catch {
+    // Ignore storage access errors
+  }
+};
+
 const getConsentFromCookie = (): TrackingConsentStatus => {
   if (typeof document === 'undefined') return 'unknown';
 
@@ -29,14 +54,16 @@ const saveConsentToCookie = (status: Exclude<TrackingConsentStatus, 'unknown'>) 
 export const getTrackingConsentStatus = (): TrackingConsentStatus => {
   if (typeof window === 'undefined') return 'unknown';
 
-  try {
-    const stored = window.localStorage.getItem(TRACKING_CONSENT_KEY);
-    if (stored === 'granted' || stored === 'denied') {
-      inMemoryConsentStatus = stored;
-      return stored;
-    }
-  } catch {
-    // localStorage can fail in privacy modes, continue with fallback
+  const localStorageConsent = getFromStorage('localStorage');
+  if (localStorageConsent !== 'unknown') {
+    inMemoryConsentStatus = localStorageConsent;
+    return localStorageConsent;
+  }
+
+  const sessionStorageConsent = getFromStorage('sessionStorage');
+  if (sessionStorageConsent !== 'unknown') {
+    inMemoryConsentStatus = sessionStorageConsent;
+    return sessionStorageConsent;
   }
 
   const cookieConsent = getConsentFromCookie();
@@ -56,12 +83,14 @@ export const setTrackingConsentStatus = (status: Exclude<TrackingConsentStatus, 
   if (typeof window === 'undefined') return;
   inMemoryConsentStatus = status;
 
-  try {
-    window.localStorage.setItem(TRACKING_CONSENT_KEY, status);
-  } catch {
-    // localStorage unavailable, fallback cookie/in-memory still works
-  }
+  saveToStorage('localStorage', status);
+  saveToStorage('sessionStorage', status);
 
   saveConsentToCookie(status);
-  window.dispatchEvent(new CustomEvent(TRACKING_CONSENT_CHANGED_EVENT, { detail: { status } }));
+
+  try {
+    window.dispatchEvent(new Event(TRACKING_CONSENT_CHANGED_EVENT));
+  } catch {
+    // Ignore dispatch errors
+  }
 };
