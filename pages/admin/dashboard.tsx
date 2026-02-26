@@ -119,6 +119,7 @@ export default function AdminDashboard() {
   const [refreshingAnalytics, setRefreshingAnalytics] = useState(false);
   const [reservationPeriod, setReservationPeriod] = useState<'all' | '7d' | '30d' | '90d'>('all');
   const [reservationSearch, setReservationSearch] = useState('');
+  const [reservationStatusFilter, setReservationStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
   const router = useRouter();
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
@@ -299,6 +300,10 @@ export default function AdminDashboard() {
         if (createdAt < periodStart) return false;
       }
 
+      if (reservationStatusFilter !== 'all' && reservation.status !== reservationStatusFilter) {
+        return false;
+      }
+
       if (!searchValue) return true;
 
       const fields = [
@@ -310,7 +315,7 @@ export default function AdminDashboard() {
 
       return fields.some((field) => String(field || '').toLowerCase().includes(searchValue));
     });
-  }, [reservationPeriod, reservationSearch, reservations]);
+  }, [reservationPeriod, reservationSearch, reservationStatusFilter, reservations]);
 
   const exportReservationsCsv = useCallback(async () => {
     if (filteredReservations.length === 0) {
@@ -383,10 +388,11 @@ export default function AdminDashboard() {
       context: {
         total: filteredReservations.length,
         period: reservationPeriod,
+          status: reservationStatusFilter,
         hasSearch: reservationSearch.trim().length > 0,
       },
     });
-  }, [filteredReservations, reservationPeriod, reservationSearch]);
+  }, [filteredReservations, reservationPeriod, reservationSearch, reservationStatusFilter]);
 
   useEffect(() => {
     if (!admin) return;
@@ -1347,7 +1353,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <input
                       type="text"
                       value={reservationSearch}
@@ -1364,6 +1370,16 @@ export default function AdminDashboard() {
                       <option value="7d">Últimos 7 dias</option>
                       <option value="30d">Últimos 30 dias</option>
                       <option value="90d">Últimos 90 dias</option>
+                    </select>
+                    <select
+                      value={reservationStatusFilter}
+                      onChange={(e) => setReservationStatusFilter(e.target.value as 'all' | 'pending' | 'confirmed' | 'cancelled')}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="all">Todos os estados</option>
+                      <option value="pending">Pendente</option>
+                      <option value="confirmed">Confirmada</option>
+                      <option value="cancelled">Cancelada</option>
                     </select>
                     <div className="flex items-center text-sm text-gray-600">
                       A mostrar <strong className="mx-1 text-gray-900">{filteredReservations.length}</strong> de {reservations.length}
