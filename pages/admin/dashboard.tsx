@@ -122,6 +122,7 @@ export default function AdminDashboard() {
   const [reservationStatusFilter, setReservationStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
   const [reservationSortKey, setReservationSortKey] = useState<'createdAt' | 'totalPrice' | 'status'>('createdAt');
   const [reservationSortDirection, setReservationSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [reservationPage, setReservationPage] = useState(1);
   const router = useRouter();
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
@@ -373,6 +374,29 @@ export default function AdminDashboard() {
     if (reservationSortKey !== key) return '↕';
     return reservationSortDirection === 'asc' ? '↑' : '↓';
   }, [reservationSortDirection, reservationSortKey]);
+
+  const reservationPageSize = 12;
+
+  const totalReservationPages = useMemo(() => {
+    return Math.max(1, Math.ceil(sortedFilteredReservations.length / reservationPageSize));
+  }, [sortedFilteredReservations.length]);
+
+  const paginatedReservations = useMemo(() => {
+    const safePage = Math.min(Math.max(1, reservationPage), totalReservationPages);
+    const startIndex = (safePage - 1) * reservationPageSize;
+    const endIndex = startIndex + reservationPageSize;
+    return sortedFilteredReservations.slice(startIndex, endIndex);
+  }, [reservationPage, sortedFilteredReservations, totalReservationPages]);
+
+  useEffect(() => {
+    setReservationPage(1);
+  }, [reservationPeriod, reservationSearch, reservationSortDirection, reservationSortKey, reservationStatusFilter]);
+
+  useEffect(() => {
+    if (reservationPage > totalReservationPages) {
+      setReservationPage(totalReservationPages);
+    }
+  }, [reservationPage, totalReservationPages]);
 
   const exportReservationsCsv = useCallback(async () => {
     if (sortedFilteredReservations.length === 0) {
@@ -1441,7 +1465,7 @@ export default function AdminDashboard() {
                       <option value="cancelled">Cancelada</option>
                     </select>
                     <div className="flex items-center text-sm text-gray-600">
-                      A mostrar <strong className="mx-1 text-gray-900">{sortedFilteredReservations.length}</strong> de {reservations.length}
+                      A mostrar <strong className="mx-1 text-gray-900">{paginatedReservations.length}</strong> de {sortedFilteredReservations.length}
                     </div>
                   </div>
                 </div>
@@ -1475,14 +1499,14 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedFilteredReservations.length === 0 ? (
+                      {paginatedReservations.length === 0 ? (
                         <tr>
                           <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                             Nenhuma reserva encontrada para os filtros atuais
                           </td>
                         </tr>
                       ) : (
-                        sortedFilteredReservations.map((res) => (
+                        paginatedReservations.map((res) => (
                           <tr key={res.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
                             <td className="px-6 py-4 font-semibold text-gray-900">{res.guestName}</td>
                             <td className="px-6 py-4 text-gray-700">{res.guestEmail}</td>
@@ -1537,16 +1561,38 @@ export default function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+
+                  {sortedFilteredReservations.length > 0 && (
+                    <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+                      <span>Página {reservationPage} de {totalReservationPages}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setReservationPage((currentPage) => Math.max(1, currentPage - 1))}
+                          disabled={reservationPage <= 1}
+                          className="px-3 py-1 rounded border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Anterior
+                        </button>
+                        <button
+                          onClick={() => setReservationPage((currentPage) => Math.min(totalReservationPages, currentPage + 1))}
+                          disabled={reservationPage >= totalReservationPages}
+                          className="px-3 py-1 rounded border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Seguinte
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Mobile Cards */}
                 <div className="lg:hidden space-y-4">
-                  {sortedFilteredReservations.length === 0 ? (
+                  {paginatedReservations.length === 0 ? (
                     <div className="bg-gray-50 p-8 rounded-lg text-center text-gray-500">
                       Nenhuma reserva encontrada para os filtros atuais
                     </div>
                   ) : (
-                    sortedFilteredReservations.map((res) => (
+                    paginatedReservations.map((res) => (
                       <div key={res.id} className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4 shadow-lg">
                         <div className="flex justify-between items-start mb-3">
                           <div>
@@ -1611,6 +1657,28 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     ))
+                  )}
+
+                  {sortedFilteredReservations.length > 0 && (
+                    <div className="flex items-center justify-between pt-2 text-sm text-gray-600">
+                      <span>Página {reservationPage} de {totalReservationPages}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setReservationPage((currentPage) => Math.max(1, currentPage - 1))}
+                          disabled={reservationPage <= 1}
+                          className="px-3 py-1 rounded border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Anterior
+                        </button>
+                        <button
+                          onClick={() => setReservationPage((currentPage) => Math.min(totalReservationPages, currentPage + 1))}
+                          disabled={reservationPage >= totalReservationPages}
+                          className="px-3 py-1 rounded border border-gray-300 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Seguinte
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
