@@ -919,18 +919,15 @@ export default function Home() {
       {/* Hero Section with Booking Form */}
       <section id="booking" className="relative py-16 overflow-hidden">
         {/* Background Image */}
-        <div className="absolute inset-0 z-0 relative">
-          <Image
-            src="https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80"
-            alt="Pôr do sol no Alentejo - Portugal"
-            fill
-            priority
-            quality={80}
-            sizes="100vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-red-500 to-orange-500 opacity-50"></div>
-        </div>
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(234, 88, 12, 0.6), rgba(239, 68, 68, 0.55), rgba(234, 88, 12, 0.6)), url('https://enzoloft.web.app/images/gallery/exterior.jpg')",
+            backgroundColor: '#c2410c',
+          }}
+          aria-hidden="true"
+        />
         
         {/* Content */}
         <div className="max-w-7xl mx-auto px-4 relative z-10">
