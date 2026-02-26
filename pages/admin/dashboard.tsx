@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposableMap, Geographies, Geography, Marker, Sphere, Graticule } from 'react-simple-maps';
 import { auth, db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, doc, setDoc, getDoc, deleteDoc, updateDoc, query, orderBy, limit } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -35,6 +36,16 @@ interface ClientEvent {
   createdAt?: any;
 }
 
+interface VisitEvent {
+  id: string;
+  country?: string;
+  countryCode?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  createdAt?: any;
+}
+
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -45,6 +56,7 @@ export default function AdminDashboard() {
   const [availability, setAvailability] = useState<any[]>([]);
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [clientEvents, setClientEvents] = useState<ClientEvent[]>([]);
+  const [visitEvents, setVisitEvents] = useState<VisitEvent[]>([]);
   const [newPrice, setNewPrice] = useState({ season: '', description: '', pricePerNight: 0, startDate: '', endDate: '' });
   const [newAvailability, setNewAvailability] = useState({ startDate: '', endDate: '', reason: '', status: 'blocked' });
   const [newVoucher, setNewVoucher] = useState({ code: '', type: 'percentage', value: 0, expiryDate: '' });
@@ -109,6 +121,18 @@ export default function AdminDashboard() {
         ...eventDoc.data(),
       })) as ClientEvent[];
       setClientEvents(clientEventsData);
+
+      const visitEventsQuery = query(
+        collection(db, 'visitEvents'),
+        orderBy('createdAt', 'desc'),
+        limit(1500)
+      );
+      const visitEventsSnapshot = await getDocs(visitEventsQuery);
+      const visitEventsData = visitEventsSnapshot.docs.map((visitDoc) => ({
+        id: visitDoc.id,
+        ...visitDoc.data(),
+      })) as VisitEvent[];
+      setVisitEvents(visitEventsData);
       
       // Carregar configurações de contacto
       const contactDoc = await getDoc(doc(db, 'settings', 'contactInfo'));
@@ -453,6 +477,41 @@ export default function AdminDashboard() {
       topEvents,
     };
   }, [clientEvents, getClientEventDate]);
+
+  const geoHotspots = useMemo(() => {
+    const hotspotMap = new Map<string, { city: string; country: string; latitude: number; longitude: number; total: number }>();
+
+    visitEvents.forEach((visitEvent) => {
+      const latitude = Number(visitEvent.latitude || 0);
+      const longitude = Number(visitEvent.longitude || 0);
+      if (!latitude || !longitude) return;
+
+      const roundedLat = Math.round(latitude * 10) / 10;
+      const roundedLon = Math.round(longitude * 10) / 10;
+      const key = `${roundedLat}:${roundedLon}`;
+      const city = visitEvent.city || 'Desconhecido';
+      const country = visitEvent.country || 'Desconhecido';
+
+      const existing = hotspotMap.get(key);
+      if (existing) {
+        existing.total += 1;
+      } else {
+        hotspotMap.set(key, {
+          city,
+          country,
+          latitude: roundedLat,
+          longitude: roundedLon,
+          total: 1,
+        });
+      }
+    });
+
+    return Array.from(hotspotMap.values()).sort((a, b) => b.total - a.total);
+  }, [visitEvents]);
+
+  const maxGeoHotspotTotal = useMemo(() => {
+    return geoHotspots.reduce((maxTotal, hotspot) => Math.max(maxTotal, hotspot.total), 1);
+  }, [geoHotspots]);
 
   const tabs = useMemo<Tab[]>(() => [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -1493,6 +1552,65 @@ export default function AdminDashboard() {
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6 rounded-xl border-2 border-blue-200">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800">🗺️ Mapa de Origem das Visitas</h3>
+                    <p className="text-xs text-gray-500">Hotspots: {geoHotspots.length} zonas</p>
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-blue-100 p-3">
+                    <ComposableMap
+                      projectionConfig={{ scale: 145 }}
+                      style={{ width: '100%', height: '360px' }}
+                    >
+                      <Sphere stroke="#dbeafe" strokeWidth={0.5} fill="#eff6ff" />
+                      <Graticule stroke="#dbeafe" strokeWidth={0.3} />
+                      <Geographies geography="https://unpkg.com/world-atlas@2/countries-110m.json">
+                        {({ geographies }) =>
+                          geographies.map((geo) => (
+                            <Geography
+                              key={geo.rsmKey}
+                              geography={geo}
+                              fill="#e2e8f0"
+                              stroke="#94a3b8"
+                              strokeWidth={0.3}
+                            />
+                          ))
+                        }
+                      </Geographies>
+
+                      {geoHotspots.slice(0, 120).map((hotspot) => {
+                        const sizeRatio = hotspot.total / Math.max(maxGeoHotspotTotal, 1);
+                        const radius = 3 + sizeRatio * 16;
+
+                        return (
+                          <Marker key={`${hotspot.latitude}-${hotspot.longitude}`} coordinates={[hotspot.longitude, hotspot.latitude]}>
+                            <circle r={radius} fill="rgba(239, 68, 68, 0.45)" stroke="#b91c1c" strokeWidth={1.2}>
+                              <title>{`${hotspot.city}, ${hotspot.country} • ${hotspot.total} visitas`}</title>
+                            </circle>
+                          </Marker>
+                        );
+                      })}
+                    </ComposableMap>
+                  </div>
+
+                  <div className="mt-4 bg-white rounded-lg border border-blue-100 p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3">Top Zonas</h4>
+                    {geoHotspots.length === 0 ? (
+                      <p className="text-sm text-gray-500">Ainda sem dados geográficos suficientes para mostrar no mapa.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {geoHotspots.slice(0, 8).map((hotspot, index) => (
+                          <div key={`${hotspot.city}-${hotspot.country}-${index}`} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
+                            <span className="text-gray-700 font-medium">{hotspot.city}, {hotspot.country}</span>
+                            <span className="text-gray-900 font-bold">{hotspot.total} visitas</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

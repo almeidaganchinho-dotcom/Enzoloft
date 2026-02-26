@@ -50,6 +50,16 @@ interface SiteStats {
   lastVisitAt?: string;
 }
 
+interface GeoLookupResponse {
+  success?: boolean;
+  country?: string;
+  country_code?: string;
+  region?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 export default function Home() {
   const canonicalUrl = 'https://enzoloft.pt';
   const siteTitle = 'EnzoLoft - Alojamento de Charme em Vila Ruiva, Cuba - Beja';
@@ -121,6 +131,26 @@ export default function Home() {
             { merge: true }
           );
         });
+
+        try {
+          const geoResponse = await fetch('https://ipwho.is/', { method: 'GET' });
+          const geoData = (await geoResponse.json()) as GeoLookupResponse;
+
+          if (geoData.success !== false) {
+            await addDoc(collection(db, 'visitEvents'), {
+              source: 'homepage',
+              country: geoData.country || 'Desconhecido',
+              countryCode: geoData.country_code || '',
+              region: geoData.region || '',
+              city: geoData.city || 'Desconhecido',
+              latitude: Number(geoData.latitude || 0),
+              longitude: Number(geoData.longitude || 0),
+              createdAt: new Date().toISOString(),
+            });
+          }
+        } catch (geoError) {
+          await logClientError('homepage_visit_geo_lookup_failed', geoError);
+        }
 
         sessionStorage.setItem(visitStorageKey, '1');
       } catch (error) {
