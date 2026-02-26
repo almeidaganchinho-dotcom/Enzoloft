@@ -2,42 +2,93 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    function isValidPublicReservationCreate() {
+      return request.resource.data.keys().hasAll([
+        'propertyId',
+        'guestName',
+        'guestEmail',
+        'guestPhone',
+        'startDate',
+        'endDate',
+        'guestsCount',
+        'totalPrice',
+        'status',
+        'createdAt'
+      ])
+      && request.resource.data.propertyId is string
+      && request.resource.data.guestName is string
+      && request.resource.data.guestEmail is string
+      && request.resource.data.guestPhone is string
+      && request.resource.data.startDate is string
+      && request.resource.data.endDate is string
+      && request.resource.data.guestsCount is int
+      && request.resource.data.totalPrice is number
+      && request.resource.data.status == 'pending'
+      && request.resource.data.createdAt is string;
+    }
+
+    function isValidPublicSiteStatsWrite() {
+      return request.resource.data.keys().hasOnly(['totalVisits', 'lastVisitAt'])
+      && request.resource.data.totalVisits is number
+      && request.resource.data.lastVisitAt is string;
+    }
     
-    // Reservations - qualquer um pode criar e ler
+    // Reservations
     match /reservations/{reservationId} {
-      allow read, create: if true;
-      allow update, delete: if true;  // Temporário para desenvolvimento
+      // Público só pode ler reservas confirmadas (ex.: bloqueio de datas no frontend)
+      allow read: if isAdmin() || resource.data.status == 'confirmed';
+      // Público pode criar pedidos de reserva com validação mínima
+      allow create: if isValidPublicReservationCreate() || isAdmin();
+      // Atualizações e remoções apenas admin autenticado
+      allow update, delete: if isAdmin();
     }
     
-    // Prices - todos podem ler e escrever
+    // Prices
     match /prices/{priceId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
     
-    // Availability - todos podem ler e escrever
+    // Availability
     match /availability/{availabilityId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
     
-    // Vouchers - todos podem ler e escrever
+    // Vouchers
     match /vouchers/{voucherId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Settings - regra específica para contador público de visitas
+    match /settings/siteStats {
+      allow read: if true;
+      allow create, update: if isAdmin() || isValidPublicSiteStatsWrite();
+      allow delete: if isAdmin();
     }
     
-    // Settings - todos podem ler e escrever
+    // Settings gerais
     match /settings/{settingId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    // Visit events - registo de visitas para analíticas
+    // Visit events - escrita pública, leitura apenas admin
     match /visitEvents/{eventId} {
-      allow create, read, update: if true;
-      allow delete: if false;
+      allow create: if true;
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
-    // Client events - monitorização de eventos e erros
+    // Client events - escrita pública, leitura apenas admin
     match /clientEvents/{eventId} {
-      allow create, read: if true;
+      allow create: if true;
+      allow read: if isAdmin();
       allow update, delete: if false;
     }
   }

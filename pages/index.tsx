@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import PresentationModePage from '../components/PresentationModePage';
 import { db, trackAnalyticsEvent } from '../lib/firebase';
-import { collection, addDoc, doc, getDoc, getDocs, runTransaction, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import { logClientError, logClientEvent } from '../lib/monitoring';
 
 interface BlockedDate {
@@ -226,37 +226,41 @@ export default function Home() {
           );
         });
 
-        const visitEventRef = await addDoc(collection(db, 'visitEvents'), {
-          source: 'homepage',
-          country: 'Desconhecido',
-          countryCode: '',
-          region: '',
-          city: 'Desconhecido',
-          latitude: 0,
-          longitude: 0,
-          deviceType,
-          userAgent,
-          platform,
-          createdAt: serverTimestamp(),
-          createdAtIso: new Date().toISOString(),
-        });
-
-        sessionStorage.setItem(visitStorageKey, '1');
-
         try {
           const geoData = await fetchGeoPayload();
-          if (isValidCoordinates(geoData.latitude, geoData.longitude)) {
-            await updateDoc(visitEventRef, {
-              country: geoData.country,
-              countryCode: geoData.countryCode,
-              region: geoData.region,
-              city: geoData.city,
-              latitude: geoData.latitude,
-              longitude: geoData.longitude,
-            });
-          }
+
+          await addDoc(collection(db, 'visitEvents'), {
+            source: 'homepage',
+            country: geoData.country,
+            countryCode: geoData.countryCode,
+            region: geoData.region,
+            city: geoData.city,
+            latitude: geoData.latitude,
+            longitude: geoData.longitude,
+            deviceType,
+            userAgent,
+            platform,
+            createdAt: serverTimestamp(),
+            createdAtIso: new Date().toISOString(),
+          });
         } catch (geoError) {
           await logClientError('homepage_visit_geo_lookup_failed', geoError);
+          await addDoc(collection(db, 'visitEvents'), {
+            source: 'homepage',
+            country: 'Desconhecido',
+            countryCode: '',
+            region: '',
+            city: 'Desconhecido',
+            latitude: 0,
+            longitude: 0,
+            deviceType,
+            userAgent,
+            platform,
+            createdAt: serverTimestamp(),
+            createdAtIso: new Date().toISOString(),
+          });
+        } finally {
+          sessionStorage.setItem(visitStorageKey, '1');
         }
       } catch (error) {
         console.error('Erro ao registar visita:', error);
@@ -273,7 +277,7 @@ export default function Home() {
         // Carregar tudo em paralelo para melhor performance
         const [availabilitySnapshot, reservationsSnapshot, contactDoc, siteModeDoc] = await Promise.all([
           getDocs(collection(db, 'availability')),
-          getDocs(collection(db, 'reservations')),
+          getDocs(query(collection(db, 'reservations'), where('status', '==', 'confirmed'))),
           getDoc(doc(db, 'settings', 'contactInfo')),
           getDoc(doc(db, 'settings', 'siteMode'))
         ]);
@@ -285,7 +289,6 @@ export default function Home() {
         // Reservas confirmadas
         const confirmedReservations = reservationsSnapshot.docs
           .map(doc => doc.data())
-          .filter(res => res.status === 'confirmed')
           .map(res => ({
             startDate: res.startDate,
             endDate: res.endDate
