@@ -18,6 +18,11 @@ interface SiteMode {
   presentationModeEnabled: boolean;
 }
 
+interface SiteStats {
+  totalVisits: number;
+  lastVisitAt?: string;
+}
+
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -41,6 +46,9 @@ export default function AdminDashboard() {
   });
   const [siteMode, setSiteMode] = useState<SiteMode>({
     presentationModeEnabled: false,
+  });
+  const [siteStats, setSiteStats] = useState<SiteStats>({
+    totalVisits: 0,
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -86,6 +94,11 @@ export default function AdminDashboard() {
       const siteModeDoc = await getDoc(doc(db, 'settings', 'siteMode'));
       if (siteModeDoc.exists()) {
         setSiteMode(siteModeDoc.data() as SiteMode);
+      }
+
+      const siteStatsDoc = await getDoc(doc(db, 'settings', 'siteStats'));
+      if (siteStatsDoc.exists()) {
+        setSiteStats(siteStatsDoc.data() as SiteStats);
       }
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -316,7 +329,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all">
             <div className="flex justify-between items-start">
               <div>
@@ -358,6 +371,17 @@ export default function AdminDashboard() {
                 <p className="text-red-100 text-sm mt-2">Reservas a confirmar</p>
               </div>
               <span className="text-4xl">⏳</span>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-purple-100 font-semibold mb-2">Visitas ao Site</p>
+                <p className="text-3xl font-bold">{siteStats.totalVisits || 0}</p>
+                <p className="text-purple-100 text-sm mt-2">Contador global</p>
+              </div>
+              <span className="text-4xl">👁️</span>
             </div>
           </div>
         </div>

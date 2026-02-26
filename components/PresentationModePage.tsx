@@ -116,16 +116,6 @@ export default function PresentationModePage({
               <p className="text-gray-700 text-lg mb-6 leading-relaxed">
                 Com piscina, jardim espaçoso e todas as comodidades modernas, oferecemos uma experiência inesquecível.
               </p>
-              <div className="flex gap-4">
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                  <p className="text-2xl font-bold text-orange-600">4.9</p>
-                  <p className="text-sm text-gray-600">Avaliação</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                  <p className="text-2xl font-bold text-orange-600">500+</p>
-                  <p className="text-sm text-gray-600">Hóspedes felizes</p>
-                </div>
-              </div>
             </div>
             <div className="relative w-full h-80 rounded-xl shadow-xl overflow-hidden">
               <Image

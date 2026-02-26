@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import PresentationModePage from '../components/PresentationModePage';
 import { db } from '../lib/firebase';
-import { collection, addDoc, doc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, getDocs, runTransaction } from 'firebase/firestore';
 
 interface BlockedDate {
   startDate: string;
@@ -44,6 +44,11 @@ interface SiteMode {
   presentationModeEnabled?: boolean;
 }
 
+interface SiteStats {
+  totalVisits?: number;
+  lastVisitAt?: string;
+}
+
 export default function Home() {
   const [formData, setFormData] = useState<FormData>({
     propertyId: '1',
@@ -79,6 +84,41 @@ export default function Home() {
     description: 'Retiro de charme no coração do Alentejo',
     mapsUrl: ''
   });
+
+  useEffect(() => {
+    const registerVisit = async () => {
+      if (typeof window === 'undefined') return;
+
+      const visitStorageKey = 'enzoloft_visit_counted';
+      if (sessionStorage.getItem(visitStorageKey) === '1') {
+        return;
+      }
+
+      try {
+        const siteStatsRef = doc(db, 'settings', 'siteStats');
+        await runTransaction(db, async (transaction) => {
+          const siteStatsDoc = await transaction.get(siteStatsRef);
+          const currentData = siteStatsDoc.exists() ? (siteStatsDoc.data() as SiteStats) : {};
+          const currentVisits = Number(currentData.totalVisits || 0);
+
+          transaction.set(
+            siteStatsRef,
+            {
+              totalVisits: currentVisits + 1,
+              lastVisitAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        });
+
+        sessionStorage.setItem(visitStorageKey, '1');
+      } catch (error) {
+        console.error('Erro ao registar visita:', error);
+      }
+    };
+
+    registerVisit();
+  }, []);
 
   useEffect(() => {
     const loadAllData = async () => {
