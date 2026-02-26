@@ -184,6 +184,39 @@ npm run firebase:deploy
 
 Consulte [FIREBASE_DEPLOY.md](FIREBASE_DEPLOY.md) para mais detalhes.
 
+## SEO e Indexação (Google)
+
+### O que já está configurado no projeto
+
+- `sitemap.xml` em `https://enzoloft.pt/sitemap.xml`
+- `robots.txt` com sitemap e bloqueio da área `/admin`
+- Canonical, Open Graph, Twitter Cards e Schema.org na homepage
+- `noindex` nas páginas administrativas
+
+### Ativar verificação Search Console
+
+1. No Google Search Console, adicione a propriedade `https://enzoloft.pt`
+2. Escolha verificação por **tag HTML**
+3. Copie o token e adicione em `.env.local`:
+
+```env
+NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=SEU_TOKEN_AQUI
+```
+
+4. Deploy:
+
+```bash
+npm run firebase:deploy
+```
+
+### Pedir indexação imediata
+
+1. Abra o Search Console → **Inspeção de URL**
+2. Teste e solicite indexação de:
+  - `https://enzoloft.pt/`
+3. Em **Sitemaps**, submeta:
+  - `https://enzoloft.pt/sitemap.xml`
+
 ## Troubleshooting
 
 - **Problemas de autenticação:** Veja [TROUBLESHOOTING_AUTH.md](TROUBLESHOOTING_AUTH.md)

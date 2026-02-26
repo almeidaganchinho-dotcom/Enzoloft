@@ -54,6 +54,8 @@ export default function Home() {
   const siteTitle = 'EnzoLoft - Alojamento de Charme em Vila Ruiva, Cuba - Beja';
   const siteDescription = 'Retiro de charme no coração do Alentejo. Reserve agora o seu alojamento exclusivo em Vila Ruiva, Cuba - Beja. Casa completa com piscina, jardim e vistas deslumbrantes.';
   const ogImageUrl = 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80';
+  const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+  const bingSiteVerification = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION;
 
   const [formData, setFormData] = useState<FormData>({
     propertyId: '1',
@@ -556,25 +558,40 @@ export default function Home() {
   const structuredData = useMemo(
     () => ({
       '@context': 'https://schema.org',
-      '@type': 'LodgingBusiness',
-      name: 'EnzoLoft',
-      url: canonicalUrl,
-      description: siteDescription,
-      email: contactInfo.email,
-      telephone: contactInfo.phone,
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: 'Vila Ruiva',
-        addressRegion: 'Beja',
-        addressCountry: 'PT',
-      },
-      image: [ogImageUrl],
-      amenityFeature: amenities.map((amenity) => ({
-        '@type': 'LocationFeatureSpecification',
-        name: amenity,
-        value: true,
-      })),
-      sameAs: [canonicalUrl],
+      '@graph': [
+        {
+          '@type': 'LodgingBusiness',
+          '@id': `${canonicalUrl}#lodging`,
+          name: 'EnzoLoft',
+          url: canonicalUrl,
+          description: siteDescription,
+          email: contactInfo.email,
+          telephone: contactInfo.phone,
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: 'Vila Ruiva',
+            addressRegion: 'Beja',
+            addressCountry: 'PT',
+          },
+          image: [ogImageUrl],
+          amenityFeature: amenities.map((amenity) => ({
+            '@type': 'LocationFeatureSpecification',
+            name: amenity,
+            value: true,
+          })),
+          sameAs: [canonicalUrl],
+        },
+        {
+          '@type': 'WebSite',
+          '@id': `${canonicalUrl}#website`,
+          url: canonicalUrl,
+          name: 'EnzoLoft',
+          inLanguage: 'pt-PT',
+          publisher: {
+            '@id': `${canonicalUrl}#lodging`,
+          },
+        },
+      ],
     }),
     [amenities, contactInfo.email, contactInfo.phone]
   );
@@ -599,6 +616,12 @@ export default function Home() {
       <meta name="twitter:title" content={siteTitle} />
       <meta name="twitter:description" content={siteDescription} />
       <meta name="twitter:image" content={ogImageUrl} />
+      {googleSiteVerification && (
+        <meta name="google-site-verification" content={googleSiteVerification} />
+      )}
+      {bingSiteVerification && (
+        <meta name="msvalidate.01" content={bingSiteVerification} />
+      )}
       <link rel="canonical" href={canonicalUrl} />
       <link rel="alternate" hrefLang="pt-PT" href={canonicalUrl} />
       <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
