@@ -217,8 +217,15 @@ export default function AdminDashboard() {
     };
   }, [reservations]);
 
+  const getReservationCreatedDate = useCallback((reservation: any) => {
+    if (reservation?.createdAt?.toDate) return reservation.createdAt.toDate();
+    if (reservation?.createdAt) return new Date(reservation.createdAt);
+    if (reservation?.startDate) return new Date(reservation.startDate);
+    return new Date(0);
+  }, []);
+
   const dashboardData = useMemo(() => {
-    // Agrupar reservas por dia da semana nos últimos 7 dias
+    // Agrupar pedidos e confirmações por dia (últimos 7 dias)
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
@@ -227,18 +234,20 @@ export default function AdminDashboard() {
     });
     
     return last7Days.map(date => {
-      const dayReservations = reservations.filter(r => {
-        const created = new Date(r.createdAt || r.startDate);
+      const dayRequests = reservations.filter(r => {
+        const created = getReservationCreatedDate(r);
         return created.toDateString() === date.toDateString();
       });
+
+      const dayConfirmed = dayRequests.filter(r => r.status === 'confirmed');
       
       return {
         day: days[date.getDay()],
-        visitors: dayReservations.length * 15 + Math.floor(Math.random() * 50),
-        conversions: dayReservations.length
+        requests: dayRequests.length,
+        confirmed: dayConfirmed.length
       };
     });
-  }, [reservations]);
+  }, [getReservationCreatedDate, reservations]);
 
   const occupancyData = useMemo(() => [
     { name: 'Ocupado', value: stats.occupancyRate },
@@ -246,26 +255,31 @@ export default function AdminDashboard() {
   ], [stats]);
 
   const analyticsData = useMemo(() => {
-    // Agrupar reservas por semana do mês
+    // Agrupar pedidos e confirmações por semana do mês atual
     const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
     const weeks = [];
     
     for (let i = 0; i < 5; i++) {
-      const weekReservations = reservations.filter(r => {
-        const created = new Date(r.createdAt || r.startDate);
+      const weekRequests = reservations.filter(r => {
+        const created = getReservationCreatedDate(r);
+        if (created.getMonth() !== currentMonth || created.getFullYear() !== currentYear) return false;
         const day = created.getDate();
         return day >= (i * 6 + 1) && day <= ((i + 1) * 6);
       });
+
+      const weekConfirmed = weekRequests.filter(r => r.status === 'confirmed');
       
       weeks.push({
         day: `${i * 6 + 1}-${Math.min((i + 1) * 6, 30)}`,
-        visitors: weekReservations.length * 100 + 2000,
-        conversions: weekReservations.length * 50
+        requests: weekRequests.length,
+        confirmed: weekConfirmed.length
       });
     }
     
     return weeks;
-  }, [reservations]);
+  }, [getReservationCreatedDate, reservations]);
 
   const revenueData = useMemo(() => {
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho'];
@@ -282,6 +296,44 @@ export default function AdminDashboard() {
       return { month, revenue };
     });
   }, [reservations]);
+
+  const analyticsSummary = useMemo(() => {
+    const now = new Date();
+    const last30DaysStart = new Date(now);
+    last30DaysStart.setDate(now.getDate() - 29);
+
+    const last30DaysRequests = reservations.filter((reservation) => {
+      const created = getReservationCreatedDate(reservation);
+      return created >= last30DaysStart && created <= now;
+    }).length;
+
+    const conversionRate = stats.totalReservations > 0
+      ? (stats.confirmedCount / stats.totalReservations) * 100
+      : 0;
+
+    const averageRevenuePerConfirmed = stats.confirmedCount > 0
+      ? stats.totalRevenue / stats.confirmedCount
+      : 0;
+
+    const confirmedReservations = reservations.filter(r => r.status === 'confirmed');
+    const totalConfirmedNights = confirmedReservations.reduce((sum, reservation) => {
+      const start = new Date(reservation.startDate);
+      const end = new Date(reservation.endDate);
+      const nights = Math.max(Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)), 0);
+      return sum + nights;
+    }, 0);
+
+    const averageStay = confirmedReservations.length > 0
+      ? totalConfirmedNights / confirmedReservations.length
+      : 0;
+
+    return {
+      requestsPerDay: last30DaysRequests / 30,
+      conversionRate,
+      averageRevenuePerConfirmed,
+      averageStay,
+    };
+  }, [getReservationCreatedDate, reservations, stats]);
 
   const tabs = useMemo<Tab[]>(() => [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -463,7 +515,7 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                   <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6 rounded-lg border-2 border-blue-100">
-                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Visitantes & Conversões (últimos 6 dias)</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Pedidos & Confirmações (últimos 7 dias)</h3>
                     <ResponsiveContainer width="100%" height={300}>
                       <LineChart data={dashboardData}>
                         <CartesianGrid stroke="#e5e7eb" />
@@ -471,8 +523,8 @@ export default function AdminDashboard() {
                         <YAxis fontSize={12} />
                         <Tooltip />
                         <Legend wrapperStyle={{ fontSize: '12px' }} />
-                        <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} />
-                        <Line type="monotone" dataKey="conversions" stroke="#10b981" strokeWidth={2} />
+                        <Line type="monotone" dataKey="requests" stroke="#3b82f6" strokeWidth={2} name="Pedidos" />
+                        <Line type="monotone" dataKey="confirmed" stroke="#10b981" strokeWidth={2} name="Confirmadas" />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -1188,7 +1240,7 @@ export default function AdminDashboard() {
                 <h2 className="text-xl md:text-2xl font-bold text-gray-800">📊 Analíticas</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 md:p-6 rounded-xl border-2 border-blue-200">
-                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">📈 Visitantes & Conversões (6 dias)</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">📈 Pedidos & Confirmações (semanas do mês)</h3>
                     <ResponsiveContainer width="100%" height={300}>
                       <LineChart data={analyticsData}>
                         <CartesianGrid stroke="#e0e7ff" />
@@ -1196,8 +1248,8 @@ export default function AdminDashboard() {
                         <YAxis fontSize={12} />
                         <Tooltip />
                         <Legend wrapperStyle={{ fontSize: '12px' }} />
-                        <Line type="monotone" dataKey="visitors" stroke="#3b82f6" strokeWidth={2} name="Visitantes" />
-                        <Line type="monotone" dataKey="conversions" stroke="#06b6d4" strokeWidth={2} name="Conversões" />
+                        <Line type="monotone" dataKey="requests" stroke="#3b82f6" strokeWidth={2} name="Pedidos" />
+                        <Line type="monotone" dataKey="confirmed" stroke="#06b6d4" strokeWidth={2} name="Confirmadas" />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -1218,20 +1270,20 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 md:p-6 rounded-xl border-2 border-blue-200">
-                    <p className="text-blue-700 font-semibold mb-2 text-xs md:text-base">Visitantes/dia</p>
-                    <p className="text-2xl md:text-3xl font-bold text-blue-900">473</p>
+                    <p className="text-blue-700 font-semibold mb-2 text-xs md:text-base">Pedidos/dia (30d)</p>
+                    <p className="text-2xl md:text-3xl font-bold text-blue-900">{analyticsSummary.requestsPerDay.toFixed(1)}</p>
                   </div>
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-3 md:p-6 rounded-xl border-2 border-green-200">
-                    <p className="text-green-700 font-semibold mb-2 text-xs md:text-base">Taxa Conversão</p>
-                    <p className="text-2xl md:text-3xl font-bold text-green-900">16.8%</p>
+                    <p className="text-green-700 font-semibold mb-2 text-xs md:text-base">Taxa Confirmação</p>
+                    <p className="text-2xl md:text-3xl font-bold text-green-900">{analyticsSummary.conversionRate.toFixed(1)}%</p>
                   </div>
                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-3 md:p-6 rounded-xl border-2 border-purple-200">
                     <p className="text-purple-700 font-semibold mb-2 text-xs md:text-base">Média/Reserva</p>
-                    <p className="text-2xl md:text-3xl font-bold text-purple-900">€420</p>
+                    <p className="text-2xl md:text-3xl font-bold text-purple-900">€{analyticsSummary.averageRevenuePerConfirmed.toFixed(2)}</p>
                   </div>
                   <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-3 md:p-6 rounded-xl border-2 border-yellow-200">
                     <p className="text-yellow-700 font-semibold mb-2 text-xs md:text-base">Duração Média</p>
-                    <p className="text-2xl md:text-3xl font-bold text-yellow-900">3.2 dias</p>
+                    <p className="text-2xl md:text-3xl font-bold text-yellow-900">{analyticsSummary.averageStay.toFixed(1)} dias</p>
                   </div>
                 </div>
               </div>
