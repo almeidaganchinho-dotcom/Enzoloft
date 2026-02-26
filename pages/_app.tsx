@@ -2,19 +2,35 @@ import '../styles/globals.css'
 import { useEffect, useState } from 'react'
 import type { AppProps } from 'next/app'
 import { initAnalytics } from '../lib/firebase'
-import { getTrackingConsentStatus, setTrackingConsentStatus, type TrackingConsentStatus } from '../lib/consent'
+import {
+  TRACKING_CONSENT_CHANGED_EVENT,
+  getTrackingConsentStatus,
+  setTrackingConsentStatus,
+  type TrackingConsentStatus,
+} from '../lib/consent'
 
 export default function App({ Component, pageProps }: AppProps) {
-  const [consentStatus, setConsentStatus] = useState<TrackingConsentStatus>('unknown')
+  const [consentStatus, setConsentStatus] = useState<TrackingConsentStatus>(() => getTrackingConsentStatus())
 
   useEffect(() => {
-    const status = getTrackingConsentStatus()
-    setConsentStatus(status)
-
-    if (status === 'granted') {
+    if (consentStatus === 'granted') {
       initAnalytics().catch((error) => {
         console.error('Erro ao inicializar Firebase Analytics:', error)
       })
+    }
+  }, [consentStatus])
+
+  useEffect(() => {
+    const updateConsentFromStorage = () => {
+      setConsentStatus(getTrackingConsentStatus())
+    }
+
+    window.addEventListener(TRACKING_CONSENT_CHANGED_EVENT, updateConsentFromStorage)
+    window.addEventListener('storage', updateConsentFromStorage)
+
+    return () => {
+      window.removeEventListener(TRACKING_CONSENT_CHANGED_EVENT, updateConsentFromStorage)
+      window.removeEventListener('storage', updateConsentFromStorage)
     }
   }, [])
 

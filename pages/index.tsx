@@ -6,7 +6,7 @@ import PresentationModePage from '../components/PresentationModePage';
 import { db, trackAnalyticsEvent } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import { logClientError, logClientEvent } from '../lib/monitoring';
-import { hasTrackingConsent } from '../lib/consent';
+import { TRACKING_CONSENT_CHANGED_EVENT, hasTrackingConsent } from '../lib/consent';
 
 interface BlockedDate {
   startDate: string;
@@ -188,6 +188,7 @@ export default function Home() {
   const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
   const [bookingStarted, setBookingStarted] = useState<boolean>(false);
   const [submittingReservation, setSubmittingReservation] = useState<boolean>(false);
+  const [trackingConsentGranted, setTrackingConsentGranted] = useState<boolean>(() => hasTrackingConsent());
   const bookingStartedRef = useRef(false);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
@@ -203,9 +204,23 @@ export default function Home() {
   }), []);
 
   useEffect(() => {
+    const updateTrackingConsent = () => {
+      setTrackingConsentGranted(hasTrackingConsent());
+    };
+
+    window.addEventListener(TRACKING_CONSENT_CHANGED_EVENT, updateTrackingConsent);
+    window.addEventListener('storage', updateTrackingConsent);
+
+    return () => {
+      window.removeEventListener(TRACKING_CONSENT_CHANGED_EVENT, updateTrackingConsent);
+      window.removeEventListener('storage', updateTrackingConsent);
+    };
+  }, []);
+
+  useEffect(() => {
     const registerVisit = async () => {
       if (typeof window === 'undefined') return;
-      if (!hasTrackingConsent()) return;
+      if (!trackingConsentGranted) return;
 
       const visitStorageKey = 'enzoloft_visit_counted';
       if (sessionStorage.getItem(visitStorageKey) === '1') {
@@ -276,7 +291,7 @@ export default function Home() {
     };
 
     registerVisit();
-  }, []);
+  }, [trackingConsentGranted]);
 
   useEffect(() => {
     const loadAllData = async () => {
