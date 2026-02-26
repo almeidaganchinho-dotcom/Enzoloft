@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -37,8 +38,14 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-amber-900 to-amber-700 flex items-center justify-center px-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+    <>
+      <Head>
+        <title>Admin Login | EnzoLoft</title>
+        <meta name="robots" content="noindex, nofollow, noarchive" />
+      </Head>
+
+      <div className="min-h-screen bg-gradient-to-r from-amber-900 to-amber-700 flex items-center justify-center px-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
         <h1 className="text-3xl font-bold text-amber-900 mb-2 text-center">EnzoLoft</h1>
         <p className="text-gray-600 text-center mb-6">Admin Panel</p>
 
@@ -77,7 +84,8 @@ export default function AdminLogin() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

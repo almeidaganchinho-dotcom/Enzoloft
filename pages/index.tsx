@@ -50,6 +50,11 @@ interface SiteStats {
 }
 
 export default function Home() {
+  const canonicalUrl = 'https://enzoloft.pt';
+  const siteTitle = 'EnzoLoft - Alojamento de Charme em Vila Ruiva, Cuba - Beja';
+  const siteDescription = 'Retiro de charme no coração do Alentejo. Reserve agora o seu alojamento exclusivo em Vila Ruiva, Cuba - Beja. Casa completa com piscina, jardim e vistas deslumbrantes.';
+  const ogImageUrl = 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80';
+
   const [formData, setFormData] = useState<FormData>({
     propertyId: '1',
     guestName: '',
@@ -548,6 +553,32 @@ export default function Home() {
     { src: 'https://enzoloft.web.app/images/gallery/piscina.jpg', alt: 'Piscina' },
   ], []);
 
+  const structuredData = useMemo(
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': 'LodgingBusiness',
+      name: 'EnzoLoft',
+      url: canonicalUrl,
+      description: siteDescription,
+      email: contactInfo.email,
+      telephone: contactInfo.phone,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Vila Ruiva',
+        addressRegion: 'Beja',
+        addressCountry: 'PT',
+      },
+      image: [ogImageUrl],
+      amenityFeature: amenities.map((amenity) => ({
+        '@type': 'LocationFeatureSpecification',
+        name: amenity,
+        value: true,
+      })),
+      sameAs: [canonicalUrl],
+    }),
+    [amenities, contactInfo.email, contactInfo.phone]
+  );
+
   if (!siteModeLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -569,15 +600,31 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       <Head>
-        <title>EnzoLoft - Alojamento de Charme em Vila Ruiva, Cuba - Beja</title>
-        <meta name="description" content="Retiro de charme no coração do Alentejo. Reserve agora o seu alojamento exclusivo em Vila Ruiva, Cuba - Beja. Casa completa com piscina, jardim e vistas deslumbrantes." />
+        <title>{siteTitle}</title>
+        <meta name="description" content={siteDescription} />
         <meta name="keywords" content="alojamento alentejo, casa férias beja, vila ruiva, cuba alentejo, casa com piscina, turismo rural" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta property="og:title" content="EnzoLoft - Alojamento de Charme no Alentejo" />
-        <meta property="og:description" content="Retiro de charme em Vila Ruiva, Cuba - Beja. Reserve a sua estadia exclusiva." />
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <meta name="author" content="EnzoLoft" />
+        <meta property="og:title" content={siteTitle} />
+        <meta property="og:description" content={siteDescription} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://enzoloft-51508.web.app" />
-        <link rel="canonical" href="https://enzoloft-51508.web.app" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:site_name" content="EnzoLoft" />
+        <meta property="og:locale" content="pt_PT" />
+        <meta property="og:image" content={ogImageUrl} />
+        <meta property="og:image:alt" content="EnzoLoft no Alentejo" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={siteTitle} />
+        <meta name="twitter:description" content={siteDescription} />
+        <meta name="twitter:image" content={ogImageUrl} />
+        <link rel="canonical" href={canonicalUrl} />
+        <link rel="alternate" hrefLang="pt-PT" href={canonicalUrl} />
+        <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </Head>
       
       {/* Header */}

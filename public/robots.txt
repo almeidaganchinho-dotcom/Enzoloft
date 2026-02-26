@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://enzoloft.pt/sitemap.xml
+Host: enzoloft.pt
