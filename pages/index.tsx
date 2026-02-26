@@ -6,6 +6,7 @@ import PresentationModePage from '../components/PresentationModePage';
 import { db, trackAnalyticsEvent } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import { logClientError, logClientEvent } from '../lib/monitoring';
+import { hasTrackingConsent } from '../lib/consent';
 
 interface BlockedDate {
   startDate: string;
@@ -199,6 +200,7 @@ export default function Home() {
   useEffect(() => {
     const registerVisit = async () => {
       if (typeof window === 'undefined') return;
+      if (!hasTrackingConsent()) return;
 
       const visitStorageKey = 'enzoloft_visit_counted';
       if (sessionStorage.getItem(visitStorageKey) === '1') {

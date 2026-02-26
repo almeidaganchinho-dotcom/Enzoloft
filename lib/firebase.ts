@@ -2,6 +2,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAnalytics, isSupported, logEvent } from 'firebase/analytics';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { hasTrackingConsent } from './consent';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDU5_Lu7islxpFCkqjz7O0-DnliCB5JSeA",
@@ -31,6 +32,10 @@ const trackAnalyticsEvent = async (
   params?: Record<string, string | number | boolean | null | undefined>
 ) => {
   try {
+    if (!hasTrackingConsent()) {
+      return;
+    }
+
     if (!analyticsPromise) {
       analyticsPromise = initAnalytics();
     }

@@ -1,5 +1,6 @@
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
+import { hasTrackingConsent } from './consent';
 
 interface MonitoringPayload {
   event: string;
@@ -24,6 +25,10 @@ const sanitizeContext = (context?: Record<string, unknown>) => {
 
 export const logClientEvent = async ({ event, level = 'info', context }: MonitoringPayload) => {
   try {
+    if (!hasTrackingConsent()) {
+      return;
+    }
+
     await addDoc(collection(db, 'clientEvents'), {
       event,
       level,
