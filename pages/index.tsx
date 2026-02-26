@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import PresentationModePage from '../components/PresentationModePage';
 import { db, trackAnalyticsEvent } from '../lib/firebase';
-import { collection, addDoc, doc, getDoc, getDocs, runTransaction } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, getDocs, runTransaction, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { logClientError, logClientEvent } from '../lib/monitoring';
 
 interface BlockedDate {
@@ -150,43 +150,40 @@ export default function Home() {
           );
         });
 
-        let geoPayload = {
+        const visitEventRef = await addDoc(collection(db, 'visitEvents'), {
+          source: 'homepage',
           country: 'Desconhecido',
           countryCode: '',
           region: '',
           city: 'Desconhecido',
           latitude: 0,
           longitude: 0,
-        };
+          deviceType,
+          userAgent,
+          platform,
+          createdAt: serverTimestamp(),
+          createdAtIso: new Date().toISOString(),
+        });
+
+        sessionStorage.setItem(visitStorageKey, '1');
 
         try {
           const geoResponse = await fetch('https://ipwho.is/', { method: 'GET' });
           const geoData = (await geoResponse.json()) as GeoLookupResponse;
 
           if (geoData.success !== false) {
-            geoPayload = {
+            await updateDoc(visitEventRef, {
               country: geoData.country || 'Desconhecido',
               countryCode: geoData.country_code || '',
               region: geoData.region || '',
               city: geoData.city || 'Desconhecido',
               latitude: Number(geoData.latitude || 0),
               longitude: Number(geoData.longitude || 0),
-            };
+            });
           }
         } catch (geoError) {
           await logClientError('homepage_visit_geo_lookup_failed', geoError);
         }
-
-        await addDoc(collection(db, 'visitEvents'), {
-          source: 'homepage',
-          ...geoPayload,
-          deviceType,
-          userAgent,
-          platform,
-          createdAt: new Date().toISOString(),
-        });
-
-        sessionStorage.setItem(visitStorageKey, '1');
       } catch (error) {
         console.error('Erro ao registar visita:', error);
         await logClientError('homepage_visit_register_failed', error);
