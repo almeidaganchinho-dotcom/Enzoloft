@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 import PresentationModePage from '../components/PresentationModePage';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs, runTransaction } from 'firebase/firestore';
+import { logClientError, logClientEvent } from '../lib/monitoring';
 
 interface BlockedDate {
   startDate: string;
@@ -84,6 +85,9 @@ export default function Home() {
   const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
   const [presentationModeEnabled, setPresentationModeEnabled] = useState<boolean>(false);
   const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
+  const [bookingStarted, setBookingStarted] = useState<boolean>(false);
+  const [submittingReservation, setSubmittingReservation] = useState<boolean>(false);
+  const bookingStartedRef = useRef(false);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
     email: 'info@enzoloft.com',
@@ -121,6 +125,7 @@ export default function Home() {
         sessionStorage.setItem(visitStorageKey, '1');
       } catch (error) {
         console.error('Erro ao registar visita:', error);
+        await logClientError('homepage_visit_register_failed', error);
       }
     };
 
@@ -163,6 +168,7 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
+        await logClientError('homepage_initial_load_failed', error);
       } finally {
         setSiteModeLoaded(true);
       }
@@ -280,6 +286,7 @@ export default function Home() {
       setMessage(`✅ Voucher "${voucher.code}" aplicado com sucesso!`);
     } catch (error) {
       console.error('Erro ao validar voucher:', error);
+      await logClientError('booking_voucher_validation_failed', error, { voucherCode });
       setVoucherError('Erro ao validar voucher. Tente novamente.');
     }
   }, [voucherCode, originalPrice, formData.totalPrice]);
@@ -353,12 +360,20 @@ export default function Home() {
       return totalPrice;
     } catch (error) {
       console.error('Erro ao calcular preço:', error);
+      await logClientError('booking_price_calculation_failed', error, { startDate, endDate });
       return nightsCount * 100;
     }
   }, [appliedVoucher]);
 
   const handleChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+
+    if (!bookingStartedRef.current) {
+      bookingStartedRef.current = true;
+      setBookingStarted(true);
+      await logClientEvent({ event: 'booking_started', context: { field: name } });
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
     setDateError('');
 
@@ -384,6 +399,12 @@ export default function Home() {
   }, [formData.startDate, formData.endDate, checkDateRangeConflict, calculateTotalPrice]);
 
   const handleDateSelect = useCallback(async (dateStr: string, type: 'start' | 'end') => {
+    if (!bookingStartedRef.current) {
+      bookingStartedRef.current = true;
+      setBookingStarted(true);
+      await logClientEvent({ event: 'booking_started', context: { field: 'calendar' } });
+    }
+
     const newFormData = { ...formData };
     
     if (type === 'start') {
@@ -410,6 +431,14 @@ export default function Home() {
       } else {
         const calculatedPrice = await calculateTotalPrice(newFormData.startDate, newFormData.endDate);
         setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
+        await logClientEvent({
+          event: 'booking_dates_selected',
+          context: {
+            startDate: newFormData.startDate,
+            endDate: newFormData.endDate,
+            totalPrice: calculatedPrice,
+          },
+        });
       }
     }
   }, [formData, checkDateRangeConflict, calculateTotalPrice]);
@@ -417,36 +446,43 @@ export default function Home() {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSubmittingReservation(true);
     setMessage('');
 
     // Validações básicas
     if (dateError) {
+      await logClientEvent({ event: 'booking_submit_blocked', level: 'warning', context: { reason: 'date_error' } });
       setMessage('❌ Por favor, escolha datas válidas sem bloqueios.');
       setLoading(false);
+      setSubmittingReservation(false);
       return;
     }
 
     if (!formData.guestName.trim() || formData.guestName.length < 3) {
       setMessage('❌ Por favor, insira um nome válido (mínimo 3 caracteres).');
       setLoading(false);
+      setSubmittingReservation(false);
       return;
     }
 
     if (!formData.guestEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
       setMessage('❌ Por favor, insira um email válido.');
       setLoading(false);
+      setSubmittingReservation(false);
       return;
     }
 
     if (!formData.guestPhone.trim() || formData.guestPhone.length < 9) {
       setMessage('❌ Por favor, insira um telefone válido.');
       setLoading(false);
+      setSubmittingReservation(false);
       return;
     }
 
     if (formData.guestsCount < 1 || formData.guestsCount > 20) {
       setMessage('❌ Número de hóspedes inválido (1-20).');
       setLoading(false);
+      setSubmittingReservation(false);
       return;
     }
 
@@ -474,6 +510,15 @@ export default function Home() {
       
       // Criar reserva no Firestore
       await addDoc(collection(db, 'reservations'), reservation);
+      await logClientEvent({
+        event: 'booking_submit_success',
+        context: {
+          startDate: reservation.startDate,
+          endDate: reservation.endDate,
+          totalPrice: reservation.totalPrice,
+          guestsCount: reservation.guestsCount,
+        },
+      });
       
       // Enviar emails (confirmação para hóspede + notificação para admin)
       try {
@@ -517,6 +562,9 @@ export default function Home() {
         });
       } catch (emailError) {
         console.error('Erro ao enviar emails:', emailError);
+        await logClientError('booking_email_notifications_failed', emailError, {
+          guestEmail: reservation.guestEmail,
+        });
         // Não bloquear a reserva se o email falhar
       }
       
@@ -529,9 +577,11 @@ export default function Home() {
       setVoucherError('');
     } catch (error) {
       console.error('Erro ao criar reserva:', error);
+      await logClientError('booking_submit_failed', error);
       setMessage('❌ Erro ao criar reserva. Tente novamente.');
     } finally {
       setLoading(false);
+      setSubmittingReservation(false);
     }
   }, [appliedVoucher, dateError, discount, formData, nights, originalPrice]);
 
@@ -596,6 +646,20 @@ export default function Home() {
     [amenities, contactInfo.email, contactInfo.phone]
   );
 
+  const canSubmitReservation = useMemo(() => {
+    return (
+      !!formData.guestName.trim() &&
+      !!formData.guestEmail.trim() &&
+      !!formData.guestPhone.trim() &&
+      !!formData.startDate &&
+      !!formData.endDate &&
+      formData.totalPrice > 0 &&
+      dateError === '' &&
+      !loading &&
+      !submittingReservation
+    );
+  }, [dateError, formData, loading, submittingReservation]);
+
   const seoHead = (
     <Head>
       <title>{siteTitle}</title>
@@ -616,6 +680,9 @@ export default function Home() {
       <meta name="twitter:title" content={siteTitle} />
       <meta name="twitter:description" content={siteDescription} />
       <meta name="twitter:image" content={ogImageUrl} />
+      <link rel="dns-prefetch" href="https://images.unsplash.com" />
+      <link rel="preconnect" href="https://images.unsplash.com" />
+      <link rel="dns-prefetch" href="https://enzoloft.web.app" />
       {googleSiteVerification && (
         <meta name="google-site-verification" content={googleSiteVerification} />
       )}
@@ -690,6 +757,7 @@ export default function Home() {
             alt="Pôr do sol no Alentejo - Portugal"
             fill
             priority
+            quality={80}
             sizes="100vw"
             className="object-cover"
           />
@@ -720,6 +788,7 @@ export default function Home() {
                     type="text"
                     name="guestName"
                     required
+                    autoComplete="name"
                     value={formData.guestName}
                     onChange={handleChange}
                     placeholder="Seu nome"
@@ -732,6 +801,7 @@ export default function Home() {
                     type="email"
                     name="guestEmail"
                     required
+                    autoComplete="email"
                     value={formData.guestEmail}
                     onChange={handleChange}
                     placeholder="seu@email.com"
@@ -744,6 +814,8 @@ export default function Home() {
                     type="tel"
                     name="guestPhone"
                     required
+                    autoComplete="tel"
+                    inputMode="tel"
                     value={formData.guestPhone}
                     onChange={handleChange}
                     placeholder="+351 ..."
@@ -1014,11 +1086,16 @@ export default function Home() {
                 
                 <button
                   type="submit"
-                  disabled={loading || dateError !== ''}
+                  disabled={!canSubmitReservation}
                   className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-lg hover:shadow-lg hover:shadow-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                 >
                   {loading ? '⏳ Processando...' : '🎯 Reservar Agora'}
                 </button>
+                {!canSubmitReservation && bookingStarted && (
+                  <p className="text-xs text-gray-600 text-center">
+                    Preencha todos os campos, selecione datas válidas e confirme o preço para concluir a reserva.
+                  </p>
+                )}
               </form>
             </div>
           </div>
@@ -1054,6 +1131,7 @@ export default function Home() {
                 src="https://enzoloft.web.app/images/about/casa-exterior.jpg"
                 alt="Casa exterior"
                 fill
+                quality={75}
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
               />
@@ -1092,6 +1170,7 @@ export default function Home() {
                   src={image.src}
                   alt={image.alt}
                   fill
+                  quality={70}
                   sizes="(max-width: 768px) 100vw, 25vw"
                   className="object-cover"
                 />
@@ -1123,6 +1202,7 @@ export default function Home() {
               alt={selectedImage.alt}
               width={1600}
               height={900}
+              quality={85}
               sizes="100vw"
               className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}

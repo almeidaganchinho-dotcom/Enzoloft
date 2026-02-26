@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { browserSessionPersistence, setPersistence, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
+import { logClientError } from '../../lib/monitoring';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -17,14 +18,14 @@ export default function AdminLogin() {
     setError('');
 
     try {
+      await setPersistence(auth, browserSessionPersistence);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       // Login bem-sucedido
-      localStorage.setItem('adminToken', await userCredential.user.getIdToken());
-      localStorage.setItem('adminEmail', email);
       router.push('/admin/dashboard');
     } catch (err: any) {
       console.error('Erro ao fazer login:', err);
+      await logClientError('admin_login_failed', err, { email });
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Email ou password incorretos');
       } else if (err.code === 'auth/too-many-requests') {

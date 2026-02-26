@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { db } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, doc, setDoc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { logClientError, logClientEvent } from '../../lib/monitoring';
 
 interface Admin {
   email: string;
@@ -103,35 +105,77 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
+      await logClientError('admin_dashboard_fetch_failed', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const verifyAuth = async () => {
-      const token = localStorage.getItem('adminToken');
-      const email = localStorage.getItem('adminEmail');
-
-      if (!token || !email) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setAdmin(null);
         setLoading(false);
         router.push('/admin/login');
         return;
       }
 
-      setAdmin({ email });
-      await fetchAllData();
-      setLoading(false);
-    };
+      try {
+        const tokenResult = await user.getIdTokenResult();
+        if (!tokenResult?.token) {
+          await signOut(auth);
+          setLoading(false);
+          router.push('/admin/login');
+          return;
+        }
 
-    verifyAuth();
+        setAdmin({ email: user.email || 'admin@enzoloft.com' });
+        await fetchAllData();
+      } catch (error) {
+        console.error('Erro ao validar sessão admin:', error);
+        await logClientError('admin_session_validation_failed', error);
+        await signOut(auth);
+        router.push('/admin/login');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, [fetchAllData, router]);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminEmail');
-    router.push('/admin/login');
+  const logout = useCallback(async () => {
+    try {
+      await signOut(auth);
+      await logClientEvent({ event: 'admin_logout' });
+    } finally {
+      router.push('/admin/login');
+    }
   }, [router]);
+
+  useEffect(() => {
+    if (!admin) return;
+
+    const idleTimeoutMs = 30 * 60 * 1000;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const resetIdleTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        await logClientEvent({ event: 'admin_session_timeout' });
+        await logout();
+      }, idleTimeoutMs);
+    };
+
+    const events: Array<keyof WindowEventMap> = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    events.forEach((eventName) => window.addEventListener(eventName, resetIdleTimeout));
+    resetIdleTimeout();
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((eventName) => window.removeEventListener(eventName, resetIdleTimeout));
+    };
+  }, [admin, logout]);
 
   const updateReservationStatus = useCallback(async (idx: number, status: string) => {
     const updated = [...reservations];
@@ -165,10 +209,17 @@ export default function AdminDashboard() {
             });
           } catch (emailError) {
             console.error('Erro ao enviar email de cancelamento:', emailError);
+            await logClientError('admin_reservation_cancel_email_failed', emailError, {
+              reservationId,
+            });
           }
         }
       } catch (error) {
         console.error('Erro ao atualizar status:', error);
+        await logClientError('admin_reservation_status_update_failed', error, {
+          reservationId: reservation.id,
+          status,
+        });
       }
     }
   }, [reservations]);
@@ -283,14 +334,23 @@ export default function AdminDashboard() {
   }, [getReservationCreatedDate, reservations]);
 
   const revenueData = useMemo(() => {
-    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho'];
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const now = new Date();
-    
-    return months.map((month, idx) => {
+
+    const monthsToShow = Array.from({ length: 6 }, (_, offset) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - offset), 1);
+      return {
+        month: monthNames[date.getMonth()],
+        monthIndex: date.getMonth(),
+        year: date.getFullYear(),
+      };
+    });
+
+    return monthsToShow.map(({ month, monthIndex, year }) => {
       const monthReservations = reservations.filter(r => {
         if (r.status !== 'confirmed') return false;
         const date = new Date(r.startDate);
-        return date.getMonth() === idx;
+        return date.getMonth() === monthIndex && date.getFullYear() === year;
       });
       
       const revenue = monthReservations.reduce((sum, r) => sum + (parseFloat(r.totalPrice) || 0), 0);
