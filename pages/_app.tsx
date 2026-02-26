@@ -35,8 +35,8 @@ export default function App({ Component, pageProps }: AppProps) {
   }, [])
 
   const handleConsentChoice = (status: Exclude<TrackingConsentStatus, 'unknown'>) => {
-    setTrackingConsentStatus(status)
     setConsentStatus(status)
+    setTrackingConsentStatus(status)
 
     if (status === 'granted') {
       initAnalytics().catch((error) => {
