@@ -80,7 +80,7 @@ export default function PresentationModePage({
         <div className="absolute inset-0 z-0 bg-gradient-to-r from-orange-600 via-red-500 to-orange-500 opacity-50"></div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10 text-white">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div>
             <div>
               <h2 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">Retiro Perfeito no Alentejo</h2>
               <p className="text-xl md:text-2xl mb-8 drop-shadow-md">Alojamento de charme em Vila Ruiva, Cuba - Beja</p>
@@ -89,16 +89,6 @@ export default function PresentationModePage({
                 <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">🏊 Piscina</span>
                 <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">🌿 Jardim</span>
               </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-2xl text-gray-800">
-              <h3 className="text-2xl font-bold text-orange-900 mb-4">Modo Apresentação Ativo</h3>
-              <p className="text-gray-700 leading-relaxed mb-4">
-                Esta página mostra apenas a apresentação da casa e as comodidades, sem formulário de reserva.
-              </p>
-              <p className="text-gray-700 leading-relaxed">
-                Para informações e marcações, contacte-nos através dos dados no final da página.
-              </p>
             </div>
           </div>
         </div>
