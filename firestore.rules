@@ -28,5 +28,17 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read, write: if true;
     }
+
+    // Visit events - registo de visitas para analíticas
+    match /visitEvents/{eventId} {
+      allow create, read: if true;
+      allow update, delete: if false;
+    }
+
+    // Client events - monitorização de eventos e erros
+    match /clientEvents/{eventId} {
+      allow create, read: if true;
+      allow update, delete: if false;
+    }
   }
 }

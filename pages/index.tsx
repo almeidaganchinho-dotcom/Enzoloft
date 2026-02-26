@@ -150,28 +150,41 @@ export default function Home() {
           );
         });
 
+        let geoPayload = {
+          country: 'Desconhecido',
+          countryCode: '',
+          region: '',
+          city: 'Desconhecido',
+          latitude: 0,
+          longitude: 0,
+        };
+
         try {
           const geoResponse = await fetch('https://ipwho.is/', { method: 'GET' });
           const geoData = (await geoResponse.json()) as GeoLookupResponse;
 
           if (geoData.success !== false) {
-            await addDoc(collection(db, 'visitEvents'), {
-              source: 'homepage',
+            geoPayload = {
               country: geoData.country || 'Desconhecido',
               countryCode: geoData.country_code || '',
               region: geoData.region || '',
               city: geoData.city || 'Desconhecido',
               latitude: Number(geoData.latitude || 0),
               longitude: Number(geoData.longitude || 0),
-              deviceType,
-              userAgent,
-              platform,
-              createdAt: new Date().toISOString(),
-            });
+            };
           }
         } catch (geoError) {
           await logClientError('homepage_visit_geo_lookup_failed', geoError);
         }
+
+        await addDoc(collection(db, 'visitEvents'), {
+          source: 'homepage',
+          ...geoPayload,
+          deviceType,
+          userAgent,
+          platform,
+          createdAt: new Date().toISOString(),
+        });
 
         sessionStorage.setItem(visitStorageKey, '1');
       } catch (error) {
