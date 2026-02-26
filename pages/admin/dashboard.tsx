@@ -109,6 +109,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [devicePeriod, setDevicePeriod] = useState<'24h' | '7d' | '30d'>('30d');
+  const [refreshingAnalytics, setRefreshingAnalytics] = useState(false);
   const router = useRouter();
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
@@ -258,6 +259,16 @@ export default function AdminDashboard() {
       router.push('/admin/login');
     }
   }, [router]);
+
+  const refreshAnalyticsData = useCallback(async () => {
+    setRefreshingAnalytics(true);
+    try {
+      await fetchAllData();
+      await logClientEvent({ event: 'admin_analytics_manual_refresh' });
+    } finally {
+      setRefreshingAnalytics(false);
+    }
+  }, [fetchAllData]);
 
   useEffect(() => {
     if (!admin) return;
@@ -1586,7 +1597,20 @@ export default function AdminDashboard() {
             {/* Analytics Tab */}
             {activeTab === 'analytics' && (
               <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800">📊 Analíticas</h2>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-800">📊 Analíticas</h2>
+                  <button
+                    onClick={refreshAnalyticsData}
+                    disabled={refreshingAnalytics}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+                      refreshingAnalytics
+                        ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {refreshingAnalytics ? 'A atualizar...' : '🔄 Recarregar dados'}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 md:p-6 rounded-xl border-2 border-blue-200">
                     <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">📈 Pedidos & Confirmações (semanas do mês)</h3>
