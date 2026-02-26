@@ -113,6 +113,7 @@ export default function AdminDashboard() {
       const email = localStorage.getItem('adminEmail');
 
       if (!token || !email) {
+        setLoading(false);
         router.push('/admin/login');
         return;
       }
@@ -306,7 +307,29 @@ export default function AdminDashboard() {
   };
 
   if (!admin) {
-    return <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800"></div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl p-8 shadow-2xl w-full max-w-md text-center">
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-amber-600 mx-auto"></div>
+              <p className="mt-4 text-gray-700 font-semibold">A validar sessão de administrador...</p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-800">🔐 Login necessário</h2>
+              <p className="text-gray-600 mt-3">Para ver os gráficos do dashboard, entra primeiro na área de administração.</p>
+              <button
+                onClick={() => router.push('/admin/login')}
+                className="mt-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-all"
+              >
+                Ir para Login
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
