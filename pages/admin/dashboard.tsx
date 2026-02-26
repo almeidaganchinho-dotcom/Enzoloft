@@ -142,29 +142,57 @@ export default function AdminDashboard() {
       const vouchersData = vouchersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setVouchers(vouchersData);
 
-      const clientEventsQuery = query(
-        collection(db, 'clientEvents'),
-        orderBy('createdAt', 'desc'),
-        limit(200)
-      );
-      const clientEventsSnapshot = await getDocs(clientEventsQuery);
-      const clientEventsData = clientEventsSnapshot.docs.map((eventDoc) => ({
-        id: eventDoc.id,
-        ...eventDoc.data(),
-      })) as ClientEvent[];
-      setClientEvents(clientEventsData);
+      try {
+        const clientEventsQuery = query(
+          collection(db, 'clientEvents'),
+          orderBy('createdAt', 'desc'),
+          limit(200)
+        );
+        const clientEventsSnapshot = await getDocs(clientEventsQuery);
+        const clientEventsData = clientEventsSnapshot.docs.map((eventDoc) => ({
+          id: eventDoc.id,
+          ...eventDoc.data(),
+        })) as ClientEvent[];
+        setClientEvents(clientEventsData);
+      } catch (clientEventsError) {
+        console.error('Erro ao carregar clientEvents ordenados:', clientEventsError);
+        try {
+          const fallbackSnapshot = await getDocs(collection(db, 'clientEvents'));
+          const fallbackData = fallbackSnapshot.docs
+            .map((eventDoc) => ({ id: eventDoc.id, ...eventDoc.data() } as ClientEvent))
+            .slice(0, 200);
+          setClientEvents(fallbackData);
+        } catch (fallbackError) {
+          console.error('Erro no fallback de clientEvents:', fallbackError);
+          setClientEvents([]);
+        }
+      }
 
-      const visitEventsQuery = query(
-        collection(db, 'visitEvents'),
-        orderBy('createdAt', 'desc'),
-        limit(1500)
-      );
-      const visitEventsSnapshot = await getDocs(visitEventsQuery);
-      const visitEventsData = visitEventsSnapshot.docs.map((visitDoc) => ({
-        id: visitDoc.id,
-        ...visitDoc.data(),
-      })) as VisitEvent[];
-      setVisitEvents(visitEventsData);
+      try {
+        const visitEventsQuery = query(
+          collection(db, 'visitEvents'),
+          orderBy('createdAt', 'desc'),
+          limit(1500)
+        );
+        const visitEventsSnapshot = await getDocs(visitEventsQuery);
+        const visitEventsData = visitEventsSnapshot.docs.map((visitDoc) => ({
+          id: visitDoc.id,
+          ...visitDoc.data(),
+        })) as VisitEvent[];
+        setVisitEvents(visitEventsData);
+      } catch (visitEventsError) {
+        console.error('Erro ao carregar visitEvents ordenados:', visitEventsError);
+        try {
+          const fallbackSnapshot = await getDocs(collection(db, 'visitEvents'));
+          const fallbackData = fallbackSnapshot.docs
+            .map((visitDoc) => ({ id: visitDoc.id, ...visitDoc.data() } as VisitEvent))
+            .slice(0, 1500);
+          setVisitEvents(fallbackData);
+        } catch (fallbackError) {
+          console.error('Erro no fallback de visitEvents:', fallbackError);
+          setVisitEvents([]);
+        }
+      }
       
       // Carregar configurações de contacto
       const contactDoc = await getDoc(doc(db, 'settings', 'contactInfo'));

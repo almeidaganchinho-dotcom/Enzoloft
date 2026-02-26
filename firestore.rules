@@ -31,8 +31,8 @@ service cloud.firestore {
 
     // Visit events - registo de visitas para analíticas
     match /visitEvents/{eventId} {
-      allow create, read: if true;
-      allow update, delete: if false;
+      allow create, read, update: if true;
+      allow delete: if false;
     }
 
     // Client events - monitorização de eventos e erros
