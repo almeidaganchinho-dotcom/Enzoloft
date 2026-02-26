@@ -60,6 +60,82 @@ interface GeoLookupResponse {
   longitude?: number;
 }
 
+interface GeoPayload {
+  country: string;
+  countryCode: string;
+  region: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+}
+
+const defaultGeoPayload: GeoPayload = {
+  country: 'Desconhecido',
+  countryCode: '',
+  region: '',
+  city: 'Desconhecido',
+  latitude: 0,
+  longitude: 0,
+};
+
+const isValidCoordinates = (latitude: number, longitude: number) => {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return false;
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return false;
+  if (latitude === 0 && longitude === 0) return false;
+  return true;
+};
+
+const fetchGeoPayload = async (): Promise<GeoPayload> => {
+  try {
+    const ipWhoResponse = await fetch('https://ipwho.is/', { method: 'GET' });
+    const ipWhoData = (await ipWhoResponse.json()) as GeoLookupResponse;
+
+    const ipWhoLatitude = Number(ipWhoData.latitude || 0);
+    const ipWhoLongitude = Number(ipWhoData.longitude || 0);
+    if (ipWhoData.success !== false && isValidCoordinates(ipWhoLatitude, ipWhoLongitude)) {
+      return {
+        country: ipWhoData.country || 'Desconhecido',
+        countryCode: ipWhoData.country_code || '',
+        region: ipWhoData.region || '',
+        city: ipWhoData.city || 'Desconhecido',
+        latitude: ipWhoLatitude,
+        longitude: ipWhoLongitude,
+      };
+    }
+  } catch {
+    // Try next provider
+  }
+
+  try {
+    const ipApiCoResponse = await fetch('https://ipapi.co/json/', { method: 'GET' });
+    const ipApiCoData = (await ipApiCoResponse.json()) as {
+      country_name?: string;
+      country_code?: string;
+      region?: string;
+      city?: string;
+      latitude?: number;
+      longitude?: number;
+    };
+
+    const ipApiLatitude = Number(ipApiCoData.latitude || 0);
+    const ipApiLongitude = Number(ipApiCoData.longitude || 0);
+    if (isValidCoordinates(ipApiLatitude, ipApiLongitude)) {
+      return {
+        country: ipApiCoData.country_name || 'Desconhecido',
+        countryCode: ipApiCoData.country_code || '',
+        region: ipApiCoData.region || '',
+        city: ipApiCoData.city || 'Desconhecido',
+        latitude: ipApiLatitude,
+        longitude: ipApiLongitude,
+      };
+    }
+  } catch {
+    // Keep default payload
+  }
+
+  return defaultGeoPayload;
+};
+
 const detectDeviceType = (userAgent: string): 'mobile' | 'tablet' | 'desktop' => {
   const ua = userAgent.toLowerCase();
 
@@ -168,17 +244,15 @@ export default function Home() {
         sessionStorage.setItem(visitStorageKey, '1');
 
         try {
-          const geoResponse = await fetch('https://ipwho.is/', { method: 'GET' });
-          const geoData = (await geoResponse.json()) as GeoLookupResponse;
-
-          if (geoData.success !== false) {
+          const geoData = await fetchGeoPayload();
+          if (isValidCoordinates(geoData.latitude, geoData.longitude)) {
             await updateDoc(visitEventRef, {
-              country: geoData.country || 'Desconhecido',
-              countryCode: geoData.country_code || '',
-              region: geoData.region || '',
-              city: geoData.city || 'Desconhecido',
-              latitude: Number(geoData.latitude || 0),
-              longitude: Number(geoData.longitude || 0),
+              country: geoData.country,
+              countryCode: geoData.countryCode,
+              region: geoData.region,
+              city: geoData.city,
+              latitude: geoData.latitude,
+              longitude: geoData.longitude,
             });
           }
         } catch (geoError) {
