@@ -51,17 +51,17 @@ export default function PresentationModePage({
         </div>
       </header>
 
-      <section className="relative py-14 md:py-20 overflow-hidden min-h-[52vh] flex items-center">
+      <section className="relative py-16 overflow-hidden">
         <div className="absolute inset-0 z-0 relative">
           <Image
             src="https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80"
-            alt="Vista da EnzoLoft"
+            alt="Pôr do sol no Alentejo - Portugal"
             fill
             priority
             sizes="100vw"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-700 via-red-600 to-orange-700 opacity-60"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-red-500 to-orange-500 opacity-50"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10 text-white">
