@@ -120,6 +120,8 @@ export default function AdminDashboard() {
   const [reservationPeriod, setReservationPeriod] = useState<'all' | '7d' | '30d' | '90d'>('all');
   const [reservationSearch, setReservationSearch] = useState('');
   const [reservationStatusFilter, setReservationStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
+  const [reservationSortKey, setReservationSortKey] = useState<'createdAt' | 'totalPrice' | 'status'>('createdAt');
+  const [reservationSortDirection, setReservationSortDirection] = useState<'asc' | 'desc'>('desc');
   const router = useRouter();
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
@@ -317,8 +319,63 @@ export default function AdminDashboard() {
     });
   }, [reservationPeriod, reservationSearch, reservationStatusFilter, reservations]);
 
+  const sortedFilteredReservations = useMemo(() => {
+    const statusOrder: Record<string, number> = {
+      pending: 1,
+      confirmed: 2,
+      cancelled: 3,
+    };
+
+    return [...filteredReservations].sort((firstReservation, secondReservation) => {
+      let comparisonResult = 0;
+
+      if (reservationSortKey === 'createdAt') {
+        const firstDate = firstReservation?.createdAt?.toDate
+          ? firstReservation.createdAt.toDate()
+          : firstReservation?.createdAt
+          ? new Date(firstReservation.createdAt)
+          : firstReservation?.startDate
+          ? new Date(firstReservation.startDate)
+          : new Date(0);
+        const secondDate = secondReservation?.createdAt?.toDate
+          ? secondReservation.createdAt.toDate()
+          : secondReservation?.createdAt
+          ? new Date(secondReservation.createdAt)
+          : secondReservation?.startDate
+          ? new Date(secondReservation.startDate)
+          : new Date(0);
+        comparisonResult = firstDate.getTime() - secondDate.getTime();
+      } else if (reservationSortKey === 'totalPrice') {
+        const firstPrice = Number(firstReservation.totalPrice || 0);
+        const secondPrice = Number(secondReservation.totalPrice || 0);
+        comparisonResult = firstPrice - secondPrice;
+      } else {
+        const firstStatus = statusOrder[String(firstReservation.status || 'pending')] || 0;
+        const secondStatus = statusOrder[String(secondReservation.status || 'pending')] || 0;
+        comparisonResult = firstStatus - secondStatus;
+      }
+
+      return reservationSortDirection === 'asc' ? comparisonResult : -comparisonResult;
+    });
+  }, [filteredReservations, reservationSortDirection, reservationSortKey]);
+
+  const toggleReservationSort = useCallback((key: 'createdAt' | 'totalPrice' | 'status') => {
+    if (reservationSortKey === key) {
+      setReservationSortDirection((currentDirection) => (currentDirection === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setReservationSortKey(key);
+    setReservationSortDirection('desc');
+  }, [reservationSortKey]);
+
+  const getReservationSortIndicator = useCallback((key: 'createdAt' | 'totalPrice' | 'status') => {
+    if (reservationSortKey !== key) return '↕';
+    return reservationSortDirection === 'asc' ? '↑' : '↓';
+  }, [reservationSortDirection, reservationSortKey]);
+
   const exportReservationsCsv = useCallback(async () => {
-    if (filteredReservations.length === 0) {
+    if (sortedFilteredReservations.length === 0) {
       alert('Não existem reservas para exportar.');
       return;
     }
@@ -343,7 +400,7 @@ export default function AdminDashboard() {
       'VoucherDesconto',
     ];
 
-    const rows = filteredReservations.map((reservation) => {
+    const rows = sortedFilteredReservations.map((reservation) => {
       const createdAt = reservation?.createdAt?.toDate
         ? reservation.createdAt.toDate()
         : reservation?.createdAt
@@ -388,11 +445,13 @@ export default function AdminDashboard() {
       context: {
         total: filteredReservations.length,
         period: reservationPeriod,
-          status: reservationStatusFilter,
+        status: reservationStatusFilter,
+        sortKey: reservationSortKey,
+        sortDirection: reservationSortDirection,
         hasSearch: reservationSearch.trim().length > 0,
       },
     });
-  }, [filteredReservations, reservationPeriod, reservationSearch, reservationStatusFilter]);
+  }, [filteredReservations.length, reservationPeriod, reservationSearch, reservationSortDirection, reservationSortKey, reservationStatusFilter, sortedFilteredReservations]);
 
   useEffect(() => {
     if (!admin) return;
@@ -1382,7 +1441,7 @@ export default function AdminDashboard() {
                       <option value="cancelled">Cancelada</option>
                     </select>
                     <div className="flex items-center text-sm text-gray-600">
-                      A mostrar <strong className="mx-1 text-gray-900">{filteredReservations.length}</strong> de {reservations.length}
+                      A mostrar <strong className="mx-1 text-gray-900">{sortedFilteredReservations.length}</strong> de {reservations.length}
                     </div>
                   </div>
                 </div>
@@ -1397,21 +1456,33 @@ export default function AdminDashboard() {
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Datas</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Noites</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspedes</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Preço</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Pedido em</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                          <button onClick={() => toggleReservationSort('totalPrice')} className="hover:text-purple-700 transition-colors">
+                            Preço {getReservationSortIndicator('totalPrice')}
+                          </button>
+                        </th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                          <button onClick={() => toggleReservationSort('createdAt')} className="hover:text-purple-700 transition-colors">
+                            Pedido em {getReservationSortIndicator('createdAt')}
+                          </button>
+                        </th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                          <button onClick={() => toggleReservationSort('status')} className="hover:text-purple-700 transition-colors">
+                            Status {getReservationSortIndicator('status')}
+                          </button>
+                        </th>
                         <th className="px-6 py-4 text-center font-semibold text-gray-700">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredReservations.length === 0 ? (
+                      {sortedFilteredReservations.length === 0 ? (
                         <tr>
                           <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                             Nenhuma reserva encontrada para os filtros atuais
                           </td>
                         </tr>
                       ) : (
-                        filteredReservations.map((res) => (
+                        sortedFilteredReservations.map((res) => (
                           <tr key={res.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
                             <td className="px-6 py-4 font-semibold text-gray-900">{res.guestName}</td>
                             <td className="px-6 py-4 text-gray-700">{res.guestEmail}</td>
@@ -1470,12 +1541,12 @@ export default function AdminDashboard() {
 
                 {/* Mobile Cards */}
                 <div className="lg:hidden space-y-4">
-                  {filteredReservations.length === 0 ? (
+                  {sortedFilteredReservations.length === 0 ? (
                     <div className="bg-gray-50 p-8 rounded-lg text-center text-gray-500">
                       Nenhuma reserva encontrada para os filtros atuais
                     </div>
                   ) : (
-                    filteredReservations.map((res) => (
+                    sortedFilteredReservations.map((res) => (
                       <div key={res.id} className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4 shadow-lg">
                         <div className="flex justify-between items-start mb-3">
                           <div>
