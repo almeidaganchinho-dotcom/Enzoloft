@@ -49,6 +49,13 @@ interface VisitEvent {
   createdAt?: any;
 }
 
+interface OperationalAlert {
+  id: string;
+  severity: 'warning' | 'critical';
+  title: string;
+  message: string;
+}
+
 const detectDeviceTypeFromUserAgent = (userAgent: string): 'Mobile' | 'Tablet' | 'Desktop' => {
   const ua = (userAgent || '').toLowerCase();
 
@@ -269,6 +276,75 @@ export default function AdminDashboard() {
       setRefreshingAnalytics(false);
     }
   }, [fetchAllData]);
+
+  const exportReservationsCsv = useCallback(async () => {
+    if (reservations.length === 0) {
+      alert('Não existem reservas para exportar.');
+      return;
+    }
+
+    const toCsvValue = (value: unknown) => {
+      const raw = value === null || value === undefined ? '' : String(value);
+      return `"${raw.replace(/"/g, '""')}"`;
+    };
+
+    const header = [
+      'Hospede',
+      'Email',
+      'Telefone',
+      'CheckIn',
+      'CheckOut',
+      'Noites',
+      'Hospedes',
+      'PrecoTotal',
+      'Status',
+      'PedidoEm',
+      'VoucherCodigo',
+      'VoucherDesconto',
+    ];
+
+    const rows = reservations.map((reservation) => {
+      const createdAt = reservation?.createdAt?.toDate
+        ? reservation.createdAt.toDate()
+        : reservation?.createdAt
+        ? new Date(reservation.createdAt)
+        : reservation?.startDate
+        ? new Date(reservation.startDate)
+        : new Date(0);
+      const nights = Math.ceil(
+        (new Date(reservation.endDate).getTime() - new Date(reservation.startDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      return [
+        reservation.guestName,
+        reservation.guestEmail,
+        reservation.guestPhone,
+        reservation.startDate,
+        reservation.endDate,
+        nights,
+        reservation.guestsCount,
+        reservation.totalPrice,
+        reservation.status,
+        createdAt.toISOString(),
+        reservation.voucher?.code || '',
+        reservation.voucher?.discount || '',
+      ].map(toCsvValue).join(';');
+    });
+
+    const csvContent = [header.join(';'), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `reservas-enzoloft-${stamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    await logClientEvent({ event: 'admin_reservations_csv_exported', context: { total: reservations.length } });
+  }, [reservations]);
 
   useEffect(() => {
     if (!admin) return;
@@ -606,6 +682,101 @@ export default function AdminDashboard() {
       withoutGeoShare: totalVisits > 0 ? (visitsWithoutGeo / totalVisits) * 100 : 0,
     };
   }, [visitEvents]);
+
+  const operationalAlerts = useMemo<OperationalAlert[]>(() => {
+    const alerts: OperationalAlert[] = [];
+
+    if (stats.pendingCount >= 8) {
+      alerts.push({
+        id: 'pending_reservations_high',
+        severity: stats.pendingCount >= 15 ? 'critical' : 'warning',
+        title: 'Muitas reservas pendentes',
+        message: `${stats.pendingCount} reservas aguardam validação manual.`,
+      });
+    }
+
+    if (eventMetrics.errors24h >= 5) {
+      alerts.push({
+        id: 'errors_24h_high',
+        severity: eventMetrics.errors24h >= 10 ? 'critical' : 'warning',
+        title: 'Erros técnicos acima do normal',
+        message: `${eventMetrics.errors24h} erros registados nas últimas 24h.`,
+      });
+    }
+
+    if (eventMetrics.bookingStarted24h >= 10 && eventMetrics.funnelConversion < 20) {
+      alerts.push({
+        id: 'funnel_conversion_low',
+        severity: eventMetrics.funnelConversion < 10 ? 'critical' : 'warning',
+        title: 'Conversão do funil baixa',
+        message: `Conversão atual de ${eventMetrics.funnelConversion.toFixed(1)}% com ${eventMetrics.bookingStarted24h} inícios de reserva.`,
+      });
+    }
+
+    if (geoCoverageMetrics.totalVisits >= 20 && geoCoverageMetrics.withoutGeoShare >= 70) {
+      alerts.push({
+        id: 'geo_coverage_low',
+        severity: geoCoverageMetrics.withoutGeoShare >= 85 ? 'critical' : 'warning',
+        title: 'Cobertura geográfica baixa',
+        message: `${geoCoverageMetrics.withoutGeoShare.toFixed(1)}% das visitas sem geolocalização no mapa.`,
+      });
+    }
+
+    return alerts;
+  }, [eventMetrics.bookingStarted24h, eventMetrics.errors24h, eventMetrics.funnelConversion, geoCoverageMetrics.totalVisits, geoCoverageMetrics.withoutGeoShare, stats.pendingCount]);
+
+  useEffect(() => {
+    if (!admin || operationalAlerts.length === 0) return;
+
+    const now = Date.now();
+    const cacheKey = 'enzoloft_ops_alert_mail_state';
+    const alertSignature = operationalAlerts.map((alert) => `${alert.id}:${alert.severity}`).sort().join('|');
+
+    let cachedSignature = '';
+    let cachedSentAt = 0;
+    try {
+      const cachedRaw = localStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw) as { signature?: string; sentAt?: number };
+        cachedSignature = cached.signature || '';
+        cachedSentAt = Number(cached.sentAt || 0);
+      }
+    } catch {
+      // Ignore parsing errors
+    }
+
+    const sixHoursMs = 6 * 60 * 60 * 1000;
+    const isCooldownActive = cachedSignature === alertSignature && now - cachedSentAt < sixHoursMs;
+    if (isCooldownActive) return;
+
+    const sendOperationalAlertEmail = async () => {
+      try {
+        const response = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'system_alert',
+            data: {
+              title: 'Alerta Operacional EnzoLoft',
+              dashboardUrl: `${window.location.origin}/admin/dashboard`,
+              alerts: operationalAlerts,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Falha ao enviar alerta: ${response.status}`);
+        }
+
+        localStorage.setItem(cacheKey, JSON.stringify({ signature: alertSignature, sentAt: now }));
+        await logClientEvent({ event: 'admin_operational_alert_email_sent', context: { alerts: operationalAlerts.length } });
+      } catch (error) {
+        await logClientError('admin_operational_alert_email_failed', error);
+      }
+    };
+
+    void sendOperationalAlertEmail();
+  }, [admin, operationalAlerts]);
 
   const deviceMetrics = useMemo(() => {
     const now = new Date();
@@ -1122,7 +1293,15 @@ export default function AdminDashboard() {
             {/* Reservations Tab */}
             {activeTab === 'reservations' && (
               <div className="space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800">📋 Reservas</h2>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-800">📋 Reservas</h2>
+                  <button
+                    onClick={exportReservationsCsv}
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 bg-white hover:border-gray-400 transition-all"
+                  >
+                    ⬇️ Exportar CSV
+                  </button>
+                </div>
                 
                 {/* Desktop Table */}
                 <div className="hidden lg:block overflow-x-auto">
@@ -1628,6 +1807,36 @@ export default function AdminDashboard() {
                     {refreshingAnalytics ? 'A atualizar...' : '🔄 Recarregar dados'}
                   </button>
                 </div>
+
+                <div className="bg-gradient-to-br from-rose-50 to-orange-50 p-4 md:p-6 rounded-xl border-2 border-rose-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800">🚨 Alertas Automáticos</h3>
+                    <p className="text-xs text-gray-500">Ativos: {operationalAlerts.length}</p>
+                  </div>
+
+                  {operationalAlerts.length === 0 ? (
+                    <p className="text-sm text-emerald-700">Sem alertas ativos neste momento.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {operationalAlerts.map((alert) => (
+                        <div
+                          key={alert.id}
+                          className={`rounded-lg border p-3 ${
+                            alert.severity === 'critical'
+                              ? 'bg-red-50 border-red-300'
+                              : 'bg-amber-50 border-amber-300'
+                          }`}
+                        >
+                          <p className="font-semibold text-gray-900">
+                            {alert.severity === 'critical' ? '🔴 Crítico' : '🟠 Atenção'} — {alert.title}
+                          </p>
+                          <p className="text-sm text-gray-700 mt-1">{alert.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 md:p-6 rounded-xl border-2 border-blue-200">
                     <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">📈 Pedidos & Confirmações (semanas do mês)</h3>

@@ -48,6 +48,15 @@ export default async function handler(
         };
         break;
 
+      case 'system_alert':
+        emailData = {
+          from: 'Enzo Loft <onboarding@resend.dev>',
+          to: process.env.ADMIN_EMAIL || 'admin@enzoloft.com',
+          subject: `🚨 Alerta Operacional - ${data.title || 'EnzoLoft'}`,
+          html: generateSystemAlertEmail(data),
+        };
+        break;
+
       default:
         return res.status(400).json({ error: 'Invalid email type' });
     }
@@ -264,6 +273,51 @@ function generateCancellationEmail(data: any): string {
           <div class="footer">
             <p>Enzo Loft - Retiro de charme no coração do Alentejo</p>
             <p>Vila Ruiva, Cuba - Beja | info@enzoloft.com</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+function generateSystemAlertEmail(data: any): string {
+  const alerts = Array.isArray(data?.alerts) ? data.alerts : [];
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 700px; margin: 0 auto; padding: 20px; }
+          .header { background: #7f1d1d; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #fff; padding: 24px; border: 1px solid #e5e7eb; border-top: none; }
+          .alert { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin: 10px 0; }
+          .critical { background: #fef2f2; border-color: #fecaca; }
+          .warning { background: #fffbeb; border-color: #fde68a; }
+          .button { display: inline-block; background: #b45309; color: white; padding: 12px 22px; text-decoration: none; border-radius: 6px; margin-top: 16px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2 style="margin: 0;">🚨 Alerta Operacional</h2>
+          </div>
+          <div class="content">
+            <p><strong>${data?.title || 'EnzoLoft'}</strong></p>
+            <p>Foram detectadas condições que podem precisar de ação:</p>
+            ${alerts
+              .map(
+                (alert: any) => `
+                  <div class="alert ${alert?.severity === 'critical' ? 'critical' : 'warning'}">
+                    <p style="margin: 0; font-weight: bold;">${alert?.severity === 'critical' ? 'Crítico' : 'Atenção'} — ${alert?.title || 'Alerta'}</p>
+                    <p style="margin: 6px 0 0 0;">${alert?.message || ''}</p>
+                  </div>
+                `
+              )
+              .join('')}
+            ${data?.dashboardUrl ? `<p><a href="${data.dashboardUrl}" class="button">Abrir Dashboard</a></p>` : ''}
           </div>
         </div>
       </body>
