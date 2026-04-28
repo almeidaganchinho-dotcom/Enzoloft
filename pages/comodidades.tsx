@@ -9,6 +9,7 @@ const amenities = [
   { icon: '🍽️', label: 'Máquina de Lavar Loiça' },
   { icon: '🌤️', label: 'Espaço Exterior' },
   { icon: '🚗', label: 'Estacionamento Gratuito' },
+  { icon: '🔑', label: 'Check-in autónomo' },
   { icon: '📺', label: '3 TVs' },
   { icon: '🔥', label: 'Lareira' },
   { icon: '🏊', label: 'Piscina' },
