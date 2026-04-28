@@ -124,6 +124,7 @@ export default function AdminDashboard() {
   const [reservationSortKey, setReservationSortKey] = useState<'createdAt' | 'totalPrice' | 'status'>('createdAt');
   const [reservationSortDirection, setReservationSortDirection] = useState<'asc' | 'desc'>('desc');
   const [reservationPage, setReservationPage] = useState(1);
+  const [selectedReservationIds, setSelectedReservationIds] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
@@ -413,6 +414,15 @@ export default function AdminDashboard() {
     return sortedFilteredReservations.slice(startIndex, endIndex);
   }, [reservationPage, sortedFilteredReservations, totalReservationPages]);
 
+  const selectedReservationCount = useMemo(() => selectedReservationIds.size, [selectedReservationIds]);
+
+  const allVisibleReservationsSelected = useMemo(() => {
+    return (
+      paginatedReservations.length > 0
+      && paginatedReservations.every((reservation) => selectedReservationIds.has(reservation.id))
+    );
+  }, [paginatedReservations, selectedReservationIds]);
+
   useEffect(() => {
     setReservationPage(1);
   }, [reservationPeriod, reservationSearch, reservationSortDirection, reservationSortKey, reservationStatusFilter]);
@@ -422,6 +432,82 @@ export default function AdminDashboard() {
       setReservationPage(totalReservationPages);
     }
   }, [reservationPage, totalReservationPages]);
+
+  useEffect(() => {
+    setSelectedReservationIds((currentSelectedIds) => {
+      if (currentSelectedIds.size === 0) return currentSelectedIds;
+
+      const validReservationIds = new Set(reservations.map((reservation) => reservation.id));
+      const nextSelectedIds = new Set(
+        [...currentSelectedIds].filter((reservationId) => validReservationIds.has(reservationId))
+      );
+
+      if (nextSelectedIds.size === currentSelectedIds.size) {
+        return currentSelectedIds;
+      }
+
+      return nextSelectedIds;
+    });
+  }, [reservations]);
+
+  const toggleReservationSelection = useCallback((reservationId: string) => {
+    setSelectedReservationIds((currentSelectedIds) => {
+      const nextSelectedIds = new Set(currentSelectedIds);
+      if (nextSelectedIds.has(reservationId)) {
+        nextSelectedIds.delete(reservationId);
+      } else {
+        nextSelectedIds.add(reservationId);
+      }
+      return nextSelectedIds;
+    });
+  }, []);
+
+  const toggleVisibleReservationSelection = useCallback(() => {
+    setSelectedReservationIds((currentSelectedIds) => {
+      const nextSelectedIds = new Set(currentSelectedIds);
+
+      if (allVisibleReservationsSelected) {
+        paginatedReservations.forEach((reservation) => nextSelectedIds.delete(reservation.id));
+      } else {
+        paginatedReservations.forEach((reservation) => nextSelectedIds.add(reservation.id));
+      }
+
+      return nextSelectedIds;
+    });
+  }, [allVisibleReservationsSelected, paginatedReservations]);
+
+  const deleteSelectedReservations = useCallback(async () => {
+    const reservationIds = [...selectedReservationIds];
+    if (reservationIds.length === 0) return;
+
+    const shouldDelete = window.confirm(
+      `Tem a certeza que pretende apagar ${reservationIds.length} reserva(s) selecionada(s)? Esta ação é irreversível.`
+    );
+    if (!shouldDelete) return;
+
+    try {
+      await Promise.all(
+        reservationIds.map((reservationId) => deleteDoc(doc(db, 'reservations', reservationId)))
+      );
+
+      setReservations((currentReservations) =>
+        currentReservations.filter((reservation) => !reservationIds.includes(reservation.id))
+      );
+      setSelectedReservationIds(new Set());
+
+      await logClientEvent({
+        event: 'admin_reservations_bulk_deleted',
+        level: 'warning',
+        context: { totalDeleted: reservationIds.length },
+      });
+    } catch (error) {
+      console.error('Erro ao apagar reservas selecionadas:', error);
+      await logClientError('admin_reservations_bulk_delete_failed', error, {
+        totalSelected: reservationIds.length,
+      });
+      alert('Não foi possível apagar as reservas selecionadas. Tente novamente.');
+    }
+  }, [selectedReservationIds]);
 
   const exportReservationsCsv = useCallback(async () => {
     if (sortedFilteredReservations.length === 0) {
@@ -1509,12 +1595,21 @@ export default function AdminDashboard() {
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h2 className="text-xl md:text-2xl font-bold text-gray-800">📋 Reservas</h2>
-                  <button
-                    onClick={exportReservationsCsv}
-                    className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 bg-white hover:border-gray-400 transition-all"
-                  >
-                    ⬇️ Exportar CSV
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={deleteSelectedReservations}
+                      disabled={selectedReservationCount === 0}
+                      className="px-4 py-2 rounded-lg border border-red-300 text-sm font-semibold text-red-700 bg-white hover:bg-red-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      🗑️ Apagar Selecionadas ({selectedReservationCount})
+                    </button>
+                    <button
+                      onClick={exportReservationsCsv}
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 bg-white hover:border-gray-400 transition-all"
+                    >
+                      ⬇️ Exportar CSV
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -1550,6 +1645,18 @@ export default function AdminDashboard() {
                       A mostrar <strong className="mx-1 text-gray-900">{paginatedReservations.length}</strong> de {sortedFilteredReservations.length}
                     </div>
                   </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                    <button
+                      onClick={toggleVisibleReservationSelection}
+                      disabled={paginatedReservations.length === 0}
+                      className="px-3 py-1.5 rounded border border-gray-300 bg-white hover:border-gray-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {allVisibleReservationsSelected ? 'Desmarcar visíveis' : 'Selecionar visíveis'}
+                    </button>
+                    <span className="text-gray-600">
+                      Selecionadas: <strong className="text-gray-900">{selectedReservationCount}</strong>
+                    </span>
+                  </div>
                 </div>
                 
                 {/* Desktop Table */}
@@ -1557,6 +1664,15 @@ export default function AdminDashboard() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gradient-to-r from-purple-50 to-blue-50 border-b-2 border-purple-200">
+                        <th className="px-4 py-4 text-left font-semibold text-gray-700 w-10">
+                          <input
+                            type="checkbox"
+                            checked={allVisibleReservationsSelected}
+                            onChange={toggleVisibleReservationSelection}
+                            className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            aria-label="Selecionar reservas visíveis"
+                          />
+                        </th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspede</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Email</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Datas</th>
@@ -1583,13 +1699,22 @@ export default function AdminDashboard() {
                     <tbody>
                       {paginatedReservations.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                          <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
                             Nenhuma reserva encontrada para os filtros atuais
                           </td>
                         </tr>
                       ) : (
                         paginatedReservations.map((res) => (
                           <tr key={res.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedReservationIds.has(res.id)}
+                                onChange={() => toggleReservationSelection(res.id)}
+                                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                aria-label={`Selecionar reserva de ${res.guestName}`}
+                              />
+                            </td>
                             <td className="px-6 py-4 font-semibold text-gray-900">{res.guestName}</td>
                             <td className="px-6 py-4 text-gray-700">{res.guestEmail}</td>
                             <td className="px-6 py-4 text-gray-700">
@@ -1681,17 +1806,26 @@ export default function AdminDashboard() {
                             <h3 className="font-bold text-gray-900 text-lg">{res.guestName}</h3>
                             <p className="text-gray-600 text-sm">{res.guestEmail}</p>
                           </div>
-                          <span
-                            className={`px-3 py-1 rounded-full font-semibold text-xs ${
-                              res.status === 'confirmed'
-                                ? 'bg-green-100 text-green-800'
-                                : res.status === 'cancelled'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}
-                          >
-                            {res.status === 'confirmed' ? '✓' : res.status === 'cancelled' ? '✗' : '⏳'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedReservationIds.has(res.id)}
+                              onChange={() => toggleReservationSelection(res.id)}
+                              className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              aria-label={`Selecionar reserva de ${res.guestName}`}
+                            />
+                            <span
+                              className={`px-3 py-1 rounded-full font-semibold text-xs ${
+                                res.status === 'confirmed'
+                                  ? 'bg-green-100 text-green-800'
+                                  : res.status === 'cancelled'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}
+                            >
+                              {res.status === 'confirmed' ? '✓' : res.status === 'cancelled' ? '✗' : '⏳'}
+                            </span>
+                          </div>
                         </div>
                         
                         <div className="space-y-2 mb-4">
