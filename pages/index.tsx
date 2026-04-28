@@ -235,6 +235,7 @@ export default function Home() {
   });
   const [submittingContact, setSubmittingContact] = useState<boolean>(false);
   const [contactFormMessage, setContactFormMessage] = useState<string>('');
+  const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const bookingStartedRef = useRef(false);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
@@ -1088,24 +1089,63 @@ export default function Home() {
       
       {/* Header */}
       <header className="bg-white border-b-2 border-orange-100 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-5 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="text-3xl"></span>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">EnzoLoft</h1>
+            <span className="text-2xl sm:text-3xl"></span>
+            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">EnzoLoft</h1>
           </div>
-          <div className="flex gap-3">
+          
+          {/* Desktop Menu */}
+          <div className="hidden sm:flex gap-3">
             <button
               type="button"
               onClick={() => setShowAmenitiesModal(true)}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-300 transition-all font-semibold"
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 sm:px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-300 transition-all font-semibold text-sm"
             >
               Comodidades
             </button>
-            <a href="#booking" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold">
+            <a href="#booking" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 sm:px-6 py-2 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold text-sm">
               Reservar Agora
             </a>
           </div>
+          
+          {/* Mobile Menu Button */}
+          <button
+            type="button"
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            className="sm:hidden flex flex-col gap-1.5 p-2 hover:bg-orange-50 rounded-lg transition-colors"
+            aria-label="Abrir menu"
+          >
+            <span className={`block w-6 h-0.5 bg-orange-600 transition-all ${showMobileMenu ? 'rotate-45 translate-y-2' : ''}`}></span>
+            <span className={`block w-6 h-0.5 bg-orange-600 transition-all ${showMobileMenu ? 'opacity-0' : ''}`}></span>
+            <span className={`block w-6 h-0.5 bg-orange-600 transition-all ${showMobileMenu ? '-rotate-45 -translate-y-2' : ''}`}></span>
+          </button>
         </div>
+        
+        {/* Mobile Menu */}
+        {showMobileMenu && (
+          <div className="sm:hidden border-t border-orange-100 bg-white">
+            <div className="px-4 py-3 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAmenitiesModal(true);
+                  setShowMobileMenu(false);
+                }}
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-full hover:shadow-lg hover:shadow-purple-300 transition-all font-semibold"
+              >
+                Comodidades
+              </button>
+              <a 
+                href="#booking" 
+                onClick={() => setShowMobileMenu(false)}
+                className="block text-center bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-3 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold"
+              >
+                Reservar Agora
+              </a>
+            </div>
+          </div>
+        )}
       </header>
 
       {showAmenitiesModal && (
@@ -1148,7 +1188,7 @@ export default function Home() {
       )}
 
       {/* Hero Section with Booking Form */}
-      <section id="booking" className="relative py-16 overflow-hidden">
+      <section id="booking" className="relative py-10 sm:py-16 overflow-hidden">
         {/* Background Image */}
         <div
           className="absolute inset-0 z-0 bg-cover bg-center"
@@ -1161,16 +1201,16 @@ export default function Home() {
         />
         
         {/* Content */}
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-center">
             {/* Hero Content - Left Side */}
             <div className="text-white">
-              <h2 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">Retiro Perfeito no Alentejo</h2>
-              <p className="text-xl md:text-2xl mb-8 drop-shadow-md">Alojamento de charme em Vila Ruiva, Cuba - Beja</p>
-              <div className="flex gap-4 text-lg flex-wrap">
-                <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">📶 Wi-Fi Gratuito</span>
-                <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">🏊 Piscina</span>
-                <span className="bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm">🌿 Jardim</span>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-3 sm:mb-4 drop-shadow-lg">Retiro Perfeito no Alentejo</h2>
+              <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 drop-shadow-md">Alojamento de charme em Vila Ruiva, Cuba - Beja</p>
+              <div className="flex gap-3 sm:gap-4 text-sm sm:text-lg flex-wrap">
+                <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">📶 Wi-Fi Gratuito</span>
+                <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">🏊 Piscina</span>
+                <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">🌿 Jardim</span>
               </div>
             </div>
 
@@ -1179,7 +1219,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold text-orange-900 mb-4">Fazer Reserva</h3>
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-orange-900 mb-1">Nome Completo</label>
+                  <label className="block text-xs font-semibold text-orange-900 mb-2">Nome Completo</label>
                   <input
                     type="text"
                     name="guestName"
@@ -1188,11 +1228,11 @@ export default function Home() {
                     value={formData.guestName}
                     onChange={handleChange}
                     placeholder="Seu nome"
-                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
+                    className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-orange-900 mb-1">Email</label>
+                  <label className="block text-xs font-semibold text-orange-900 mb-2">Email</label>
                   <input
                     type="email"
                     name="guestEmail"
@@ -1201,11 +1241,11 @@ export default function Home() {
                     value={formData.guestEmail}
                     onChange={handleChange}
                     placeholder="seu@email.com"
-                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
+                    className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-orange-900 mb-1">Telefone</label>
+                  <label className="block text-xs font-semibold text-orange-900 mb-2">Telefone</label>
                   <input
                     type="tel"
                     name="guestPhone"
@@ -1215,7 +1255,7 @@ export default function Home() {
                     value={formData.guestPhone}
                     onChange={handleChange}
                     placeholder="+351 ..."
-                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
+                    className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
                   />
                 </div>
                 <div>
@@ -1239,34 +1279,34 @@ export default function Home() {
                   )}
                   
                   {showFormCalendar && (
-                    <div className="mt-1.5 border border-orange-300 rounded p-1.5 bg-white shadow-lg">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                    <div className="mt-2 border border-orange-300 rounded p-2 sm:p-3 bg-white shadow-lg max-h-96 overflow-auto">
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-2">
                         <div>
-                          <label className="block text-[10px] font-semibold text-orange-900 mb-1">Check-in</label>
+                          <label className="block text-xs font-semibold text-orange-900 mb-1">Check-in</label>
                           <input
                             type="date"
                             name="startDate"
                             min={formatDateKey(new Date())}
                             value={formData.startDate}
                             onChange={handleChange}
-                            className="w-full px-2 py-1.5 border border-orange-200 rounded text-xs focus:ring-2 focus:ring-orange-500"
+                            className="w-full px-2 py-2 sm:py-2.5 border border-orange-200 rounded text-xs sm:text-sm focus:ring-2 focus:ring-orange-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-semibold text-orange-900 mb-1">Check-out</label>
+                          <label className="block text-xs font-semibold text-orange-900 mb-1">Check-out</label>
                           <input
                             type="date"
                             name="endDate"
                             min={formData.startDate || formatDateKey(new Date())}
                             value={formData.endDate}
                             onChange={handleChange}
-                            className="w-full px-2 py-1.5 border border-orange-200 rounded text-xs focus:ring-2 focus:ring-orange-500"
+                            className="w-full px-2 py-2 sm:py-2.5 border border-orange-200 rounded text-xs sm:text-sm focus:ring-2 focus:ring-orange-500"
                           />
                         </div>
                       </div>
 
                       {/* Navigation */}
-                      <div className="flex justify-between items-center mb-1">
+                      <div className="flex justify-between items-center mb-2 gap-1">
                         <button
                           type="button"
                           onClick={() => {
@@ -1274,11 +1314,11 @@ export default function Home() {
                             newMonth.setMonth(newMonth.getMonth() - 1);
                             setFormCalendarMonth(newMonth);
                           }}
-                          className="bg-orange-500 hover:bg-orange-600 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                          className="bg-orange-500 hover:bg-orange-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-semibold min-w-8"
                         >
                           ◀
                         </button>
-                        <h4 className="text-xs font-bold text-orange-900">
+                        <h4 className="text-xs sm:text-sm font-bold text-orange-900 flex-1 text-center">
                           {formCalendarMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
                         </h4>
                         <button
@@ -1288,16 +1328,16 @@ export default function Home() {
                             newMonth.setMonth(newMonth.getMonth() + 1);
                             setFormCalendarMonth(newMonth);
                           }}
-                          className="bg-orange-500 hover:bg-orange-600 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                          className="bg-orange-500 hover:bg-orange-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm font-semibold min-w-8"
                         >
                           ▶
                         </button>
                       </div>
                       
                       {/* Calendar Grid */}
-                      <div className="grid grid-cols-7 gap-0.5">
+                      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
-                          <div key={i} className="text-center font-bold text-orange-900 text-[9px] py-0.5">
+                          <div key={i} className="text-center font-bold text-orange-900 text-[10px] sm:text-xs py-1">
                             {day}
                           </div>
                         ))}
@@ -1375,7 +1415,7 @@ export default function Home() {
                                     handleDateSelect(dateStr, 'end');
                                   }
                                 }}
-                                className={`aspect-square border rounded p-0.5 text-center text-[10px] font-semibold transition-all ${bgColor}`}
+                                className={`aspect-square border rounded p-0 sm:p-0.5 text-center text-[9px] sm:text-[11px] font-semibold transition-all hover:scale-105 ${bgColor}`}
                               >
                                 {day}
                               </button>
@@ -1387,7 +1427,7 @@ export default function Home() {
                       </div>
                       
                       {/* Mini Legend */}
-                      <div className="flex gap-1.5 mt-1.5 text-[10px] justify-center">
+                      <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 text-[9px] sm:text-xs justify-center">
                         <div className="flex items-center gap-0.5">
                           <div className="w-2 h-2 bg-green-100 border border-green-300 rounded"></div>
                           <span>Disponível</span>
@@ -1402,7 +1442,7 @@ export default function Home() {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2 mt-1.5">
+                      <div className="flex gap-1 sm:gap-2 mt-2">
                         <button
                           type="button"
                           onClick={() => {
@@ -1410,14 +1450,14 @@ export default function Home() {
                             setDateError('');
                             setShowFormCalendar(false);
                           }}
-                          className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 rounded text-[10px] font-semibold"
+                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 sm:py-2.5 rounded text-xs sm:text-sm font-semibold"
                         >
                           Limpar
                         </button>
                         <button
                           type="button"
                           onClick={() => setShowFormCalendar(false)}
-                          className="w-1/2 bg-orange-500 hover:bg-orange-600 text-white py-1 rounded text-[10px] font-semibold"
+                          className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 sm:py-2.5 rounded text-xs sm:text-sm font-semibold"
                         >
                           Fechar
                         </button>
@@ -1431,14 +1471,14 @@ export default function Home() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-semibold text-orange-900 mb-1">Número de Hóspedes</label>
+                  <label className="block text-xs font-semibold text-orange-900 mb-2">Número de Hóspedes</label>
                   <input
                     type="number"
                     name="guestsCount"
                     min="1"
                     value={formData.guestsCount}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
+                    className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
                   />
                 </div>
                 
@@ -1536,7 +1576,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={!canSubmitReservation}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-lg hover:shadow-lg hover:shadow-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 sm:py-4 px-4 rounded-lg hover:shadow-lg hover:shadow-orange-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 text-base sm:text-lg"
                 >
                   {loading ? '⏳ Processando...' : '🎯 Reservar Agora'}
                 </button>
@@ -1552,30 +1592,30 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="bg-gradient-to-r from-orange-50 to-red-50 py-16" style={deferredSectionStyle}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <section className="bg-gradient-to-r from-orange-50 to-red-50 py-10 sm:py-16" style={deferredSectionStyle}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-orange-900 mb-6">Sobre o EnzoLoft</h2>
-              <p className="text-gray-700 text-lg mb-4 leading-relaxed">
+              <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4 sm:mb-6">Sobre o EnzoLoft</h2>
+              <p className="text-gray-700 text-base sm:text-lg mb-3 sm:mb-4 leading-relaxed">
                 Um refúgio encantador no coração do Alentejo, onde a natureza, conforto e charme se encontram. 
                 Perfeito para casais, famílias ou amigos que procuram descanso e autenticidade.
               </p>
-              <p className="text-gray-700 text-lg mb-6 leading-relaxed">
+              <p className="text-gray-700 text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
                 Com piscina, jardim espaçoso e todas as comodidades modernas, oferecemos uma experiência inesquecível.
               </p>
-              <div className="flex gap-4">
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                  <p className="text-2xl font-bold text-orange-600">4.9</p>
-                  <p className="text-sm text-gray-600">Avaliação</p>
+              <div className="flex gap-3 sm:gap-4">
+                <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md flex-1">
+                  <p className="text-xl sm:text-2xl font-bold text-orange-600">4.9</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Avaliação</p>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                  <p className="text-2xl font-bold text-orange-600">500+</p>
-                  <p className="text-sm text-gray-600">Hóspedes felizes</p>
+                <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md flex-1">
+                  <p className="text-xl sm:text-2xl font-bold text-orange-600">500+</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Hóspedes felizes</p>
                 </div>
               </div>
             </div>
-            <div className="relative w-full h-80 rounded-xl shadow-xl overflow-hidden">
+            <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
               <Image
                 src="https://enzoloft.web.app/images/about/casa-exterior.jpg"
                 alt="Casa exterior"
@@ -1592,10 +1632,10 @@ export default function Home() {
       </section>
 
       {/* Amenities */}
-      <section className="bg-white py-16" style={deferredSectionStyle}>
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-4xl font-bold text-orange-900 mb-12 text-center">Comodidades</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+      <section className="bg-white py-10 sm:py-16" style={deferredSectionStyle}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-8 sm:mb-12 text-center">Comodidades</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-6">
             {amenities.map((amenity, idx) => (
               <div key={idx} className="bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-xl text-center hover:shadow-lg transition-all duration-300 border-2 border-orange-100">
                 <div className="text-5xl mb-4">{amenity.icon}</div>
@@ -1747,76 +1787,76 @@ export default function Home() {
       </section>
 
       {!hideContactForm && (
-      <section className="py-14 bg-gradient-to-b from-white to-orange-50" style={deferredSectionStyle}>
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-white border-2 border-orange-100 rounded-2xl shadow-xl p-6 md:p-8">
-            <h2 className="text-3xl font-bold text-orange-900 mb-2">Fale Connosco</h2>
-            <p className="text-gray-600 mb-6">
+      <section className="py-10 sm:py-14 bg-gradient-to-b from-white to-orange-50" style={deferredSectionStyle}>
+        <div className="max-w-4xl mx-auto px-3 sm:px-4">
+          <div className="bg-white border-2 border-orange-100 rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-orange-900 mb-2">Fale Connosco</h2>
+            <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
               Tem alguma questão sobre disponibilidade, preços ou condições da casa? Envie-nos uma mensagem.
             </p>
 
-            <form onSubmit={handleContactSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleContactSubmit} className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-orange-900 mb-1">Nome</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-orange-900 mb-1 sm:mb-2">Nome</label>
                   <input
                     type="text"
                     value={contactFormData.name}
                     onChange={(e) => setContactFormData((currentData) => ({ ...currentData, name: e.target.value }))}
                     placeholder="O seu nome"
                     required
-                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 sm:py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-orange-900 mb-1">Email</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-orange-900 mb-1 sm:mb-2">Email</label>
                   <input
                     type="email"
                     value={contactFormData.email}
                     onChange={(e) => setContactFormData((currentData) => ({ ...currentData, email: e.target.value }))}
                     placeholder="seu@email.com"
                     required
-                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 sm:py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-1">Telefone (opcional)</label>
+                <label className="block text-xs sm:text-sm font-semibold text-orange-900 mb-1 sm:mb-2">Telefone (opcional)</label>
                 <input
                   type="tel"
                   value={contactFormData.phone}
                   onChange={(e) => setContactFormData((currentData) => ({ ...currentData, phone: e.target.value }))}
                   placeholder="+351 ..."
-                  className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-3 py-2 sm:py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-orange-900 mb-1">Mensagem</label>
+                <label className="block text-xs sm:text-sm font-semibold text-orange-900 mb-1 sm:mb-2">Mensagem</label>
                 <textarea
                   value={contactFormData.message}
                   onChange={(e) => setContactFormData((currentData) => ({ ...currentData, message: e.target.value }))}
                   placeholder="Escreva aqui a sua mensagem"
                   required
                   rows={5}
-                  className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-y"
+                  className="w-full px-3 py-2 sm:py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm resize-y"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submittingContact}
-                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg hover:shadow-orange-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 sm:py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-orange-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 {submittingContact ? '⏳ A enviar...' : 'Enviar Mensagem'}
               </button>
 
               {contactFormMessage && (
-                <p className="text-sm font-semibold text-gray-700">{contactFormMessage}</p>
+                <p className="text-xs sm:text-sm font-semibold text-gray-700">{contactFormMessage}</p>
               )}
 
-              <p className="text-xs text-gray-500">
+              <p className="text-[10px] sm:text-xs text-gray-500">
                 Destinatário: alentejo.enzoloft@gmail.com
               </p>
             </form>
@@ -1826,12 +1866,12 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="bg-gradient-to-r from-orange-900 to-red-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold mb-4">EnzoLoft</h3>
-            <p className="mb-4">{contactInfo.description}</p>
-            <div className="flex justify-center gap-8 mb-6 text-sm">
+      <footer className="bg-gradient-to-r from-orange-900 to-red-900 text-white py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <div className="text-center mb-6 sm:mb-8">
+            <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">EnzoLoft</h3>
+            <p className="mb-3 sm:mb-4 text-sm sm:text-base">{contactInfo.description}</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-8 mb-4 sm:mb-6 text-xs sm:text-sm">
               <span>📍 {contactInfo.location}</span>
               <span>📧 {contactInfo.email}</span>
               <span>📞 {contactInfo.phone}</span>
@@ -1842,12 +1882,12 @@ export default function Home() {
           {contactInfo.mapsUrl && 
            contactInfo.mapsUrl.trim() !== '' && 
            (contactInfo.mapsUrl.includes('google.com/maps/embed') || contactInfo.mapsUrl.includes('maps.google.com')) && (
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <div className="max-w-4xl mx-auto">
                 <iframe
                   src={contactInfo.mapsUrl}
                   width="100%"
-                  height="400"
+                  height="300"
                   style={{ border: 0, borderRadius: '12px' }}
                   allowFullScreen
                   loading="lazy"
@@ -1860,15 +1900,15 @@ export default function Home() {
           )}
           
           {/* Admin Access Button */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-4 sm:mb-6">
             <Link
               href="/admin/login"
-              className="inline-flex items-center gap-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 backdrop-blur-sm border border-white border-opacity-20 hover:border-opacity-40"
+              className="inline-flex items-center gap-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-300 backdrop-blur-sm border border-white border-opacity-20 hover:border-opacity-40 text-sm sm:text-base"
             >
               🔐 Acesso Admin
             </Link>
           </div>
-          <p className="text-orange-200 text-sm text-center">© 2026 EnzoLoft. Todos os direitos reservados.</p>
+          <p className="text-orange-200 text-xs sm:text-sm text-center">© 2026 EnzoLoft. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
