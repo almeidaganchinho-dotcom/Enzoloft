@@ -569,27 +569,48 @@ export default function Home() {
       void trackAnalyticsEvent('booking_started', { source: 'form_field', field: name });
     }
 
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setDateError('');
+    if (name !== 'startDate' && name !== 'endDate') {
+      setFormData(prev => ({ ...prev, [name]: value }));
+      return;
+    }
 
-    if (name === 'startDate' || name === 'endDate') {
-      const start = name === 'startDate' ? value : formData.startDate;
-      const end = name === 'endDate' ? value : formData.endDate;
-      
-      if (start && end) {
-        // Verificar conflitos de datas
-        const conflict = checkDateRangeConflict(start, end);
-        
-        if (conflict.hasConflict) {
-          setDateError(conflict.message);
-          setFormData(prev => ({ ...prev, totalPrice: 0 }));
-          setNights(0);
-        } else {
-          // Calcular preço total apenas se não houver conflito
-          const calculatedPrice = await calculateTotalPrice(start, end);
-          setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
-        }
+    let nextStartDate = name === 'startDate' ? value : formData.startDate;
+    let nextEndDate = name === 'endDate' ? value : formData.endDate;
+
+    // Não permitir checkout anterior/igual ao checkin
+    if (name === 'endDate' && nextStartDate && nextEndDate && nextEndDate <= nextStartDate) {
+      setDateError('❌ A data de check-out deve ser posterior à data de check-in.');
+      setFormData(prev => ({ ...prev, endDate: '', totalPrice: 0 }));
+      setNights(0);
+      return;
+    }
+
+    // Se o checkin avançar para depois do checkout atual, limpar checkout
+    if (name === 'startDate' && nextEndDate && nextEndDate <= nextStartDate) {
+      nextEndDate = '';
+    }
+
+    setDateError('');
+    setFormData(prev => ({
+      ...prev,
+      startDate: nextStartDate,
+      endDate: nextEndDate,
+      totalPrice: nextStartDate && nextEndDate ? prev.totalPrice : 0,
+    }));
+
+    if (nextStartDate && nextEndDate) {
+      const conflict = checkDateRangeConflict(nextStartDate, nextEndDate);
+
+      if (conflict.hasConflict) {
+        setDateError(conflict.message);
+        setFormData(prev => ({ ...prev, totalPrice: 0 }));
+        setNights(0);
+      } else {
+        const calculatedPrice = await calculateTotalPrice(nextStartDate, nextEndDate);
+        setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
       }
+    } else {
+      setNights(0);
     }
   }, [formData.startDate, formData.endDate, checkDateRangeConflict, calculateTotalPrice]);
 
@@ -611,11 +632,10 @@ export default function Home() {
       }
     } else {
       if (newFormData.startDate && dateStr <= newFormData.startDate) {
-        newFormData.startDate = dateStr;
-        newFormData.endDate = '';
-      } else {
-        newFormData.endDate = dateStr;
+        setDateError('❌ A data de check-out deve ser posterior à data de check-in.');
+        return;
       }
+      newFormData.endDate = dateStr;
     }
     
     setFormData(newFormData);
@@ -1175,10 +1195,16 @@ export default function Home() {
                             const isSelected = dateStr === formData.startDate || dateStr === formData.endDate;
                             const isInRange = formData.startDate && formData.endDate && dateStr > formData.startDate && dateStr < formData.endDate;
                             
+                            const awaitingCheckout = !!formData.startDate && !formData.endDate;
+                            const isInvalidCheckoutCandidate = awaitingCheckout && dateStr <= formData.startDate;
+
                             let bgColor = 'bg-green-100 border-green-300 hover:bg-green-200 cursor-pointer';
                             let disabled = false;
                             
                             if (isPast) {
+                              bgColor = 'bg-gray-100 text-gray-400 cursor-not-allowed';
+                              disabled = true;
+                            } else if (isInvalidCheckoutCandidate) {
                               bgColor = 'bg-gray-100 text-gray-400 cursor-not-allowed';
                               disabled = true;
                             } else if (isBlocked) {
