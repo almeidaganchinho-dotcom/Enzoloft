@@ -85,6 +85,7 @@ const detectMobileOsFromUserAgent = (userAgent: string): 'iOS' | 'Android' | 'Ou
 };
 
 export default function AdminDashboard() {
+  const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL;
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
   const [prices, setPrices] = useState<any[]>([
@@ -282,6 +283,30 @@ export default function AdminDashboard() {
       setRefreshingAnalytics(false);
     }
   }, [fetchAllData]);
+
+  const sendEmailNotification = useCallback(
+    async (payload: { type: string; data: Record<string, unknown> }, warningEvent: string) => {
+      if (!emailApiUrl) {
+        await logClientEvent({
+          event: warningEvent,
+          level: 'warning',
+          context: { reason: 'NEXT_PUBLIC_EMAIL_API_URL_not_configured', type: payload.type },
+        });
+        return;
+      }
+
+      const response = await fetch(emailApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Falha ao enviar email (${payload.type}): ${response.status}`);
+      }
+    },
+    [emailApiUrl]
+  );
 
   const filteredReservations = useMemo(() => {
     const now = new Date();
@@ -518,20 +543,19 @@ export default function AdminDashboard() {
         // Enviar email de cancelamento se o status mudou para cancelled
         if (status === 'cancelled' && oldStatus !== 'cancelled') {
           try {
-            await fetch('/api/send-email', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+            await sendEmailNotification(
+              {
                 type: 'reservation_cancelled',
                 data: {
                   guestName: reservation.guestName,
                   guestEmail: reservation.guestEmail,
                   startDate: reservation.startDate,
                   endDate: reservation.endDate,
-                  reason: 'Cancelada pelo administrador'
-                }
-              })
-            });
+                  reason: 'Cancelada pelo administrador',
+                },
+              },
+              'admin_reservation_cancel_email_skipped'
+            );
           } catch (emailError) {
             console.error('Erro ao enviar email de cancelamento:', emailError);
             await logClientError('admin_reservation_cancel_email_failed', emailError, {
@@ -547,7 +571,7 @@ export default function AdminDashboard() {
         });
       }
     }
-  }, [reservations]);
+  }, [reservations, sendEmailNotification]);
 
   // Calcular estatísticas reais baseadas nos dados do Firestore
   const stats = useMemo(() => {
@@ -798,6 +822,69 @@ export default function AdminDashboard() {
     return geoHotspots.reduce((maxTotal, hotspot) => Math.max(maxTotal, hotspot.total), 1);
   }, [geoHotspots]);
 
+  const portugalGeoHotspots = useMemo(() => {
+    const hotspotMap = new Map<string, { city: string; country: string; latitude: number; longitude: number; total: number }>();
+
+    visitEvents.forEach((visitEvent) => {
+      const countryCode = (visitEvent.countryCode || '').trim().toUpperCase();
+      const countryName = (visitEvent.country || '').trim().toLowerCase();
+      const isPortugal = countryCode === 'PT' || countryName.includes('portugal');
+      if (!isPortugal) return;
+
+      const latitude = Number(visitEvent.latitude || 0);
+      const longitude = Number(visitEvent.longitude || 0);
+      if (!latitude || !longitude) return;
+
+      const roundedLat = Math.round(latitude * 10) / 10;
+      const roundedLon = Math.round(longitude * 10) / 10;
+      const key = `${roundedLat}:${roundedLon}`;
+      const city = visitEvent.city || 'Desconhecido';
+      const country = visitEvent.country || 'Portugal';
+
+      const existing = hotspotMap.get(key);
+      if (existing) {
+        existing.total += 1;
+      } else {
+        hotspotMap.set(key, {
+          city,
+          country,
+          latitude: roundedLat,
+          longitude: roundedLon,
+          total: 1,
+        });
+      }
+    });
+
+    return Array.from(hotspotMap.values()).sort((a, b) => b.total - a.total);
+  }, [visitEvents]);
+
+  const maxPortugalGeoHotspotTotal = useMemo(() => {
+    return portugalGeoHotspots.reduce((maxTotal, hotspot) => Math.max(maxTotal, hotspot.total), 1);
+  }, [portugalGeoHotspots]);
+
+  const portugalGeoCoverageMetrics = useMemo(() => {
+    const portugalVisits = visitEvents.filter((visitEvent) => {
+      const countryCode = (visitEvent.countryCode || '').trim().toUpperCase();
+      const countryName = (visitEvent.country || '').trim().toLowerCase();
+      return countryCode === 'PT' || countryName.includes('portugal');
+    });
+
+    const totalVisits = portugalVisits.length;
+    const visitsWithGeo = portugalVisits.filter((visitEvent) => {
+      const latitude = Number(visitEvent.latitude || 0);
+      const longitude = Number(visitEvent.longitude || 0);
+      return latitude !== 0 && longitude !== 0;
+    }).length;
+    const visitsWithoutGeo = Math.max(totalVisits - visitsWithGeo, 0);
+
+    return {
+      totalVisits,
+      visitsWithGeo,
+      visitsWithoutGeo,
+      withoutGeoShare: totalVisits > 0 ? (visitsWithoutGeo / totalVisits) * 100 : 0,
+    };
+  }, [visitEvents]);
+
   const geoCoverageMetrics = useMemo(() => {
     const totalVisits = visitEvents.length;
     const visitsWithGeo = visitEvents.filter((visitEvent) => {
@@ -883,22 +970,17 @@ export default function AdminDashboard() {
 
     const sendOperationalAlertEmail = async () => {
       try {
-        const response = await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        await sendEmailNotification(
+          {
             type: 'system_alert',
             data: {
               title: 'Alerta Operacional EnzoLoft',
               dashboardUrl: `${window.location.origin}/admin/dashboard`,
               alerts: operationalAlerts,
             },
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Falha ao enviar alerta: ${response.status}`);
-        }
+          },
+          'admin_operational_alert_email_skipped'
+        );
 
         localStorage.setItem(cacheKey, JSON.stringify({ signature: alertSignature, sentAt: now }));
         await logClientEvent({ event: 'admin_operational_alert_email_sent', context: { alerts: operationalAlerts.length } });
@@ -908,7 +990,7 @@ export default function AdminDashboard() {
     };
 
     void sendOperationalAlertEmail();
-  }, [admin, operationalAlerts]);
+  }, [admin, operationalAlerts, sendEmailNotification]);
 
   const deviceMetrics = useMemo(() => {
     const now = new Date();
@@ -2252,6 +2334,82 @@ export default function AdminDashboard() {
                       <div className="space-y-2">
                         {geoHotspots.slice(0, 8).map((hotspot, index) => (
                           <div key={`${hotspot.city}-${hotspot.country}-${index}`} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
+                            <span className="text-gray-700 font-medium">{hotspot.city}, {hotspot.country}</span>
+                            <span className="text-gray-900 font-bold">{hotspot.total} visitas</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-emerald-50 to-lime-50 p-4 md:p-6 rounded-xl border-2 border-emerald-200">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800">🇵🇹 Mapa Dedicado a Portugal</h3>
+                    <p className="text-xs text-gray-500">Hotspots PT: {portugalGeoHotspots.length} zonas</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Visitas em Portugal</p>
+                      <p className="text-lg font-bold text-slate-900">{portugalGeoCoverageMetrics.totalVisits}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Com geolocalização</p>
+                      <p className="text-lg font-bold text-emerald-700">{portugalGeoCoverageMetrics.visitsWithGeo}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Sem geolocalização</p>
+                      <p className="text-lg font-bold text-amber-700">{portugalGeoCoverageMetrics.visitsWithoutGeo}</p>
+                      <p className="text-[11px] text-gray-500">{portugalGeoCoverageMetrics.withoutGeoShare.toFixed(1)}%</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                    <ComposableMap
+                      projection="geoMercator"
+                      projectionConfig={{ center: [-8, 39.5], scale: 2600 }}
+                      style={{ width: '100%', height: '360px' }}
+                    >
+                      <Sphere stroke="#bbf7d0" strokeWidth={0.5} fill="#f0fdf4" />
+                      <Graticule stroke="#dcfce7" strokeWidth={0.3} />
+                      <Geographies geography="https://unpkg.com/world-atlas@2/countries-110m.json">
+                        {({ geographies }) =>
+                          geographies.map((geo) => (
+                            <Geography
+                              key={geo.rsmKey}
+                              geography={geo}
+                              fill="#dcfce7"
+                              stroke="#86efac"
+                              strokeWidth={0.3}
+                            />
+                          ))
+                        }
+                      </Geographies>
+
+                      {portugalGeoHotspots.slice(0, 120).map((hotspot) => {
+                        const sizeRatio = hotspot.total / Math.max(maxPortugalGeoHotspotTotal, 1);
+                        const radius = 4 + sizeRatio * 18;
+
+                        return (
+                          <Marker key={`pt-${hotspot.latitude}-${hotspot.longitude}`} coordinates={[hotspot.longitude, hotspot.latitude]}>
+                            <circle r={radius} fill="rgba(22, 163, 74, 0.45)" stroke="#166534" strokeWidth={1.2}>
+                              <title>{`${hotspot.city}, ${hotspot.country} • ${hotspot.total} visitas`}</title>
+                            </circle>
+                          </Marker>
+                        );
+                      })}
+                    </ComposableMap>
+                  </div>
+
+                  <div className="mt-4 bg-white rounded-lg border border-emerald-100 p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3">Top Zonas em Portugal</h4>
+                    {portugalGeoHotspots.length === 0 ? (
+                      <p className="text-sm text-gray-500">Ainda sem dados geográficos suficientes para mostrar no mapa de Portugal.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {portugalGeoHotspots.slice(0, 8).map((hotspot, index) => (
+                          <div key={`pt-${hotspot.city}-${hotspot.country}-${index}`} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
                             <span className="text-gray-700 font-medium">{hotspot.city}, {hotspot.country}</span>
                             <span className="text-gray-900 font-bold">{hotspot.total} visitas</span>
                           </div>

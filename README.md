@@ -42,12 +42,17 @@ npm install
 Crie o arquivo `.env.local` na raiz do projeto:
 
 ```env
-RESEND_API_KEY=re_sua_chave_aqui
 ADMIN_EMAIL=admin@enzoloft.com
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_EMAIL_API_URL=
+NEXT_PUBLIC_OG_IMAGE_VERSION=20260227
 ```
 
 Veja [.env.example](.env.example) para referência.
+
+Sempre que atualizar `public/og-image.jpg`, altere `NEXT_PUBLIC_OG_IMAGE_VERSION` para forçar refresh do preview social (Open Graph/Twitter).
+
+Para envio de emails em modo estático (Firebase Hosting), configure `NEXT_PUBLIC_EMAIL_API_URL` com o endpoint HTTPS externo (ex.: Cloud Function). Se não configurar, a reserva continua a ser criada e os emails são apenas ignorados.
 
 ### 4. Executar em desenvolvimento
 ```bash
@@ -81,8 +86,6 @@ Enzoloft/
 │   ├── admin/
 │   │   ├── login.tsx       # Login administrativo
 │   │   └── dashboard.tsx   # Dashboard admin
-│   └── api/
-│       └── send-email.ts   # API para envio de emails
 ├── styles/
 │   └── globals.css         # Estilos globais
 └── public/                 # Assets estáticos

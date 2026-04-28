@@ -1,0 +1,29 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EnzoLoft - Alojamento de Charme no Alentejo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C2D12"/>
+      <stop offset="0.45" stop-color="#EA580C"/>
+      <stop offset="1" stop-color="#991B1B"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="180" y1="110" x2="1020" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="120" y="90" width="960" height="450" rx="28" fill="url(#glass)" stroke="rgba(255,255,255,0.35)"/>
+
+  <text x="170" y="250" fill="white" font-size="84" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="700">
+    EnzoLoft
+  </text>
+  <text x="170" y="320" fill="white" font-size="38" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="500" opacity="0.95">
+    Alojamento de Charme no Alentejo
+  </text>
+  <text x="170" y="380" fill="white" font-size="28" font-family="Inter, Segoe UI, Arial, sans-serif" opacity="0.9">
+    Vila Ruiva · Cuba · Beja
+  </text>
+
+  <circle cx="1040" cy="160" r="42" fill="rgba(255,255,255,0.18)"/>
+  <circle cx="990" cy="500" r="62" fill="rgba(255,255,255,0.12)"/>
+</svg>

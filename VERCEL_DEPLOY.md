@@ -25,8 +25,8 @@ Na tela de configuração do projeto, vá para **"Environment Variables"** e adi
 
 | Nome | Valor |
 |------|-------|
-| `RESEND_API_KEY` | `re_CtQ6DcRe_AAnBs4grnWuTgRwcUkYbqxn5` |
-| `ADMIN_EMAIL` | `almeida.ganchinho@gmail.com` |
+| `RESEND_API_KEY` | `re_...` (chave privada do Resend) |
+| `ADMIN_EMAIL` | `admin@seudominio.com` |
 | `NEXT_PUBLIC_APP_URL` | `https://seu-projeto.vercel.app` (a Vercel mostrará a URL) |
 
 ### 4. Deploy
@@ -84,7 +84,7 @@ O site na Vercel conecta-se ao Firebase normalmente para banco de dados e autent
 **Emails não chegam na Vercel:**
 - Verifique se `RESEND_API_KEY` foi adicionada
 - Verifique logs: Vercel Dashboard → Functions → Logs
-- Confirme que está usando `almeida.ganchinho@gmail.com`
+- Confirme que `ADMIN_EMAIL` está definido com um email válido
 
 **Build falha:**
 - Verifique se `next.config.js` não tem `output: 'export'`

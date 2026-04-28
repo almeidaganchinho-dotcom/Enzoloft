@@ -2,11 +2,12 @@
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
-import PresentationModePage from '../components/PresentationModePage';
+import dynamic from 'next/dynamic';
 import { db, trackAnalyticsEvent } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import { logClientError, logClientEvent } from '../lib/monitoring';
-import { TRACKING_CONSENT_CHANGED_EVENT, hasTrackingConsent } from '../lib/consent';
+
+const PresentationModePage = dynamic(() => import('../components/PresentationModePage'));
 
 interface BlockedDate {
   startDate: string;
@@ -151,11 +152,34 @@ const detectDeviceType = (userAgent: string): 'mobile' | 'tablet' | 'desktop' =>
   return 'desktop';
 };
 
+const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getNightsBetween = (startDate: string, endDate: string): number => {
+  if (!startDate || !endDate) return 0;
+
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+    return 0;
+  }
+
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+};
+
 export default function Home() {
-  const canonicalUrl = 'https://enzoloft.pt';
+  const siteBaseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://enzoloft.pt').replace(/\/$/, '');
+  const canonicalUrl = siteBaseUrl;
   const siteTitle = 'EnzoLoft - Alojamento de Charme em Vila Ruiva, Cuba - Beja';
   const siteDescription = 'Retiro de charme no coração do Alentejo. Reserve agora o seu alojamento exclusivo em Vila Ruiva, Cuba - Beja. Casa completa com piscina, jardim e vistas deslumbrantes.';
-  const ogImageUrl = 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80';
+  const ogImageVersion = process.env.NEXT_PUBLIC_OG_IMAGE_VERSION || '20260227';
+  const ogImageUrl = `${siteBaseUrl}/og-image.jpg?v=${ogImageVersion}`;
+  const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL;
   const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
   const bingSiteVerification = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION;
 
@@ -188,7 +212,6 @@ export default function Home() {
   const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
   const [bookingStarted, setBookingStarted] = useState<boolean>(false);
   const [submittingReservation, setSubmittingReservation] = useState<boolean>(false);
-  const [trackingConsentGranted, setTrackingConsentGranted] = useState<boolean>(() => hasTrackingConsent());
   const bookingStartedRef = useRef(false);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
@@ -203,24 +226,24 @@ export default function Home() {
     containIntrinsicSize: '1px 1000px',
   }), []);
 
+  const liveNights = useMemo(
+    () => getNightsBetween(formData.startDate, formData.endDate),
+    [formData.startDate, formData.endDate]
+  );
+
+  const dateSelectionStepLabel = useMemo(() => {
+    if (!formData.startDate) return 'Passo 1: selecione o check-in';
+    if (!formData.endDate) return 'Passo 2: selecione o check-out';
+    return 'Datas selecionadas';
+  }, [formData.endDate, formData.startDate]);
+
   useEffect(() => {
-    const updateTrackingConsent = () => {
-      setTrackingConsentGranted(hasTrackingConsent());
-    };
-
-    window.addEventListener(TRACKING_CONSENT_CHANGED_EVENT, updateTrackingConsent);
-    window.addEventListener('storage', updateTrackingConsent);
-
-    return () => {
-      window.removeEventListener(TRACKING_CONSENT_CHANGED_EVENT, updateTrackingConsent);
-      window.removeEventListener('storage', updateTrackingConsent);
-    };
-  }, []);
+    setNights(liveNights);
+  }, [liveNights]);
 
   useEffect(() => {
     const registerVisit = async () => {
       if (typeof window === 'undefined') return;
-      if (!trackingConsentGranted) return;
 
       const visitStorageKey = 'enzoloft_visit_counted';
       if (sessionStorage.getItem(visitStorageKey) === '1') {
@@ -291,7 +314,7 @@ export default function Home() {
     };
 
     registerVisit();
-  }, [trackingConsentGranted]);
+  }, []);
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -368,7 +391,7 @@ export default function Home() {
     let currentDate = new Date(startDate);
     
     while (currentDate <= endDate) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = formatDateKey(currentDate);
       
       if (isDateBlocked(dateStr)) {
         return { hasConflict: true, message: '❌ Uma ou mais datas selecionadas estão bloqueadas pelo administrador.' };
@@ -489,7 +512,7 @@ export default function Home() {
       // Calcular preço para cada noite
       let currentDate = new Date(start);
       for (let i = 0; i < nightsCount; i++) {
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const dateStr = formatDateKey(currentDate);
         
         // Encontrar preço aplicável para esta data
         const applicablePrice = prices.find((p: Price) => {
@@ -587,7 +610,12 @@ export default function Home() {
         newFormData.endDate = '';
       }
     } else {
-      newFormData.endDate = dateStr;
+      if (newFormData.startDate && dateStr <= newFormData.startDate) {
+        newFormData.startDate = dateStr;
+        newFormData.endDate = '';
+      } else {
+        newFormData.endDate = dateStr;
+      }
     }
     
     setFormData(newFormData);
@@ -604,6 +632,7 @@ export default function Home() {
       } else {
         const calculatedPrice = await calculateTotalPrice(newFormData.startDate, newFormData.endDate);
         setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
+        setShowFormCalendar(false);
         await logClientEvent({
           event: 'booking_dates_selected',
           context: {
@@ -714,44 +743,52 @@ export default function Home() {
       
       // Enviar emails (confirmação para hóspede + notificação para admin)
       try {
-        // Email de confirmação para o hóspede
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'reservation_confirmation',
-            data: {
-              guestName: reservation.guestName,
-              guestEmail: reservation.guestEmail,
-              startDate: reservation.startDate,
-              endDate: reservation.endDate,
-              nights: nights,
-              guestsCount: reservation.guestsCount,
-              totalPrice: reservation.totalPrice,
-              discount: discount || 0,
-              propertyName: 'Enzo Loft'
-            }
-          })
-        });
+        if (emailApiUrl) {
+          // Email de confirmação para o hóspede
+          await fetch(emailApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'reservation_confirmation',
+              data: {
+                guestName: reservation.guestName,
+                guestEmail: reservation.guestEmail,
+                startDate: reservation.startDate,
+                endDate: reservation.endDate,
+                nights: nights,
+                guestsCount: reservation.guestsCount,
+                totalPrice: reservation.totalPrice,
+                discount: discount || 0,
+                propertyName: 'Enzo Loft'
+              }
+            })
+          });
 
-        // Email de notificação para o admin
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'admin_notification',
-            data: {
-              guestName: reservation.guestName,
-              guestEmail: reservation.guestEmail,
-              guestPhone: reservation.guestPhone,
-              startDate: reservation.startDate,
-              endDate: reservation.endDate,
-              nights: nights,
-              guestsCount: reservation.guestsCount,
-              totalPrice: reservation.totalPrice
-            }
-          })
-        });
+          // Email de notificação para o admin
+          await fetch(emailApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'admin_notification',
+              data: {
+                guestName: reservation.guestName,
+                guestEmail: reservation.guestEmail,
+                guestPhone: reservation.guestPhone,
+                startDate: reservation.startDate,
+                endDate: reservation.endDate,
+                nights: nights,
+                guestsCount: reservation.guestsCount,
+                totalPrice: reservation.totalPrice
+              }
+            })
+          });
+        } else {
+          await logClientEvent({
+            event: 'booking_email_notifications_skipped',
+            level: 'warning',
+            context: { reason: 'NEXT_PUBLIC_EMAIL_API_URL_not_configured' },
+          });
+        }
       } catch (emailError) {
         console.error('Erro ao enviar emails:', emailError);
         await logClientError('booking_email_notifications_failed', emailError, {
@@ -776,7 +813,7 @@ export default function Home() {
       setLoading(false);
       setSubmittingReservation(false);
     }
-  }, [appliedVoucher, dateError, discount, formData, nights, originalPrice]);
+  }, [appliedVoucher, dateError, discount, emailApiUrl, formData, nights, originalPrice]);
 
   const amenities = useMemo(() => [
     { icon: '📶', label: 'Wi-Fi Gratuito' },
@@ -836,7 +873,7 @@ export default function Home() {
         },
       ],
     }),
-    [amenities, contactInfo.email, contactInfo.phone]
+    [amenities, canonicalUrl, contactInfo.email, contactInfo.phone, ogImageUrl]
   );
 
   const canSubmitReservation = useMemo(() => {
@@ -868,11 +905,16 @@ export default function Home() {
       <meta property="og:site_name" content="EnzoLoft" />
       <meta property="og:locale" content="pt_PT" />
       <meta property="og:image" content={ogImageUrl} />
+      <meta property="og:image:secure_url" content={ogImageUrl} />
+      <meta property="og:image:type" content="image/jpeg" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content="EnzoLoft no Alentejo" />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={siteTitle} />
       <meta name="twitter:description" content={siteDescription} />
       <meta name="twitter:image" content={ogImageUrl} />
+      <meta name="twitter:image:alt" content="EnzoLoft no Alentejo" />
       <link rel="dns-prefetch" href="https://images.unsplash.com" />
       <link rel="preconnect" href="https://images.unsplash.com" />
       <link rel="dns-prefetch" href="https://enzoloft.web.app" />
@@ -883,6 +925,7 @@ export default function Home() {
         <meta name="msvalidate.01" content={bingSiteVerification} />
       )}
       <link rel="canonical" href={canonicalUrl} />
+      <link rel="alternate" hrefLang="pt" href={canonicalUrl} />
       <link rel="alternate" hrefLang="pt-PT" href={canonicalUrl} />
       <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
       <script
@@ -911,6 +954,7 @@ export default function Home() {
           amenities={amenities}
           galleryImages={galleryImages}
           contactInfo={contactInfo}
+          includeHead={false}
         />
       </>
     );
@@ -1014,6 +1058,7 @@ export default function Home() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-orange-900 mb-1">Selecione as datas</label>
+                  <p className="text-[11px] text-gray-600 mb-1.5">{dateSelectionStepLabel}</p>
                   <button
                     type="button"
                     onClick={() => setShowFormCalendar(!showFormCalendar)}
@@ -1025,9 +1070,39 @@ export default function Home() {
                       ? `Check-in: ${new Date(formData.startDate).toLocaleDateString('pt-PT')}`
                       : '📅 Clique para selecionar datas'}
                   </button>
+                  {liveNights > 0 && (
+                    <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                      🌙 {liveNights} {liveNights === 1 ? 'noite' : 'noites'}
+                    </div>
+                  )}
                   
                   {showFormCalendar && (
                     <div className="mt-1.5 border border-orange-300 rounded p-1.5 bg-white shadow-lg">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-orange-900 mb-1">Check-in</label>
+                          <input
+                            type="date"
+                            name="startDate"
+                            min={formatDateKey(new Date())}
+                            value={formData.startDate}
+                            onChange={handleChange}
+                            className="w-full px-2 py-1.5 border border-orange-200 rounded text-xs focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-orange-900 mb-1">Check-out</label>
+                          <input
+                            type="date"
+                            name="endDate"
+                            min={formData.startDate || formatDateKey(new Date())}
+                            value={formData.endDate}
+                            onChange={handleChange}
+                            className="w-full px-2 py-1.5 border border-orange-200 rounded text-xs focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                      </div>
+
                       {/* Navigation */}
                       <div className="flex justify-between items-center mb-1">
                         <button
@@ -1082,7 +1157,7 @@ export default function Home() {
                           // Days
                           for (let day = 1; day <= daysInMonth; day++) {
                             const date = new Date(year, month, day);
-                            const dateStr = date.toISOString().split('T')[0];
+                            const dateStr = formatDateKey(date);
                             
                             const isBlocked = blockedDates.some(block => {
                               const blockStart = new Date(block.startDate);
@@ -1159,13 +1234,26 @@ export default function Home() {
                         </div>
                       </div>
                       
-                      <button
-                        type="button"
-                        onClick={() => setShowFormCalendar(false)}
-                        className="w-full mt-1.5 bg-orange-500 hover:bg-orange-600 text-white py-0.5 rounded text-[10px] font-semibold"
-                      >
-                        Confirmar
-                      </button>
+                      <div className="flex gap-2 mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, startDate: '', endDate: '', totalPrice: 0 }));
+                            setDateError('');
+                            setShowFormCalendar(false);
+                          }}
+                          className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 rounded text-[10px] font-semibold"
+                        >
+                          Limpar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowFormCalendar(false)}
+                          className="w-1/2 bg-orange-500 hover:bg-orange-600 text-white py-1 rounded text-[10px] font-semibold"
+                        >
+                          Fechar
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1238,6 +1326,9 @@ export default function Home() {
                 {formData.totalPrice > 0 && (
                   <div className="bg-green-50 border-2 border-green-300 p-3 rounded-lg">
                     <p className="text-xs text-green-700 font-semibold mb-2">Resumo do Preço</p>
+                    {liveNights > 0 && (
+                      <p className="text-xs text-gray-700 mb-2">{liveNights} {liveNights === 1 ? 'noite' : 'noites'} selecionadas</p>
+                    )}
                     {appliedVoucher ? (
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs text-gray-700">
@@ -1548,7 +1639,7 @@ export default function Home() {
                 // Days of the month
                 for (let day = 1; day <= daysInMonth; day++) {
                   const date = new Date(year, month, day);
-                  const dateStr = date.toISOString().split('T')[0];
+                  const dateStr = formatDateKey(date);
                   
                   // Check if date is blocked
                   const isBlocked = blockedDates.some(block => {

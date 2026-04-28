@@ -24,25 +24,29 @@ interface PresentationModePageProps {
   amenities: Amenity[];
   galleryImages: GalleryImage[];
   contactInfo: ContactInfo;
+  includeHead?: boolean;
 }
 
 export default function PresentationModePage({
   amenities,
   galleryImages,
   contactInfo,
+  includeHead = true,
 }: PresentationModePageProps) {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
 
   return (
     <div className="min-h-screen bg-white">
-      <Head>
-        <title>EnzoLoft - Apresentação da Casa</title>
-        <meta
-          name="description"
-          content="Conheça a EnzoLoft: comodidades, galeria e localização da casa no coração do Alentejo."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      {includeHead && (
+        <Head>
+          <title>EnzoLoft - Apresentação da Casa</title>
+          <meta
+            name="description"
+            content="Conheça a EnzoLoft: comodidades, galeria e localização da casa no coração do Alentejo."
+          />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+        </Head>
+      )}
 
       <header className="bg-white border-b-2 border-orange-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 md:py-5 flex justify-between items-center">
