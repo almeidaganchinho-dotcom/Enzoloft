@@ -159,17 +159,23 @@ const formatDateKey = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const toUtcDateValue = (dateKey: string): number => {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  if (!year || !month || !day) return Number.NaN;
+  return Date.UTC(year, month - 1, day);
+};
+
 const getNightsBetween = (startDate: string, endDate: string): number => {
   if (!startDate || !endDate) return 0;
 
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T00:00:00`);
+  const startUtc = toUtcDateValue(startDate);
+  const endUtc = toUtcDateValue(endDate);
 
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+  if (Number.isNaN(startUtc) || Number.isNaN(endUtc) || endUtc <= startUtc) {
     return 0;
   }
 
-  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.floor((endUtc - startUtc) / (1000 * 60 * 60 * 24));
 };
 
 export default function Home() {
@@ -390,7 +396,7 @@ export default function Home() {
     
     let currentDate = new Date(startDate);
     
-    while (currentDate <= endDate) {
+    while (currentDate < endDate) {
       const dateStr = formatDateKey(currentDate);
       
       if (isDateBlocked(dateStr)) {
@@ -486,13 +492,11 @@ export default function Home() {
   }, [voucherCode, originalPrice, formData.totalPrice]);
   const calculateTotalPrice = useCallback(async (startDate: string, endDate: string): Promise<number> => {
     if (!startDate || !endDate) return 0;
-    
-    const start = new Date(startDate + 'T00:00:00');
-    const end = new Date(endDate + 'T00:00:00');
-    
-    if (end <= start) return 0;
-    
-    const nightsCount = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+    const nightsCount = getNightsBetween(startDate, endDate);
+    if (nightsCount <= 0) return 0;
+
+    const start = new Date(`${startDate}T00:00:00`);
     setNights(nightsCount);
     
     try {
