@@ -5,7 +5,12 @@ const amenities = [
   { icon: '📶', label: 'Wi-Fi Gratuito' },
   { icon: '❄️', label: 'Ar Condicionado' },
   { icon: '🍳', label: 'Cozinha Equipada' },
-  { icon: '🚗', label: 'Estacionamento' },
+  { icon: '🧺', label: 'Máquina de Lavar e Secar Roupa' },
+  { icon: '🍽️', label: 'Máquina de Lavar Loiça' },
+  { icon: '🌤️', label: 'Espaço Exterior' },
+  { icon: '🚗', label: 'Estacionamento Gratuito' },
+  { icon: '📺', label: '3 TVs' },
+  { icon: '🔥', label: 'Lareira' },
   { icon: '🏊', label: 'Piscina' },
   { icon: '🌿', label: 'Jardim' },
 ];
