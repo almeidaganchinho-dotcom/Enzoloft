@@ -210,6 +210,8 @@ export default function Home() {
   const [voucherError, setVoucherError] = useState<string>('');
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
+  const [showFormCalendar, setShowFormCalendar] = useState<boolean>(false);
+  const [formCalendarMonth, setFormCalendarMonth] = useState<Date>(new Date());
   const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
   const [presentationModeEnabled, setPresentationModeEnabled] = useState<boolean>(false);
   const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
@@ -614,6 +616,60 @@ export default function Home() {
       setNights(0);
     }
   }, [formData.startDate, formData.endDate, checkDateRangeConflict, calculateTotalPrice]);
+
+  const handleDateSelect = useCallback(async (dateStr: string, type: 'start' | 'end') => {
+    if (!bookingStartedRef.current) {
+      bookingStartedRef.current = true;
+      setBookingStarted(true);
+      await logClientEvent({ event: 'booking_started', context: { field: 'calendar' } });
+      void trackAnalyticsEvent('booking_started', { source: 'calendar' });
+    }
+
+    const newFormData = { ...formData };
+    
+    if (type === 'start') {
+      newFormData.startDate = dateStr;
+      // Se já existir endDate e for anterior ao novo startDate, limpar
+      if (newFormData.endDate && newFormData.endDate <= dateStr) {
+        newFormData.endDate = '';
+      }
+    } else {
+      if (newFormData.startDate && dateStr <= newFormData.startDate) {
+        setDateError('❌ A data de check-out deve ser posterior à data de check-in.');
+        return;
+      }
+      newFormData.endDate = dateStr;
+    }
+    
+    setFormData(newFormData);
+    setDateError('');
+    
+    // Verificar conflitos e calcular preço se ambas as datas estiverem selecionadas
+    if (newFormData.startDate && newFormData.endDate) {
+      const conflict = checkDateRangeConflict(newFormData.startDate, newFormData.endDate);
+      
+      if (conflict.hasConflict) {
+        setDateError(conflict.message);
+        setFormData(prev => ({ ...prev, totalPrice: 0 }));
+        setNights(0);
+      } else {
+        const calculatedPrice = await calculateTotalPrice(newFormData.startDate, newFormData.endDate);
+        setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
+        setShowFormCalendar(false);
+        await logClientEvent({
+          event: 'booking_dates_selected',
+          context: {
+            startDate: newFormData.startDate,
+            endDate: newFormData.endDate,
+            totalPrice: calculatedPrice,
+          },
+        });
+        void trackAnalyticsEvent('booking_dates_selected', {
+          total_price: Number(calculatedPrice.toFixed(2)),
+        });
+      }
+    }
+  }, [formData, checkDateRangeConflict, calculateTotalPrice]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1020,46 +1076,209 @@ export default function Home() {
                 <div>
                   <label className="block text-xs font-semibold text-orange-900 mb-1">Selecione as datas</label>
                   <p className="text-[11px] text-gray-600 mb-1.5">{dateSelectionStepLabel}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-orange-900 mb-1">Check-in</label>
-                      <input
-                        type="date"
-                        name="startDate"
-                        min={formatDateKey(new Date())}
-                        value={formData.startDate}
-                        onChange={handleChange}
-                        className="w-full px-2 py-1.5 border border-orange-200 rounded text-xs focus:ring-2 focus:ring-orange-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-orange-900 mb-1">Check-out</label>
-                      <input
-                        type="date"
-                        name="endDate"
-                        min={formData.startDate || formatDateKey(new Date())}
-                        value={formData.endDate}
-                        onChange={handleChange}
-                        className="w-full px-2 py-1.5 border border-orange-200 rounded text-xs focus:ring-2 focus:ring-orange-500"
-                      />
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowFormCalendar(!showFormCalendar)}
+                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg bg-gradient-to-br from-white to-orange-50 text-left text-sm font-medium text-gray-700 hover:border-orange-300 transition"
+                  >
+                    {formData.startDate && formData.endDate 
+                      ? `${new Date(formData.startDate).toLocaleDateString('pt-PT')} - ${new Date(formData.endDate).toLocaleDateString('pt-PT')}`
+                      : formData.startDate
+                      ? `Check-in: ${new Date(formData.startDate).toLocaleDateString('pt-PT')}`
+                      : '📅 Clique para selecionar datas'}
+                  </button>
                   {liveNights > 0 && (
                     <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
                       🌙 {liveNights} {liveNights === 1 ? 'noite' : 'noites'}
                     </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, startDate: '', endDate: '', totalPrice: 0 }));
-                      setDateError('');
-                      setNights(0);
-                    }}
-                    className="mt-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded text-[11px] font-semibold"
-                  >
-                    Limpar datas
-                  </button>
+                  
+                  {showFormCalendar && (
+                    <div className="mt-1.5 border border-orange-300 rounded p-1.5 bg-white shadow-lg">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-orange-900 mb-1">Check-in</label>
+                          <input
+                            type="date"
+                            name="startDate"
+                            min={formatDateKey(new Date())}
+                            value={formData.startDate}
+                            onChange={handleChange}
+                            className="w-full px-2 py-1.5 border border-orange-200 rounded text-xs focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-orange-900 mb-1">Check-out</label>
+                          <input
+                            type="date"
+                            name="endDate"
+                            min={formData.startDate || formatDateKey(new Date())}
+                            value={formData.endDate}
+                            onChange={handleChange}
+                            className="w-full px-2 py-1.5 border border-orange-200 rounded text-xs focus:ring-2 focus:ring-orange-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Navigation */}
+                      <div className="flex justify-between items-center mb-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMonth = new Date(formCalendarMonth);
+                            newMonth.setMonth(newMonth.getMonth() - 1);
+                            setFormCalendarMonth(newMonth);
+                          }}
+                          className="bg-orange-500 hover:bg-orange-600 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                        >
+                          ◀
+                        </button>
+                        <h4 className="text-xs font-bold text-orange-900">
+                          {formCalendarMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMonth = new Date(formCalendarMonth);
+                            newMonth.setMonth(newMonth.getMonth() + 1);
+                            setFormCalendarMonth(newMonth);
+                          }}
+                          className="bg-orange-500 hover:bg-orange-600 text-white px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                        >
+                          ▶
+                        </button>
+                      </div>
+                      
+                      {/* Calendar Grid */}
+                      <div className="grid grid-cols-7 gap-0.5">
+                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
+                          <div key={i} className="text-center font-bold text-orange-900 text-[9px] py-0.5">
+                            {day}
+                          </div>
+                        ))}
+                        
+                        {(() => {
+                          const year = formCalendarMonth.getFullYear();
+                          const month = formCalendarMonth.getMonth();
+                          const firstDay = new Date(year, month, 1).getDay();
+                          const daysInMonth = new Date(year, month + 1, 0).getDate();
+                          const days = [];
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          
+                          // Empty cells
+                          for (let i = 0; i < firstDay; i++) {
+                            days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
+                          }
+                          
+                          // Days
+                          for (let day = 1; day <= daysInMonth; day++) {
+                            const date = new Date(year, month, day);
+                            const dateStr = formatDateKey(date);
+                            
+                            const isBlocked = blockedDates.some(block => {
+                              const blockStart = new Date(block.startDate);
+                              const blockEnd = new Date(block.endDate);
+                              return date >= blockStart && date <= blockEnd && block.status === 'blocked';
+                            });
+                            
+                            const isReserved = reservedDates.some(res => {
+                              const resStart = new Date(res.startDate);
+                              const resEnd = new Date(res.endDate);
+                              return date >= resStart && date <= resEnd;
+                            });
+                            
+                            const isPast = date < today;
+                            const isSelected = dateStr === formData.startDate || dateStr === formData.endDate;
+                            const isInRange = formData.startDate && formData.endDate && dateStr > formData.startDate && dateStr < formData.endDate;
+                            
+                            const awaitingCheckout = !!formData.startDate && !formData.endDate;
+                            const isInvalidCheckoutCandidate = awaitingCheckout && dateStr <= formData.startDate;
+
+                            let bgColor = 'bg-green-100 border-green-300 hover:bg-green-200 cursor-pointer';
+                            let disabled = false;
+                            
+                            if (isPast) {
+                              bgColor = 'bg-gray-100 text-gray-400 cursor-not-allowed';
+                              disabled = true;
+                            } else if (isInvalidCheckoutCandidate) {
+                              bgColor = 'bg-gray-100 text-gray-400 cursor-not-allowed';
+                              disabled = true;
+                            } else if (isBlocked) {
+                              bgColor = 'bg-red-200 border-red-400 cursor-not-allowed';
+                              disabled = true;
+                            } else if (isReserved) {
+                              bgColor = 'bg-orange-200 border-orange-400 cursor-not-allowed';
+                              disabled = true;
+                            }
+                            
+                            if (isSelected) {
+                              bgColor = bgColor + ' ring-2 ring-blue-500 font-bold';
+                            } else if (isInRange) {
+                              bgColor = 'bg-blue-50 border-blue-200';
+                            }
+                            
+                            days.push(
+                              <button
+                                key={day}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => {
+                                  if (!formData.startDate || (formData.startDate && formData.endDate)) {
+                                    handleDateSelect(dateStr, 'start');
+                                  } else {
+                                    handleDateSelect(dateStr, 'end');
+                                  }
+                                }}
+                                className={`aspect-square border rounded p-0.5 text-center text-[10px] font-semibold transition-all ${bgColor}`}
+                              >
+                                {day}
+                              </button>
+                            );
+                          }
+                          
+                          return days;
+                        })()}
+                      </div>
+                      
+                      {/* Mini Legend */}
+                      <div className="flex gap-1.5 mt-1.5 text-[10px] justify-center">
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-2 h-2 bg-green-100 border border-green-300 rounded"></div>
+                          <span>Disponível</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-2 h-2 bg-orange-200 border border-orange-400 rounded"></div>
+                          <span>Reservado</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-2 h-2 bg-red-200 border border-red-400 rounded"></div>
+                          <span>Bloqueado</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, startDate: '', endDate: '', totalPrice: 0 }));
+                            setDateError('');
+                            setShowFormCalendar(false);
+                          }}
+                          className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 rounded text-[10px] font-semibold"
+                        >
+                          Limpar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowFormCalendar(false)}
+                          className="w-1/2 bg-orange-500 hover:bg-orange-600 text-white py-1 rounded text-[10px] font-semibold"
+                        >
+                          Fechar
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {dateError && (
                   <div className="bg-red-50 border-2 border-red-300 rounded-lg p-2 text-xs text-red-700 font-semibold">
