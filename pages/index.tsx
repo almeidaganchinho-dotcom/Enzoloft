@@ -210,7 +210,6 @@ export default function Home() {
   const [voucherError, setVoucherError] = useState<string>('');
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
-  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const [showFormCalendar, setShowFormCalendar] = useState<boolean>(false);
   const [formCalendarMonth, setFormCalendarMonth] = useState<Date>(new Date());
   const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
@@ -996,12 +995,6 @@ export default function Home() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">EnzoLoft</h1>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={() => document.getElementById('availability-calendar')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-300 transition-all font-semibold"
-            >
-              📅 Verificar Disponibilidade
-            </button>
             <a href="#booking" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold">
               Reservar Agora
             </a>
@@ -1604,140 +1597,6 @@ export default function Home() {
               ⭐⭐⭐⭐⭐
             </div>
             <p className="text-gray-700 text-lg font-semibold">Baseado em 47 avaliações</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Availability Calendar */}
-      <section id="availability-calendar" className="py-12 bg-white" style={deferredSectionStyle}>
-        <div className="max-w-2xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-orange-900 mb-3 text-center">📅 Disponibilidade</h2>
-          <p className="text-center text-gray-600 mb-6 text-sm">Consulte as datas disponíveis para a sua estadia</p>
-          
-          <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl shadow-xl p-4 border-2 border-orange-200">
-            {/* Calendar Navigation */}
-            <div className="flex justify-between items-center mb-4">
-              <button
-                onClick={() => {
-                  const newMonth = new Date(calendarMonth);
-                  newMonth.setMonth(newMonth.getMonth() - 1);
-                  setCalendarMonth(newMonth);
-                }}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
-              >
-                ◀
-              </button>
-              <h3 className="text-xl font-bold text-orange-900">
-                {calendarMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
-              </h3>
-              <button
-                onClick={() => {
-                  const newMonth = new Date(calendarMonth);
-                  newMonth.setMonth(newMonth.getMonth() + 1);
-                  setCalendarMonth(newMonth);
-                }}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg font-semibold transition-all text-sm"
-              >
-                ▶
-              </button>
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {/* Day headers */}
-              {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                <div key={day} className="text-center font-bold text-orange-900 py-1 text-xs">
-                  {day}
-                </div>
-              ))}
-              
-              {/* Calendar days */}
-              {(() => {
-                const year = calendarMonth.getFullYear();
-                const month = calendarMonth.getMonth();
-                const firstDay = new Date(year, month, 1).getDay();
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const days = [];
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                // Empty cells before first day
-                for (let i = 0; i < firstDay; i++) {
-                  days.push(<div key={`empty-${i}`} className="aspect-square"></div>);
-                }
-                
-                // Days of the month
-                for (let day = 1; day <= daysInMonth; day++) {
-                  const date = new Date(year, month, day);
-                  const dateStr = formatDateKey(date);
-                  
-                  // Check if date is blocked
-                  const isBlocked = blockedDates.some(block => {
-                    const blockStart = new Date(block.startDate);
-                    const blockEnd = new Date(block.endDate);
-                    return date >= blockStart && date <= blockEnd && block.status === 'blocked';
-                  });
-                  
-                  // Check if date is reserved
-                  const isReserved = reservedDates.some(res => {
-                    const resStart = new Date(res.startDate);
-                    const resEnd = new Date(res.endDate);
-                    return date >= resStart && date <= resEnd;
-                  });
-                  
-                  const isToday = today.getTime() === date.getTime();
-                  const isPast = date < today;
-                  
-                  // Determinar estilo baseado no estado da data
-                  let bgColor = 'bg-green-100 border-green-300 hover:bg-green-200'; // Disponível
-                  let icon = '';
-                  
-                  if (isPast) {
-                    bgColor = 'bg-gray-100 text-gray-400 border-gray-200';
-                  } else if (isBlocked) {
-                    bgColor = 'bg-red-200 border-red-400 cursor-not-allowed';
-                    icon = '🔒';
-                  } else if (isReserved) {
-                    bgColor = 'bg-orange-200 border-orange-400 cursor-not-allowed';
-                    icon = '📅';
-                  }
-                  
-                  if (isToday) {
-                    bgColor = bgColor + ' ring-2 ring-blue-500';
-                  }
-                  
-                  days.push(
-                    <div
-                      key={day}
-                      className={`aspect-square border rounded-lg p-1 text-center transition-all ${bgColor}`}
-                    >
-                      <div className="text-xs font-semibold">{day}</div>
-                      {icon && (
-                        <div className="text-xs">{icon}</div>
-                      )}
-                    </div>
-                  );
-                }
-                
-                return days;
-              })()}
-            </div>
-
-            {/* Legend */}
-            <div className="flex flex-wrap justify-center gap-3 mt-4 text-xs">
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                <span className="text-gray-700">Disponível</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 bg-orange-200 border border-orange-400 rounded flex items-center justify-center text-xs">📅</div>
-                <span className="text-gray-700">Reservado</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 bg-red-200 border border-red-400 rounded flex items-center justify-center text-xs">🔒</div>
-                <span className="text-gray-700">Bloqueado</span>
-              </div>
-            </div>
           </div>
         </div>
       </section>
