@@ -679,20 +679,34 @@ export default function AdminDashboard() {
     const daysInMonth = lastDay.getDate();
     
     const occupiedDays = new Set();
-    reservations
-      .filter(r => r.status === 'confirmed')
-      .forEach(r => {
-        const start = new Date(r.startDate);
-        const end = new Date(r.endDate);
-        const current = new Date(start);
-        
-        while (current <= end) {
-          if (current >= firstDay && current <= lastDay) {
-            occupiedDays.add(current.getDate());
-          }
-          current.setDate(current.getDate() + 1);
+    const confirmedReservations = reservations.filter(r => r.status === 'confirmed');
+    
+    console.log('🔍 Debug Occupancy:', {
+      currentMonth: now.toLocaleDateString(),
+      firstDay: firstDay.toLocaleDateString(),
+      lastDay: lastDay.toLocaleDateString(),
+      daysInMonth,
+      confirmedReservations: confirmedReservations.length,
+      allReservations: reservations.length
+    });
+    
+    confirmedReservations.forEach(r => {
+      const start = new Date(r.startDate);
+      const end = new Date(r.endDate);
+      const current = new Date(start);
+      
+      console.log(`📅 Processing reservation: ${r.guestName} from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`);
+      
+      while (current <= end) {
+        if (current >= firstDay && current <= lastDay) {
+          occupiedDays.add(current.getDate());
+          console.log(`  ✓ Added day ${current.getDate()} to occupiedDays`);
         }
-      });
+        current.setDate(current.getDate() + 1);
+      }
+    });
+    
+    console.log('📊 Final occupiedDays:', occupiedDays.size, Array.from(occupiedDays));
     
     const occupancyRate = daysInMonth > 0 ? Math.round((occupiedDays.size / daysInMonth) * 100) : 0;
     
