@@ -995,6 +995,9 @@ export default function Home() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">EnzoLoft</h1>
           </div>
           <div className="flex gap-3">
+            <Link href="/comodidades" className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-300 transition-all font-semibold">
+              Comodidades
+            </Link>
             <a href="#booking" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold">
               Reservar Agora
             </a>
