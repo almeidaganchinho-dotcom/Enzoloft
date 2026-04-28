@@ -687,12 +687,26 @@ export default function AdminDashboard() {
       lastDay: lastDay.toLocaleDateString(),
       daysInMonth,
       confirmedReservations: confirmedReservations.length,
-      allReservations: reservations.length
+      allReservations: reservations.length,
+      allReservationsData: reservations.map((r: any) => ({
+        name: r.guestName,
+        status: r.status,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        startDateParsed: r.startDate?.toDate?.() ? r.startDate.toDate().toLocaleDateString() : new Date(r.startDate).toLocaleDateString(),
+        endDateParsed: r.endDate?.toDate?.() ? r.endDate.toDate().toLocaleDateString() : new Date(r.endDate).toLocaleDateString(),
+      }))
     });
     
     confirmedReservations.forEach(r => {
-      const start = new Date(r.startDate);
-      const end = new Date(r.endDate);
+      // Handle both Firestore Timestamps and strings
+      const start = r.startDate?.toDate?.() 
+        ? r.startDate.toDate() 
+        : new Date(r.startDate);
+      const end = r.endDate?.toDate?.() 
+        ? r.endDate.toDate() 
+        : new Date(r.endDate);
+      
       const current = new Date(start);
       
       console.log(`📅 Processing reservation: ${r.guestName} from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`);
