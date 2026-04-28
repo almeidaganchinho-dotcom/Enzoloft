@@ -672,55 +672,48 @@ export default function AdminDashboard() {
     const confirmedCount = reservations.filter(r => r.status === 'confirmed').length;
     const totalReservations = reservations.length;
     
-    // Calcular dias ocupados no mês atual
+    // Calcular dias ocupados no mês atual (usando data local)
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const daysInMonth = lastDay.getDate();
     
-    const occupiedDays = new Set();
+    const occupiedDays = new Set<number>();
     const confirmedReservations = reservations.filter(r => r.status === 'confirmed');
     
-    console.log('🔍 Debug Occupancy:', {
-      currentMonth: now.toLocaleDateString(),
-      firstDay: firstDay.toLocaleDateString(),
-      lastDay: lastDay.toLocaleDateString(),
-      daysInMonth,
-      confirmedReservations: confirmedReservations.length,
-      allReservations: reservations.length,
-      allReservationsData: reservations.map((r: any) => ({
-        name: r.guestName,
-        status: r.status,
-        startDate: r.startDate,
-        endDate: r.endDate,
-        startDateParsed: r.startDate?.toDate?.() ? r.startDate.toDate().toLocaleDateString() : new Date(r.startDate).toLocaleDateString(),
-        endDateParsed: r.endDate?.toDate?.() ? r.endDate.toDate().toLocaleDateString() : new Date(r.endDate).toLocaleDateString(),
-      }))
-    });
-    
     confirmedReservations.forEach(r => {
-      // Handle both Firestore Timestamps and strings
-      const start = r.startDate?.toDate?.() 
-        ? r.startDate.toDate() 
-        : new Date(r.startDate);
-      const end = r.endDate?.toDate?.() 
-        ? r.endDate.toDate() 
-        : new Date(r.endDate);
+      // Handle both Firestore Timestamps and strings - always use UTC to avoid timezone issues
+      const startDate = r.startDate?.toDate?.() 
+        ? r.startDate.toDate()
+        : typeof r.startDate === 'string'
+        ? new Date(r.startDate)
+        : r.startDate;
+        
+      const endDate = r.endDate?.toDate?.() 
+        ? r.endDate.toDate()
+        : typeof r.endDate === 'string'
+        ? new Date(r.endDate)
+        : r.endDate;
+
+      if (!startDate || !endDate) return;
+
+      // Create a date object for iteration - start from the beginning of the start date
+      const currentIterating = new Date(startDate);
       
-      const current = new Date(start);
-      
-      console.log(`📅 Processing reservation: ${r.guestName} from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`);
-      
-      while (current <= end) {
-        if (current >= firstDay && current <= lastDay) {
-          occupiedDays.add(current.getDate());
-          console.log(`  ✓ Added day ${current.getDate()} to occupiedDays`);
+      // Include all days from start through end (inclusive)
+      while (currentIterating <= endDate) {
+        // Check if this day is in the current month
+        if (
+          currentIterating.getFullYear() === now.getFullYear() &&
+          currentIterating.getMonth() === now.getMonth()
+        ) {
+          occupiedDays.add(currentIterating.getDate());
         }
-        current.setDate(current.getDate() + 1);
+        
+        // Move to next day
+        currentIterating.setDate(currentIterating.getDate() + 1);
       }
     });
-    
-    console.log('📊 Final occupiedDays:', occupiedDays.size, Array.from(occupiedDays));
     
     const occupancyRate = daysInMonth > 0 ? Math.round((occupiedDays.size / daysInMonth) * 100) : 0;
     
