@@ -43,6 +43,13 @@ interface FormData {
   totalPrice: number;
 }
 
+interface ContactFormData {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+}
+
 interface SiteMode {
   presentationModeEnabled?: boolean;
 }
@@ -218,6 +225,14 @@ export default function Home() {
   const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
   const [bookingStarted, setBookingStarted] = useState<boolean>(false);
   const [submittingReservation, setSubmittingReservation] = useState<boolean>(false);
+  const [contactFormData, setContactFormData] = useState<ContactFormData>({
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
+  });
+  const [submittingContact, setSubmittingContact] = useState<boolean>(false);
+  const [contactFormMessage, setContactFormMessage] = useState<string>('');
   const bookingStartedRef = useRef(false);
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
@@ -838,6 +853,74 @@ export default function Home() {
       setSubmittingReservation(false);
     }
   }, [appliedVoucher, dateError, discount, emailApiUrl, formData, nights, originalPrice]);
+
+  const handleContactSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const recipientEmail = 'alentejo.enzoloft@gmail.com';
+    const name = contactFormData.name.trim();
+    const email = contactFormData.email.trim().toLowerCase();
+    const phone = contactFormData.phone.trim();
+    const messageText = contactFormData.message.trim();
+
+    if (!name || name.length < 3) {
+      setContactFormMessage('❌ Por favor, indique um nome válido.');
+      return;
+    }
+
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setContactFormMessage('❌ Por favor, indique um email válido.');
+      return;
+    }
+
+    if (!messageText || messageText.length < 10) {
+      setContactFormMessage('❌ Escreva uma mensagem com pelo menos 10 caracteres.');
+      return;
+    }
+
+    setSubmittingContact(true);
+    setContactFormMessage('');
+
+    try {
+      if (emailApiUrl) {
+        const response = await fetch(emailApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'contact_message',
+            data: {
+              toEmail: recipientEmail,
+              guestName: name,
+              guestEmail: email,
+              guestPhone: phone,
+              message: messageText,
+              propertyName: 'Enzo Loft',
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Falha ao enviar contacto: ${response.status}`);
+        }
+      } else {
+        const subject = encodeURIComponent(`Novo contacto - ${name}`);
+        const body = encodeURIComponent(
+          `Nome: ${name}\nEmail: ${email}\nTelefone: ${phone || 'N/A'}\n\nMensagem:\n${messageText}`
+        );
+        window.location.href = `mailto:${recipientEmail}?subject=${subject}&body=${body}`;
+      }
+
+      await logClientEvent({ event: 'contact_form_submit_success' });
+      setContactFormMessage('✅ Mensagem enviada com sucesso. Entraremos em contacto em breve.');
+      setContactFormData({ name: '', email: '', phone: '', message: '' });
+    } catch (error) {
+      console.error('Erro ao enviar formulário de contacto:', error);
+      await logClientError('contact_form_submit_failed', error);
+      setContactFormMessage('❌ Não foi possível enviar a mensagem. Tente novamente.');
+    } finally {
+      setSubmittingContact(false);
+    }
+  }, [contactFormData, emailApiUrl]);
 
   const amenities = useMemo(() => [
     { icon: '📶', label: 'Wi-Fi Gratuito' },
@@ -1650,6 +1733,83 @@ export default function Home() {
               ⭐⭐⭐⭐⭐
             </div>
             <p className="text-gray-700 text-lg font-semibold">Baseado em 47 avaliações</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-14 bg-gradient-to-b from-white to-orange-50" style={deferredSectionStyle}>
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-white border-2 border-orange-100 rounded-2xl shadow-xl p-6 md:p-8">
+            <h2 className="text-3xl font-bold text-orange-900 mb-2">Fale Connosco</h2>
+            <p className="text-gray-600 mb-6">
+              Tem alguma questão sobre disponibilidade, preços ou condições da casa? Envie-nos uma mensagem.
+            </p>
+
+            <form onSubmit={handleContactSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-orange-900 mb-1">Nome</label>
+                  <input
+                    type="text"
+                    value={contactFormData.name}
+                    onChange={(e) => setContactFormData((currentData) => ({ ...currentData, name: e.target.value }))}
+                    placeholder="O seu nome"
+                    required
+                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-orange-900 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={contactFormData.email}
+                    onChange={(e) => setContactFormData((currentData) => ({ ...currentData, email: e.target.value }))}
+                    placeholder="seu@email.com"
+                    required
+                    className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-orange-900 mb-1">Telefone (opcional)</label>
+                <input
+                  type="tel"
+                  value={contactFormData.phone}
+                  onChange={(e) => setContactFormData((currentData) => ({ ...currentData, phone: e.target.value }))}
+                  placeholder="+351 ..."
+                  className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-orange-900 mb-1">Mensagem</label>
+                <textarea
+                  value={contactFormData.message}
+                  onChange={(e) => setContactFormData((currentData) => ({ ...currentData, message: e.target.value }))}
+                  placeholder="Escreva aqui a sua mensagem"
+                  required
+                  rows={5}
+                  className="w-full px-3 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-y"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingContact}
+                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg hover:shadow-orange-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submittingContact ? '⏳ A enviar...' : 'Enviar Mensagem'}
+              </button>
+
+              {contactFormMessage && (
+                <p className="text-sm font-semibold text-gray-700">{contactFormMessage}</p>
+              )}
+
+              <p className="text-xs text-gray-500">
+                Destinatário: alentejo.enzoloft@gmail.com
+              </p>
+            </form>
           </div>
         </div>
       </section>
