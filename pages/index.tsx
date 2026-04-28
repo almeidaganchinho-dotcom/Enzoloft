@@ -52,6 +52,7 @@ interface ContactFormData {
 
 interface SiteMode {
   presentationModeEnabled?: boolean;
+  hideContactForm?: boolean;
 }
 
 interface SiteStats {
@@ -222,6 +223,7 @@ export default function Home() {
   const [showAmenitiesModal, setShowAmenitiesModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
   const [presentationModeEnabled, setPresentationModeEnabled] = useState<boolean>(false);
+  const [hideContactForm, setHideContactForm] = useState<boolean>(false);
   const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
   const [bookingStarted, setBookingStarted] = useState<boolean>(false);
   const [submittingReservation, setSubmittingReservation] = useState<boolean>(false);
@@ -369,6 +371,7 @@ export default function Home() {
         if (siteModeDoc.exists()) {
           const siteModeData = siteModeDoc.data() as SiteMode;
           setPresentationModeEnabled(Boolean(siteModeData.presentationModeEnabled));
+          setHideContactForm(Boolean(siteModeData.hideContactForm));
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -1743,6 +1746,7 @@ export default function Home() {
         </div>
       </section>
 
+      {!hideContactForm && (
       <section className="py-14 bg-gradient-to-b from-white to-orange-50" style={deferredSectionStyle}>
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-white border-2 border-orange-100 rounded-2xl shadow-xl p-6 md:p-8">
@@ -1819,6 +1823,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Footer */}
       <footer className="bg-gradient-to-r from-orange-900 to-red-900 text-white py-12">

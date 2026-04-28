@@ -20,6 +20,7 @@ interface Tab {
 
 interface SiteMode {
   presentationModeEnabled: boolean;
+  hideContactForm?: boolean;
 }
 
 interface SiteStats {
@@ -110,6 +111,7 @@ export default function AdminDashboard() {
   });
   const [siteMode, setSiteMode] = useState<SiteMode>({
     presentationModeEnabled: false,
+    hideContactForm: false,
   });
   const [siteStats, setSiteStats] = useState<SiteStats>({
     totalVisits: 0,
@@ -2672,6 +2674,28 @@ export default function AdminDashboard() {
                       className="h-5 w-5 accent-orange-600"
                     />
                   </label>
+
+                  <div className="mt-6 pt-5 border-t border-orange-200">
+                    <label className="flex items-center justify-between gap-4 cursor-pointer">
+                      <div>
+                        <p className="font-semibold text-gray-800">Esconder formulário de contacto</p>
+                        <p className="text-sm text-gray-600">
+                          Quando ativo, o formulário &ldquo;Fale Connosco&rdquo; deixa de aparecer no fundo da página principal.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(siteMode.hideContactForm)}
+                        onChange={(e) =>
+                          setSiteMode((prev) => ({
+                            ...prev,
+                            hideContactForm: e.target.checked,
+                          }))
+                        }
+                        className="h-5 w-5 accent-orange-600"
+                      />
+                    </label>
+                  </div>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
                   <h3 className="font-semibold text-gray-800 text-lg mb-4">Informações do Footer</h3>
