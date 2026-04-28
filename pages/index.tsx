@@ -212,6 +212,7 @@ export default function Home() {
   const [discount, setDiscount] = useState<number>(0);
   const [showFormCalendar, setShowFormCalendar] = useState<boolean>(false);
   const [formCalendarMonth, setFormCalendarMonth] = useState<Date>(new Date());
+  const [showAmenitiesModal, setShowAmenitiesModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
   const [presentationModeEnabled, setPresentationModeEnabled] = useState<boolean>(false);
   const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
@@ -995,15 +996,58 @@ export default function Home() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">EnzoLoft</h1>
           </div>
           <div className="flex gap-3">
-            <Link href="/comodidades" className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-300 transition-all font-semibold">
+            <button
+              type="button"
+              onClick={() => setShowAmenitiesModal(true)}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-300 transition-all font-semibold"
+            >
               Comodidades
-            </Link>
+            </button>
             <a href="#booking" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold">
               Reservar Agora
             </a>
           </div>
         </div>
       </header>
+
+      {showAmenitiesModal && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/55 backdrop-blur-sm p-4 flex items-center justify-center"
+          onClick={() => setShowAmenitiesModal(false)}
+        >
+          <div
+            className="w-full max-w-3xl bg-white rounded-2xl border-2 border-orange-100 shadow-2xl overflow-hidden animate-[fadeIn_.2s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-white text-2xl font-bold">Comodidades da Casa</h3>
+              <button
+                type="button"
+                aria-label="Fechar popup de comodidades"
+                onClick={() => setShowAmenitiesModal(false)}
+                className="w-9 h-9 rounded-full bg-white/20 text-white text-xl font-bold hover:bg-white/30 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 bg-gradient-to-b from-orange-50 to-white">
+              <p className="text-gray-700 mb-5">Tudo preparado para uma estadia confortável no Alentejo.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {amenities.map((amenity) => (
+                  <div
+                    key={amenity.label}
+                    className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                  >
+                    <div className="text-3xl mb-2" aria-hidden="true">{amenity.icon}</div>
+                    <h4 className="font-bold text-orange-900">{amenity.label}</h4>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section with Booking Form */}
       <section id="booking" className="relative py-16 overflow-hidden">
