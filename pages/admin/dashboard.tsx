@@ -41,6 +41,7 @@ interface VisitEvent {
   id: string;
   country?: string;
   countryCode?: string;
+  region?: string;
   city?: string;
   latitude?: number;
   longitude?: number;
@@ -971,6 +972,85 @@ export default function AdminDashboard() {
       visitsWithoutGeo,
       withoutGeoShare: totalVisits > 0 ? (visitsWithoutGeo / totalVisits) * 100 : 0,
     };
+  }, [visitEvents]);
+
+  const portugalInsights = useMemo(() => {
+    const isPortugalVisit = (visitEvent: VisitEvent) => {
+      const countryCode = (visitEvent.countryCode || '').trim().toUpperCase();
+      const countryName = (visitEvent.country || '').trim().toLowerCase();
+      return countryCode === 'PT' || countryName.includes('portugal');
+    };
+
+    const portugalVisits = visitEvents.filter(isPortugalVisit);
+    const portugalTotal = portugalVisits.length;
+    const foreignTotal = Math.max(visitEvents.length - portugalTotal, 0);
+
+    const cityCounter = new Map<string, number>();
+    const regionCounter = new Map<string, number>();
+
+    portugalVisits.forEach((visitEvent) => {
+      const city = (visitEvent.city || 'Desconhecido').trim();
+      const region = (visitEvent.region || 'Região desconhecida').trim();
+
+      cityCounter.set(city, (cityCounter.get(city) || 0) + 1);
+      regionCounter.set(region, (regionCounter.get(region) || 0) + 1);
+    });
+
+    const cityRanking = Array.from(cityCounter.entries())
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+
+    const regionRanking = Array.from(regionCounter.entries())
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+
+    return {
+      portugalShare: visitEvents.length > 0 ? (portugalTotal / visitEvents.length) * 100 : 0,
+      portugalTotal,
+      foreignTotal,
+      uniqueCities: cityCounter.size,
+      uniqueRegions: regionCounter.size,
+      cityRanking,
+      regionRanking,
+    };
+  }, [visitEvents]);
+
+  const portugalTrend30d = useMemo(() => {
+    const now = new Date();
+    const days = Array.from({ length: 30 }, (_, idx) => {
+      const date = new Date(now);
+      date.setDate(now.getDate() - (29 - idx));
+      date.setHours(0, 0, 0, 0);
+      return date;
+    });
+
+    const isPortugalVisit = (visitEvent: VisitEvent) => {
+      const countryCode = (visitEvent.countryCode || '').trim().toUpperCase();
+      const countryName = (visitEvent.country || '').trim().toLowerCase();
+      return countryCode === 'PT' || countryName.includes('portugal');
+    };
+
+    return days.map((day) => {
+      const nextDay = new Date(day);
+      nextDay.setDate(day.getDate() + 1);
+
+      const dayPortugalVisits = visitEvents.filter((visitEvent) => {
+        if (!isPortugalVisit(visitEvent)) return false;
+        const eventDate = visitEvent?.createdAt?.toDate
+          ? visitEvent.createdAt.toDate()
+          : visitEvent?.createdAt
+          ? new Date(visitEvent.createdAt)
+          : new Date(0);
+        return eventDate >= day && eventDate < nextDay;
+      });
+
+      return {
+        day: day.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }),
+        visits: dayPortugalVisits.length,
+      };
+    });
   }, [visitEvents]);
 
   const geoCoverageMetrics = useMemo(() => {
@@ -2501,6 +2581,38 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Quota PT no tráfego</p>
+                      <p className="text-xl font-bold text-emerald-700">{portugalInsights.portugalShare.toFixed(1)}%</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Tráfego fora de PT</p>
+                      <p className="text-xl font-bold text-slate-900">{portugalInsights.foreignTotal}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Cidades PT únicas</p>
+                      <p className="text-xl font-bold text-slate-900">{portugalInsights.uniqueCities}</p>
+                    </div>
+                    <div className="bg-white rounded-lg border border-emerald-100 p-3">
+                      <p className="text-xs text-gray-500">Regiões PT únicas</p>
+                      <p className="text-xl font-bold text-slate-900">{portugalInsights.uniqueRegions}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-emerald-100 p-3 mb-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">Tendência de Visitas em Portugal (30 dias)</h4>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={portugalTrend30d}>
+                        <CartesianGrid stroke="#dcfce7" />
+                        <XAxis dataKey="day" fontSize={12} />
+                        <YAxis allowDecimals={false} fontSize={12} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="visits" stroke="#16a34a" strokeWidth={2} name="Visitas PT" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
                   <div className="bg-white rounded-lg border border-emerald-100 p-3">
                     <ComposableMap
                       projection="geoMercator"
@@ -2552,6 +2664,40 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg border border-emerald-100 p-4">
+                      <h4 className="font-semibold text-gray-800 mb-3">Top Cidades em Portugal</h4>
+                      {portugalInsights.cityRanking.length === 0 ? (
+                        <p className="text-sm text-gray-500">Sem dados por cidade.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {portugalInsights.cityRanking.map((cityItem, index) => (
+                            <div key={`${cityItem.name}-${index}`} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
+                              <span className="text-gray-700 font-medium">{cityItem.name}</span>
+                              <span className="text-gray-900 font-bold">{cityItem.total} visitas</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-white rounded-lg border border-emerald-100 p-4">
+                      <h4 className="font-semibold text-gray-800 mb-3">Top Regiões em Portugal</h4>
+                      {portugalInsights.regionRanking.length === 0 ? (
+                        <p className="text-sm text-gray-500">Sem dados por região.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {portugalInsights.regionRanking.map((regionItem, index) => (
+                            <div key={`${regionItem.name}-${index}`} className="flex items-center justify-between text-sm border-b border-gray-100 pb-2">
+                              <span className="text-gray-700 font-medium">{regionItem.name}</span>
+                              <span className="text-gray-900 font-bold">{regionItem.total} visitas</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
