@@ -883,17 +883,23 @@ export default function Home() {
 
     try {
       if (emailApiUrl) {
+        const today = formatDateKey(new Date());
         const response = await fetch(emailApiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type: 'contact_message',
+            type: 'admin_notification',
             data: {
               toEmail: recipientEmail,
-              guestName: name,
+              guestName: `[Contacto] ${name}`,
               guestEmail: email,
-              guestPhone: phone,
-              message: messageText,
+              guestPhone: phone || 'N/A',
+              startDate: today,
+              endDate: today,
+              nights: 0,
+              guestsCount: 0,
+              totalPrice: 0,
+              contactMessage: messageText,
               propertyName: 'Enzo Loft',
             },
           }),
