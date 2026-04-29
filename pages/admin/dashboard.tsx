@@ -110,6 +110,13 @@ export default function AdminDashboard() {
     description: 'Retiro de charme no coração do Alentejo',
     mapsUrl: ''
   });
+  const [pageTexts, setPageTexts] = useState({
+    heroTitle: 'Retiro Perfeito no Alentejo',
+    heroSubtitle: 'Alojamento de charme em Vila Ruiva, Cuba - Beja',
+    aboutTitle: 'Sobre o EnzoLoft',
+    aboutParagraph1: 'Um refúgio encantador no coração do Alentejo, onde a natureza, conforto e charme se encontram. Perfeito para casais, famílias ou amigos que procuram descanso e autenticidade.',
+    aboutParagraph2: 'Com piscina, jardim espaçoso e todas as comodidades modernas, oferecemos uma experiência inesquecível.',
+  });
   const [siteMode, setSiteMode] = useState<SiteMode>({
     presentationModeEnabled: false,
     hideContactForm: false,
@@ -227,6 +234,11 @@ export default function AdminDashboard() {
       const siteStatsDoc = await getDoc(doc(db, 'settings', 'siteStats'));
       if (siteStatsDoc.exists()) {
         setSiteStats(siteStatsDoc.data() as SiteStats);
+      }
+
+      const pageTextsDoc = await getDoc(doc(db, 'settings', 'pageTexts'));
+      if (pageTextsDoc.exists()) {
+        setPageTexts((prev) => ({ ...prev, ...(pageTextsDoc.data() as any) }));
       }
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -2864,6 +2876,76 @@ export default function AdminDashboard() {
                     </label>
                   </div>
                 </div>
+                <div className="bg-gradient-to-br from-green-50 to-teal-50 p-6 rounded-xl border-2 border-green-200">
+                  <h3 className="font-semibold text-gray-800 text-lg mb-4">🖊️ Textos da Página Principal</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">🏷️ Título Hero</label>
+                      <input
+                        type="text"
+                        value={pageTexts.heroTitle}
+                        onChange={(e) => setPageTexts({ ...pageTexts, heroTitle: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Retiro Perfeito no Alentejo"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">💬 Subtítulo Hero</label>
+                      <input
+                        type="text"
+                        value={pageTexts.heroSubtitle}
+                        onChange={(e) => setPageTexts({ ...pageTexts, heroSubtitle: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Alojamento de charme em Vila Ruiva, Cuba - Beja"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📖 Título Secção &ldquo;Sobre&rdquo;</label>
+                      <input
+                        type="text"
+                        value={pageTexts.aboutTitle}
+                        onChange={(e) => setPageTexts({ ...pageTexts, aboutTitle: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Sobre o EnzoLoft"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📄 Parágrafo 1 (Sobre)</label>
+                      <textarea
+                        value={pageTexts.aboutParagraph1}
+                        onChange={(e) => setPageTexts({ ...pageTexts, aboutParagraph1: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                        placeholder="Um refúgio encantador no coração do Alentejo..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📄 Parágrafo 2 (Sobre)</label>
+                      <textarea
+                        value={pageTexts.aboutParagraph2}
+                        onChange={(e) => setPageTexts({ ...pageTexts, aboutParagraph2: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                        placeholder="Com piscina, jardim espaçoso..."
+                      />
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await setDoc(doc(db, 'settings', 'pageTexts'), pageTexts);
+                          alert('✅ Textos da página guardados com sucesso!');
+                        } catch (error) {
+                          console.error('Erro ao guardar textos:', error);
+                          alert('❌ Erro ao guardar textos. Tente novamente.');
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:shadow-green-300 transition-all"
+                    >
+                      💾 Guardar Textos
+                    </button>
+                  </div>
+                </div>
+
                 <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
                   <h3 className="font-semibold text-gray-800 text-lg mb-4">Informações do Footer</h3>
                   <div className="space-y-4">

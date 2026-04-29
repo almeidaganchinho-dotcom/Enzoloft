@@ -1601,19 +1601,9 @@ export default function Home() {
                 Um refúgio encantador no coração do Alentejo, onde a natureza, conforto e charme se encontram. 
                 Perfeito para casais, famílias ou amigos que procuram descanso e autenticidade.
               </p>
-              <p className="text-gray-700 text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
+              <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
                 Com piscina, jardim espaçoso e todas as comodidades modernas, oferecemos uma experiência inesquecível.
               </p>
-              <div className="flex gap-3 sm:gap-4">
-                <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md flex-1">
-                  <p className="text-xl sm:text-2xl font-bold text-orange-600">4.9</p>
-                  <p className="text-xs sm:text-sm text-gray-600">Avaliação</p>
-                </div>
-                <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md flex-1">
-                  <p className="text-xl sm:text-2xl font-bold text-orange-600">500+</p>
-                  <p className="text-xs sm:text-sm text-gray-600">Hóspedes felizes</p>
-                </div>
-              </div>
             </div>
             <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
               <Image
