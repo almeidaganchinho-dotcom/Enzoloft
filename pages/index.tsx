@@ -988,9 +988,14 @@ export default function Home() {
             addressCountry: 'PT',
           },
           image: [ogImageUrl],
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: 37.9833,
+            longitude: -7.9167,
+          },
           amenityFeature: amenities.map((amenity) => ({
             '@type': 'LocationFeatureSpecification',
-            name: amenity,
+            name: amenity.label,
             value: true,
           })),
           sameAs: [canonicalUrl],
@@ -1028,7 +1033,11 @@ export default function Home() {
     <Head>
       <title>{siteTitle}</title>
       <meta name="description" content={siteDescription} />
-      <meta name="keywords" content="alojamento alentejo, casa férias beja, vila ruiva, cuba alentejo, casa com piscina, turismo rural" />
+      <meta name="keywords" content="alojamento alentejo, alojamento local alentejo, casa férias beja, vila ruiva, cuba alentejo, casa com piscina, turismo rural alentejo, férias alentejo, aluguer casa alentejo, alojamento cuba beja, casa rural piscina alentejo, fins de semana alentejo, enzoloft" />
+      <meta name="geo.region" content="PT-BE" />
+      <meta name="geo.placename" content="Vila Ruiva, Cuba, Beja, Alentejo" />
+      <meta name="geo.position" content="37.9833;-7.9167" />
+      <meta name="ICBM" content="37.9833, -7.9167" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="robots" content="index, follow, max-image-preview:large" />
       <meta name="author" content="EnzoLoft" />
