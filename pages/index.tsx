@@ -237,6 +237,13 @@ export default function Home() {
   const [contactFormMessage, setContactFormMessage] = useState<string>('');
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const bookingStartedRef = useRef(false);
+  const [pageTexts, setPageTexts] = useState({
+    heroTitle: 'Retiro Perfeito no Alentejo',
+    heroSubtitle: 'Alojamento de charme em Vila Ruiva, Cuba - Beja',
+    aboutTitle: 'Sobre o EnzoLoft',
+    aboutParagraph1: 'Um refúgio encantador no coração do Alentejo, onde a natureza, conforto e charme se encontram. Perfeito para casais, famílias ou amigos que procuram descanso e autenticidade.',
+    aboutParagraph2: 'Com piscina, jardim espaçoso e todas as comodidades modernas, oferecemos uma experiência inesquecível.',
+  });
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
     email: 'info@enzoloft.com',
@@ -367,6 +374,11 @@ export default function Home() {
         // Informações de contacto
         if (contactDoc.exists()) {
           setContactInfo(contactDoc.data() as any);
+        }
+
+        const pageTextsDoc = await getDoc(doc(db, 'settings', 'pageTexts'));
+        if (pageTextsDoc.exists()) {
+          setPageTexts((prev) => ({ ...prev, ...(pageTextsDoc.data() as any) }));
         }
 
         if (siteModeDoc.exists()) {
@@ -1205,8 +1217,8 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-center">
             {/* Hero Content - Left Side */}
             <div className="text-white">
-              <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-3 sm:mb-4 drop-shadow-lg">Retiro Perfeito no Alentejo</h2>
-              <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 drop-shadow-md">Alojamento de charme em Vila Ruiva, Cuba - Beja</p>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-3 sm:mb-4 drop-shadow-lg">{pageTexts.heroTitle}</h2>
+              <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 drop-shadow-md">{pageTexts.heroSubtitle}</p>
               <div className="flex gap-3 sm:gap-4 text-sm sm:text-lg flex-wrap">
                 <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">📶 Wi-Fi Gratuito</span>
                 <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">🏊 Piscina</span>
@@ -1596,13 +1608,12 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4 sm:mb-6">Sobre o EnzoLoft</h2>
+              <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4 sm:mb-6">{pageTexts.aboutTitle}</h2>
               <p className="text-gray-700 text-base sm:text-lg mb-3 sm:mb-4 leading-relaxed">
-                Um refúgio encantador no coração do Alentejo, onde a natureza, conforto e charme se encontram. 
-                Perfeito para casais, famílias ou amigos que procuram descanso e autenticidade.
+                {pageTexts.aboutParagraph1}
               </p>
               <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
-                Com piscina, jardim espaçoso e todas as comodidades modernas, oferecemos uma experiência inesquecível.
+                {pageTexts.aboutParagraph2}
               </p>
             </div>
             <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
