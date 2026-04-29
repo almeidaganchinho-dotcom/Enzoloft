@@ -211,6 +211,7 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(false);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [reservedDates, setReservedDates] = useState<{startDate: string, endDate: string}[]>([]);
+  const [priceRules, setPriceRules] = useState<Price[]>([]);
   const [dateError, setDateError] = useState<string>('');
   const [nights, setNights] = useState<number>(0);
   const [voucherCode, setVoucherCode] = useState<string>('');
@@ -350,9 +351,10 @@ export default function Home() {
     const loadAllData = async () => {
       try {
         // Carregar tudo em paralelo para melhor performance
-        const [availabilitySnapshot, reservationsSnapshot, contactDoc, siteModeDoc] = await Promise.all([
+        const [availabilitySnapshot, reservationsSnapshot, pricesSnapshot, contactDoc, siteModeDoc] = await Promise.all([
           getDocs(collection(db, 'availability')),
           getDocs(query(collection(db, 'reservations'), where('status', '==', 'confirmed'))),
+          getDocs(collection(db, 'prices')),
           getDoc(doc(db, 'settings', 'contactInfo')),
           getDoc(doc(db, 'settings', 'siteMode'))
         ]);
@@ -369,6 +371,9 @@ export default function Home() {
             endDate: res.endDate
           }));
         setReservedDates(confirmedReservations);
+
+        const pricesData = pricesSnapshot.docs.map(priceDoc => ({ id: priceDoc.id, ...priceDoc.data() } as Price));
+        setPriceRules(pricesData);
         
         // Informações de contacto
         if (contactDoc.exists()) {
@@ -413,6 +418,17 @@ export default function Home() {
       return checkDate >= resStart && checkDate <= resEnd;
     });
   }, [reservedDates]);
+
+  const getNightlyPrice = useCallback((dateStr: string): number => {
+    const applicablePrice = priceRules.find((priceRule) => {
+      const priceStart = new Date(`${priceRule.startDate}T00:00:00`);
+      const priceEnd = new Date(`${priceRule.endDate}T00:00:00`);
+      const checkDate = new Date(`${dateStr}T00:00:00`);
+      return checkDate >= priceStart && checkDate <= priceEnd;
+    });
+
+    return applicablePrice ? Number(applicablePrice.pricePerNight || 100) : 100;
+  }, [priceRules]);
 
   const checkDateRangeConflict = useCallback((start: string, end: string): { hasConflict: boolean; message: string } => {
     if (!start || !end) return { hasConflict: false, message: '' };
@@ -1380,6 +1396,7 @@ export default function Home() {
                           for (let day = 1; day <= daysInMonth; day++) {
                             const date = new Date(year, month, day);
                             const dateStr = formatDateKey(date);
+                            const nightlyPrice = getNightlyPrice(dateStr);
                             
                             const isBlocked = blockedDates.some(block => {
                               const blockStart = new Date(block.startDate);
@@ -1435,9 +1452,14 @@ export default function Home() {
                                     handleDateSelect(dateStr, 'end');
                                   }
                                 }}
-                                className={`aspect-square border rounded p-0 sm:p-0.5 text-center text-[9px] sm:text-[11px] font-semibold transition-all hover:scale-105 ${bgColor}`}
+                                className={`h-11 sm:h-12 border rounded p-0.5 text-center font-semibold transition-all hover:scale-105 ${bgColor}`}
                               >
-                                {day}
+                                <div className="flex h-full flex-col items-center justify-center leading-none">
+                                  <span className="text-[10px] sm:text-xs">{day}</span>
+                                  {!disabled && (
+                                    <span className="mt-0.5 text-[8px] sm:text-[9px] font-normal">€{nightlyPrice}</span>
+                                  )}
+                                </div>
                               </button>
                             );
                           }
