@@ -242,7 +242,6 @@ export default function Home() {
     heroSubtitle: 'Alojamento de charme em Vila Ruiva, Cuba - Beja',
     aboutTitle: 'Sobre o EnzoLoft',
     aboutParagraph1: 'Um refúgio encantador no coração do Alentejo, onde a natureza, conforto e charme se encontram. Perfeito para casais, famílias ou amigos que procuram descanso e autenticidade.',
-    aboutParagraph2: 'Com piscina, jardim espaçoso e todas as comodidades modernas, oferecemos uma experiência inesquecível.',
   });
   const [contactInfo, setContactInfo] = useState({
     location: 'Vila Ruiva, Cuba - Beja',
@@ -1609,11 +1608,8 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4 sm:mb-6">{pageTexts.aboutTitle}</h2>
-              <p className="text-gray-700 text-base sm:text-lg mb-3 sm:mb-4 leading-relaxed">
-                {pageTexts.aboutParagraph1}
-              </p>
               <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
-                {pageTexts.aboutParagraph2}
+                {pageTexts.aboutParagraph1}
               </p>
             </div>
             <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
