@@ -441,7 +441,7 @@ export default function Home() {
     });
   }, [reservedDates]);
 
-  const getNightlyPrice = useCallback((dateStr: string): number => {
+  const getNightlyPrice = useCallback((dateStr: string): number | null => {
     const applicablePrice = priceRules.find((priceRule) => {
       const priceStart = new Date(`${priceRule.startDate}T00:00:00`);
       const priceEnd = new Date(`${priceRule.endDate}T00:00:00`);
@@ -449,7 +449,7 @@ export default function Home() {
       return checkDate >= priceStart && checkDate <= priceEnd;
     });
 
-    return applicablePrice ? Number(applicablePrice.pricePerNight || 100) : 100;
+    return applicablePrice ? Number(applicablePrice.pricePerNight) : null;
   }, [priceRules]);
 
   const checkDateRangeConflict = useCallback((start: string, end: string): { hasConflict: boolean; message: string } => {
@@ -1490,7 +1490,7 @@ export default function Home() {
                               >
                                 <div className="flex h-full flex-col items-center justify-center leading-none">
                                   <span className="text-[10px] sm:text-xs">{day}</span>
-                                  {!disabled && (
+                                  {!disabled && nightlyPrice !== null && (
                                     <span className="mt-0.5 text-[8px] sm:text-[9px] font-normal">€{nightlyPrice}</span>
                                   )}
                                 </div>
