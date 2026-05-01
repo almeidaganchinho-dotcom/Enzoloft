@@ -780,9 +780,9 @@ export default function Home() {
       return;
     }
 
-    if (formData.guestsCount < 1 || formData.guestsCount > 20) {
+    if (formData.guestsCount < 1 || formData.guestsCount > 5) {
       void trackAnalyticsEvent('booking_submit_blocked', { reason: 'invalid_guests_count' });
-      setMessage('❌ Número de hóspedes inválido (1-20).');
+      setMessage('❌ Número de hóspedes inválido (1-5).');
       setLoading(false);
       setSubmittingReservation(false);
       return;
@@ -1552,6 +1552,7 @@ export default function Home() {
                     type="number"
                     name="guestsCount"
                     min="1"
+                    max="5"
                     value={formData.guestsCount}
                     onChange={handleChange}
                     className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
