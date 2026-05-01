@@ -1652,16 +1652,6 @@ export default function Home() {
               </p>
             </div>
             <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
-              <Image
-                src="/images/exterior.jpg"
-                alt="Exterior"
-                fill
-                quality={70}
-                sizes="(max-width: 768px) 100vw, 50vw"
-                loading="lazy"
-                decoding="async"
-                className="object-cover"
-              />
             </div>
           </div>
           {/* Bloco 2: foto Piscina esquerda, texto direita (só se tiver conteúdo) */}
