@@ -6,6 +6,7 @@ import { ComposableMap, Geographies, Geography, Marker, Sphere, Graticule } from
 import { auth, db } from '../../lib/firebase';
 import { collection, getDocs, addDoc, doc, setDoc, getDoc, deleteDoc, updateDoc, query, orderBy, limit } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { logClientError, logClientEvent } from '../../lib/monitoring';
 
 interface Admin {
@@ -85,6 +86,73 @@ const detectMobileOsFromUserAgent = (userAgent: string): 'iOS' | 'Android' | 'Ou
 
   return 'Outro';
 };
+
+const GALLERY_SLOTS = [
+  { key: 'exterior', label: 'Exterior' },
+  { key: 'piscina', label: 'Tanque Alentejano' },
+  { key: 'sala', label: 'Sala' },
+  { key: 'cozinha', label: 'Cozinha' },
+  { key: 'quarto', label: 'Quarto' },
+  { key: 'casa-banho', label: 'Casa de Banho' },
+  { key: 'vista', label: 'Vista' },
+];
+
+function GalleryUploader() {
+  const [urls, setUrls] = React.useState<Record<string, string>>({});
+  const [progress, setProgress] = React.useState<Record<string, number>>({});
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    // Load existing URLs from Firestore
+    const load = async () => {
+      const snap = await getDoc(doc(db, 'settings', 'galleryImages'));
+      if (snap.exists()) setUrls(snap.data() as Record<string, string>);
+    };
+    load();
+  }, []);
+
+  const handleUpload = (key: string, file: File) => {
+    const storage = getStorage();
+    const storageRef = ref(storage, `gallery/${key}.jpg`);
+    const task = uploadBytesResumable(storageRef, file);
+    task.on(
+      'state_changed',
+      (snap) => setProgress((p) => ({ ...p, [key]: Math.round((snap.bytesTransferred / snap.totalBytes) * 100) })),
+      (err) => setErrors((e) => ({ ...e, [key]: err.message })),
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        const newUrls = { ...urls, [key]: url };
+        setUrls(newUrls);
+        setProgress((p) => ({ ...p, [key]: 0 }));
+        await setDoc(doc(db, 'settings', 'galleryImages'), newUrls);
+      }
+    );
+  };
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {GALLERY_SLOTS.map(({ key, label }) => (
+        <div key={key} className="border-2 border-dashed border-blue-300 rounded-xl p-4 flex flex-col gap-2">
+          <p className="font-semibold text-gray-700 text-sm">{label}</p>
+          {urls[key] && (
+            <img src={urls[key]} alt={label} className="w-full h-28 object-cover rounded-lg" />
+          )}
+          {!urls[key] && <div className="w-full h-28 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xs">Sem foto</div>}
+          {progress[key] > 0 && (
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${progress[key]}%` }} />
+            </div>
+          )}
+          {errors[key] && <p className="text-red-500 text-xs">{errors[key]}</p>}
+          <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-2 px-3 rounded-lg text-center transition-all">
+            📤 {urls[key] ? 'Substituir' : 'Carregar'}
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleUpload(key, e.target.files[0]); }} />
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL;
@@ -2957,6 +3025,12 @@ export default function AdminDashboard() {
                       💾 Guardar Textos
                     </button>
                   </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border-2 border-blue-200">
+                  <h3 className="font-semibold text-gray-800 text-lg mb-4">🖼️ Fotos da Galeria</h3>
+                  <p className="text-sm text-gray-600 mb-4">Carrega as fotos da casa. Os nomes dos ficheiros devem ser: <code className="bg-gray-100 px-1 rounded">exterior.jpg</code>, <code className="bg-gray-100 px-1 rounded">piscina.jpg</code>, <code className="bg-gray-100 px-1 rounded">sala.jpg</code>, <code className="bg-gray-100 px-1 rounded">cozinha.jpg</code>, <code className="bg-gray-100 px-1 rounded">quarto.jpg</code>, <code className="bg-gray-100 px-1 rounded">casa-banho.jpg</code>, <code className="bg-gray-100 px-1 rounded">vista.jpg</code>.</p>
+                  <GalleryUploader />
                 </div>
 
                 <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">

@@ -257,6 +257,7 @@ export default function Home() {
   const [submittingContact, setSubmittingContact] = useState<boolean>(false);
   const [contactFormMessage, setContactFormMessage] = useState<string>('');
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
+  const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
   const bookingStartedRef = useRef(false);
   const [pageTexts, setPageTexts] = useState({
     heroTitle: 'Retiro Perfeito no Alentejo',
@@ -405,6 +406,11 @@ export default function Home() {
         const pageTextsDoc = await getDoc(doc(db, 'settings', 'pageTexts'));
         if (pageTextsDoc.exists()) {
           setPageTexts((prev) => ({ ...prev, ...(pageTextsDoc.data() as any) }));
+        }
+
+        const galleryDoc = await getDoc(doc(db, 'settings', 'galleryImages'));
+        if (galleryDoc.exists()) {
+          setGalleryUrls(galleryDoc.data() as Record<string, string>);
         }
 
         if (siteModeDoc.exists()) {
@@ -997,15 +1003,14 @@ export default function Home() {
   ], []);
 
   const galleryImages = useMemo(() => [
-    { src: 'https://enzoloft.web.app/images/gallery/exterior.jpg', alt: 'Exterior' },
-    { src: 'https://enzoloft.web.app/images/gallery/patio.jpg', alt: 'Pátio' },
-    { src: 'https://enzoloft.web.app/images/gallery/sala.jpg', alt: 'Sala' },
-    { src: 'https://enzoloft.web.app/images/gallery/cozinha.jpg', alt: 'Cozinha' },
-    { src: 'https://enzoloft.web.app/images/gallery/quarto.jpg', alt: 'Quarto' },
-    { src: 'https://enzoloft.web.app/images/gallery/casa-banho.jpg', alt: 'Casa de banho' },
-    { src: 'https://enzoloft.web.app/images/gallery/vista.jpg', alt: 'Vista' },
-    { src: 'https://enzoloft.web.app/images/gallery/piscina.jpg', alt: 'Piscina' },
-  ], []);
+    { key: 'exterior', src: galleryUrls['exterior'] || '', alt: 'Exterior' },
+    { key: 'sala', src: galleryUrls['sala'] || '', alt: 'Sala' },
+    { key: 'cozinha', src: galleryUrls['cozinha'] || '', alt: 'Cozinha' },
+    { key: 'quarto', src: galleryUrls['quarto'] || '', alt: 'Quarto' },
+    { key: 'casa-banho', src: galleryUrls['casa-banho'] || '', alt: 'Casa de banho' },
+    { key: 'vista', src: galleryUrls['vista'] || '', alt: 'Vista' },
+    { key: 'piscina', src: galleryUrls['piscina'] || '', alt: 'Tanque Alentejano' },
+  ].filter(img => img.src !== ''), [galleryUrls]);
 
   const structuredData = useMemo(
     () => ({
@@ -1251,8 +1256,9 @@ export default function Home() {
         <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{
-            backgroundImage:
-              "linear-gradient(to right, rgba(234, 88, 12, 0.6), rgba(239, 68, 68, 0.55), rgba(234, 88, 12, 0.6)), url('https://enzoloft.web.app/images/gallery/exterior.jpg')",
+            backgroundImage: galleryUrls['exterior']
+              ? `linear-gradient(to right, rgba(234, 88, 12, 0.6), rgba(239, 68, 68, 0.55), rgba(234, 88, 12, 0.6)), url('${galleryUrls['exterior']}')`
+              : undefined,
             backgroundColor: '#c2410c',
           }}
           aria-hidden="true"
@@ -1667,7 +1673,7 @@ export default function Home() {
             </div>
             <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
               <Image
-                src="https://enzoloft.web.app/images/gallery/exterior.jpg"
+                src={galleryUrls['exterior'] || '/og-image.jpg'}
                 alt="Exterior"
                 fill
                 quality={70}
@@ -1683,7 +1689,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
               <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden order-2 md:order-1">
                 <Image
-                  src="https://enzoloft.web.app/images/gallery/piscina.jpg"
+                  src={galleryUrls['piscina'] || '/og-image.jpg'}
                   alt="Tanque Alentejano"
                   fill
                   quality={70}
