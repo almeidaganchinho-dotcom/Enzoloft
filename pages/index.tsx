@@ -1246,7 +1246,7 @@ export default function Home() {
         <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(234, 88, 12, 0.6), rgba(239, 68, 68, 0.55), rgba(234, 88, 12, 0.6)), url('/images/exterior.jpg')`,
+            backgroundImage: "url('/images/exterior.jpg')",
             backgroundColor: '#c2410c',
           }}
           aria-hidden="true"
