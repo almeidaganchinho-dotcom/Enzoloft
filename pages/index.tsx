@@ -1000,7 +1000,23 @@ export default function Home() {
     { icon: '💇', label: 'Secador de cabelo' },
   ], []);
 
-  const galleryImages = useMemo(() => [], []);
+  const galleryImages = useMemo(() => [
+    { src: '/images/IMG_0033.JPG', alt: 'EnzoLoft - Foto 1' },
+    { src: '/images/IMG_0035.JPG', alt: 'EnzoLoft - Foto 2' },
+    { src: '/images/IMG_0037.JPG', alt: 'EnzoLoft - Foto 3' },
+    { src: '/images/IMG_0038.JPG', alt: 'EnzoLoft - Foto 4' },
+    { src: '/images/IMG_0040(1).JPG', alt: 'EnzoLoft - Foto 5' },
+    { src: '/images/IMG_0042(1).JPG', alt: 'EnzoLoft - Foto 6' },
+    { src: '/images/IMG_0043.JPG', alt: 'EnzoLoft - Foto 7' },
+    { src: '/images/IMG_0046.JPG', alt: 'EnzoLoft - Foto 8' },
+    { src: '/images/IMG_0047.JPG', alt: 'EnzoLoft - Foto 9' },
+    { src: '/images/IMG_0050.JPG', alt: 'EnzoLoft - Foto 10' },
+    { src: '/images/IMG_0051.JPG', alt: 'EnzoLoft - Foto 11' },
+    { src: '/images/IMG_0052.JPG', alt: 'EnzoLoft - Foto 12' },
+    { src: '/images/IMG_0053.JPG', alt: 'EnzoLoft - Foto 13' },
+    { src: '/images/IMG_0054.JPG', alt: 'EnzoLoft - Foto 14' },
+    { src: '/images/IMG_0055.JPG', alt: 'EnzoLoft - Foto 15' },
+  ], []);
 
   const structuredData = useMemo(
     () => ({
