@@ -1651,8 +1651,6 @@ export default function Home() {
                 {renderFormattedText(pageTexts.aboutParagraph1)}
               </p>
             </div>
-            <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
-            </div>
           </div>
           {/* Bloco 2: foto Piscina esquerda, texto direita (só se tiver conteúdo) */}
           {(pageTexts.aboutTitle2 || pageTexts.aboutParagraph2) && (
