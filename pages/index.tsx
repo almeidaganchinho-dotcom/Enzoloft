@@ -1674,17 +1674,31 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
-              <Image
-                src="https://enzoloft.web.app/images/about/casa-exterior.jpg"
-                alt="Casa exterior"
-                fill
-                quality={70}
-                sizes="(max-width: 768px) 100vw, 50vw"
-                loading="lazy"
-                decoding="async"
-                className="object-cover"
-              />
+            <div className="flex flex-col gap-4">
+              <div className="relative w-full h-56 sm:h-64 rounded-xl shadow-xl overflow-hidden">
+                <Image
+                  src="https://enzoloft.web.app/images/gallery/exterior.jpg"
+                  alt="Exterior"
+                  fill
+                  quality={70}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  loading="lazy"
+                  decoding="async"
+                  className="object-cover"
+                />
+              </div>
+              <div className="relative w-full h-56 sm:h-64 rounded-xl shadow-xl overflow-hidden">
+                <Image
+                  src="https://enzoloft.web.app/images/gallery/piscina.jpg"
+                  alt="Tanque Alentejano"
+                  fill
+                  quality={70}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  loading="lazy"
+                  decoding="async"
+                  className="object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>
