@@ -1246,7 +1246,7 @@ export default function Home() {
         <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('/images/exterior.jpg')",
+            backgroundImage: "url('/images/hero-alentejo-abstract.svg')",
             backgroundColor: '#c2410c',
           }}
           aria-hidden="true"

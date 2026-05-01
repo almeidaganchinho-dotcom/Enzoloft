@@ -1,0 +1,54 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Paisagem abstrata rustica alentejana</title>
+  <desc id="desc">Ilustracao com chaparro, casa alentejana e talha em tons quentes.</desc>
+
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4E2C8"/>
+      <stop offset="1" stop-color="#E7C08A"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="560" x2="0" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B6783C"/>
+      <stop offset="1" stop-color="#7B4A24"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1220 180) rotate(90) scale(170)">
+      <stop stop-color="#FFD79B"/>
+      <stop offset="1" stop-color="#FFD79B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1220" cy="180" r="170" fill="url(#sun)"/>
+
+  <path d="M0 620C210 560 360 650 560 620C760 590 860 510 1080 560C1300 610 1440 660 1600 620V900H0V620Z" fill="url(#land)"/>
+  <path d="M0 700C190 650 430 740 650 700C870 660 1040 590 1280 650C1450 690 1540 720 1600 700V900H0V700Z" fill="#8B552A" fill-opacity="0.55"/>
+
+  <g transform="translate(270 390)">
+    <rect x="0" y="220" width="220" height="130" fill="#F7EFE2"/>
+    <rect x="0" y="220" width="220" height="14" fill="#C9562A"/>
+    <path d="M-14 220L110 138L234 220H-14Z" fill="#C9562A"/>
+    <rect x="90" y="270" width="40" height="80" rx="4" fill="#9A5C32"/>
+    <rect x="22" y="264" width="44" height="34" rx="2" fill="#B5D0D8"/>
+    <rect x="154" y="264" width="44" height="34" rx="2" fill="#B5D0D8"/>
+  </g>
+
+  <g transform="translate(980 390)">
+    <ellipse cx="66" cy="330" rx="66" ry="26" fill="#653A1F" fill-opacity="0.4"/>
+    <path d="M32 130H100L112 182C122 225 130 268 126 302C122 334 104 350 66 350C28 350 10 334 6 302C2 268 10 225 20 182L32 130Z" fill="#A86537"/>
+    <path d="M24 156H108" stroke="#C88A58" stroke-width="9" stroke-linecap="round"/>
+    <path d="M20 214H112" stroke="#C88A58" stroke-width="8" stroke-linecap="round"/>
+    <path d="M16 274H116" stroke="#C88A58" stroke-width="7" stroke-linecap="round"/>
+    <ellipse cx="66" cy="126" rx="34" ry="14" fill="#91542F"/>
+  </g>
+
+  <g transform="translate(1120 185)">
+    <path d="M40 320C40 200 92 116 186 116C280 116 334 194 334 320" stroke="#4B2F1A" stroke-width="34" stroke-linecap="round"/>
+    <path d="M160 330C148 248 112 194 54 160" stroke="#4B2F1A" stroke-width="20" stroke-linecap="round"/>
+    <path d="M212 330C224 248 264 194 324 160" stroke="#4B2F1A" stroke-width="20" stroke-linecap="round"/>
+    <ellipse cx="186" cy="114" rx="170" ry="96" fill="#607A3A"/>
+    <ellipse cx="116" cy="106" rx="92" ry="56" fill="#516A32"/>
+    <ellipse cx="252" cy="98" rx="84" ry="52" fill="#516A32"/>
+  </g>
+
+  <rect y="820" width="1600" height="80" fill="#6E4223" fill-opacity="0.35"/>
+</svg>
