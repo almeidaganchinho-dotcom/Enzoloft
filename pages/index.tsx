@@ -972,6 +972,7 @@ export default function Home() {
     { icon: '🔥', label: 'Lareira' },
     { icon: '🏊', label: 'Piscina' },
     { icon: '🌿', label: 'Pátio' },
+    { icon: '☕', label: 'Máquina de café Nespresso' },
   ], []);
 
   const galleryImages = useMemo(() => [
