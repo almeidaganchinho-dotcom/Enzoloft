@@ -2915,10 +2915,11 @@ export default function AdminDashboard() {
                       <textarea
                         value={pageTexts.aboutParagraph1}
                         onChange={(e) => setPageTexts({ ...pageTexts, aboutParagraph1: e.target.value })}
-                        rows={3}
-                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                        rows={5}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder="Um refúgio encantador no coração do Alentejo..."
                       />
+                      <p className="text-xs text-gray-400 mt-1">Enter = nova linha &nbsp;|&nbsp; <code>**texto**</code> = <strong>negrito</strong> &nbsp;|&nbsp; <code>*texto*</code> = <em>itálico</em></p>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">📖 Título 2 (Sobre)</label>
@@ -2935,10 +2936,11 @@ export default function AdminDashboard() {
                       <textarea
                         value={pageTexts.aboutParagraph2}
                         onChange={(e) => setPageTexts({ ...pageTexts, aboutParagraph2: e.target.value })}
-                        rows={3}
-                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                        rows={5}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         placeholder="Texto adicional sobre a casa..."
                       />
+                      <p className="text-xs text-gray-400 mt-1">Enter = nova linha &nbsp;|&nbsp; <code>**texto**</code> = <strong>negrito</strong> &nbsp;|&nbsp; <code>*texto*</code> = <em>itálico</em></p>
                     </div>
                     <button
                       onClick={async () => {

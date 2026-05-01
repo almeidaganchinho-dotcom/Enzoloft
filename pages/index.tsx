@@ -1,4 +1,24 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+
+function renderFormattedText(text: string): React.ReactNode {
+  return text.split('\n').map((line, i, arr) => {
+    const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+    return (
+      <React.Fragment key={i}>
+        {parts.map((part, j) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={j}>{part.slice(2, -2)}</strong>;
+          }
+          if (part.startsWith('*') && part.endsWith('*')) {
+            return <em key={j}>{part.slice(1, -1)}</em>;
+          }
+          return part;
+        })}
+        {i < arr.length - 1 && <br />}
+      </React.Fragment>
+    );
+  });
+}
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -1641,7 +1661,7 @@ export default function Home() {
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4 sm:mb-6">{pageTexts.aboutTitle}</h2>
               <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
-                {pageTexts.aboutParagraph1}
+                {renderFormattedText(pageTexts.aboutParagraph1)}
               </p>
               {(pageTexts.aboutTitle2 || pageTexts.aboutParagraph2) && (
                 <div className="mt-6">
@@ -1649,7 +1669,7 @@ export default function Home() {
                     <h3 className="text-xl sm:text-2xl font-bold text-orange-800 mb-2">{pageTexts.aboutTitle2}</h3>
                   )}
                   {pageTexts.aboutParagraph2 && (
-                    <p className="text-gray-700 text-base sm:text-lg leading-relaxed">{pageTexts.aboutParagraph2}</p>
+                    <p className="text-gray-700 text-base sm:text-lg leading-relaxed">{renderFormattedText(pageTexts.aboutParagraph2)}</p>
                   )}
                 </div>
               )}
