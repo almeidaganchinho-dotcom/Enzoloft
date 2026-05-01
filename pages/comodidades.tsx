@@ -13,7 +13,7 @@ const amenities = [
   { icon: '📺', label: '3 TVs' },
   { icon: '🔥', label: 'Lareira' },
   { icon: '🏊', label: 'Piscina' },
-  { icon: '🌿', label: 'Jardim' },
+  { icon: '🌿', label: 'Pátio' },
 ];
 
 export default function ComodidadesPage() {

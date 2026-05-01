@@ -190,7 +190,7 @@ export default function Home() {
   const siteBaseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://enzoloft.pt').replace(/\/$/, '');
   const canonicalUrl = siteBaseUrl;
   const siteTitle = 'EnzoLoft - Alojamento de Charme em Vila Ruiva, Cuba - Beja';
-  const siteDescription = 'Retiro de charme no coração do Alentejo. Reserve agora o seu alojamento exclusivo em Vila Ruiva, Cuba - Beja. Casa completa com piscina, jardim e vistas deslumbrantes.';
+  const siteDescription = 'Retiro de charme no coração do Alentejo. Reserve agora o seu alojamento exclusivo em Vila Ruiva, Cuba - Beja. Casa completa com piscina, pátio e vistas deslumbrantes.';
   const ogImageVersion = process.env.NEXT_PUBLIC_OG_IMAGE_VERSION || '20260227';
   const ogImageUrl = `${siteBaseUrl}/og-image.jpg?v=${ogImageVersion}`;
   const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL;
@@ -971,7 +971,7 @@ export default function Home() {
     { icon: '📺', label: '3 TVs' },
     { icon: '🔥', label: 'Lareira' },
     { icon: '🏊', label: 'Piscina' },
-    { icon: '🌿', label: 'Jardim' },
+    { icon: '🌿', label: 'Pátio' },
   ], []);
 
   const galleryImages = useMemo(() => [
@@ -1246,7 +1246,7 @@ export default function Home() {
               <div className="flex gap-3 sm:gap-4 text-sm sm:text-lg flex-wrap">
                 <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">📶 Wi-Fi Gratuito</span>
                 <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">🏊 Piscina</span>
-                <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">🌿 Jardim</span>
+                <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">🌿 Pátio</span>
               </div>
             </div>
 
