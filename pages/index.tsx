@@ -1658,6 +1658,18 @@ export default function Home() {
                 {renderFormattedText(pageTexts.aboutParagraph1)}
               </p>
             </div>
+            <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
+              <Image
+                src="/images/sobre-exterior.jpg"
+                alt="Exterior do EnzoLoft"
+                fill
+                quality={95}
+                sizes="(max-width: 768px) 100vw, 50vw"
+                loading="lazy"
+                decoding="async"
+                className="object-cover"
+              />
+            </div>
           </div>
           {/* Bloco 2: foto Piscina esquerda, texto direita (só se tiver conteúdo) */}
           {(pageTexts.aboutTitle2 || pageTexts.aboutParagraph2) && (
