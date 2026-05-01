@@ -4,7 +4,7 @@ import Link from 'next/link';
 const amenities = [
   { icon: '🛏️', label: '1 Quarto' },
   { icon: '🚿', label: '1 WC' },
-  { icon: '👥', label: 'Capacidade para 4+1 hóspedes' },
+  { icon: '👥', label: '4+1' },
   { icon: '📶', label: 'Wi-Fi Gratuito' },
   { icon: '❄️', label: 'Ar Condicionado' },
   { icon: '🍳', label: 'Cozinha Equipada' },
