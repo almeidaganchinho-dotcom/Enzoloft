@@ -115,6 +115,8 @@ export default function AdminDashboard() {
     heroSubtitle: 'Alojamento de charme em Vila Ruiva, Cuba - Beja',
     aboutTitle: 'Sobre o EnzoLoft',
     aboutParagraph1: 'Um refúgio encantador no coração do Alentejo, onde a natureza, conforto e charme se encontram. Perfeito para casais, famílias ou amigos que procuram descanso e autenticidade.',
+    aboutTitle2: '',
+    aboutParagraph2: '',
   });
   const [siteMode, setSiteMode] = useState<SiteMode>({
     presentationModeEnabled: false,
@@ -2916,6 +2918,26 @@ export default function AdminDashboard() {
                         rows={3}
                         className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                         placeholder="Um refúgio encantador no coração do Alentejo..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📖 Título 2 (Sobre)</label>
+                      <input
+                        type="text"
+                        value={pageTexts.aboutTitle2}
+                        onChange={(e) => setPageTexts({ ...pageTexts, aboutTitle2: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Título opcional para o segundo bloco"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">📄 Parágrafo 2 (Sobre)</label>
+                      <textarea
+                        value={pageTexts.aboutParagraph2}
+                        onChange={(e) => setPageTexts({ ...pageTexts, aboutParagraph2: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                        placeholder="Texto adicional sobre a casa..."
                       />
                     </div>
                     <button
