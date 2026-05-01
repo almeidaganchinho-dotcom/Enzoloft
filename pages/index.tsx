@@ -1243,14 +1243,17 @@ export default function Home() {
       {/* Hero Section with Booking Form */}
       <section id="booking" className="relative py-10 sm:py-16 overflow-hidden">
         {/* Background Image */}
-        <div
-          className="absolute inset-0 z-0 bg-cover bg-center"
-          style={{
-            backgroundImage: "url('/images/hero-alentejo-abstract.svg')",
-            backgroundColor: '#c2410c',
-          }}
-          aria-hidden="true"
-        />
+        <div className="absolute inset-0 z-0" aria-hidden="true">
+          <Image
+            src="/images/exterior.jpg"
+            alt="Exterior do EnzoLoft"
+            fill
+            priority
+            quality={100}
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
         
         {/* Content */}
         <div className="max-w-7xl mx-auto px-3 sm:px-4 relative z-10">
