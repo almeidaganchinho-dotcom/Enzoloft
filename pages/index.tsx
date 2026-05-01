@@ -1656,38 +1656,32 @@ export default function Home() {
 
       {/* About Section */}
       <section className="bg-gradient-to-r from-orange-50 to-red-50 py-10 sm:py-16" style={deferredSectionStyle}>
-        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 flex flex-col gap-10 sm:gap-14">
+          {/* Bloco 1: texto esquerda, foto Exterior direita */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold text-orange-900 mb-4 sm:mb-6">{pageTexts.aboutTitle}</h2>
               <p className="text-gray-700 text-base sm:text-lg leading-relaxed">
                 {renderFormattedText(pageTexts.aboutParagraph1)}
               </p>
-              {(pageTexts.aboutTitle2 || pageTexts.aboutParagraph2) && (
-                <div className="mt-6">
-                  {pageTexts.aboutTitle2 && (
-                    <h3 className="text-xl sm:text-2xl font-bold text-orange-800 mb-2">{pageTexts.aboutTitle2}</h3>
-                  )}
-                  {pageTexts.aboutParagraph2 && (
-                    <p className="text-gray-700 text-base sm:text-lg leading-relaxed">{renderFormattedText(pageTexts.aboutParagraph2)}</p>
-                  )}
-                </div>
-              )}
             </div>
-            <div className="flex flex-col gap-4">
-              <div className="relative w-full h-56 sm:h-64 rounded-xl shadow-xl overflow-hidden">
-                <Image
-                  src="https://enzoloft.web.app/images/gallery/exterior.jpg"
-                  alt="Exterior"
-                  fill
-                  quality={70}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  loading="lazy"
-                  decoding="async"
-                  className="object-cover"
-                />
-              </div>
-              <div className="relative w-full h-56 sm:h-64 rounded-xl shadow-xl overflow-hidden">
+            <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
+              <Image
+                src="https://enzoloft.web.app/images/gallery/exterior.jpg"
+                alt="Exterior"
+                fill
+                quality={70}
+                sizes="(max-width: 768px) 100vw, 50vw"
+                loading="lazy"
+                decoding="async"
+                className="object-cover"
+              />
+            </div>
+          </div>
+          {/* Bloco 2: foto Piscina esquerda, texto direita (só se tiver conteúdo) */}
+          {(pageTexts.aboutTitle2 || pageTexts.aboutParagraph2) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
+              <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden order-2 md:order-1">
                 <Image
                   src="https://enzoloft.web.app/images/gallery/piscina.jpg"
                   alt="Tanque Alentejano"
@@ -1699,8 +1693,16 @@ export default function Home() {
                   className="object-cover"
                 />
               </div>
+              <div className="order-1 md:order-2">
+                {pageTexts.aboutTitle2 && (
+                  <h3 className="text-2xl sm:text-3xl font-bold text-orange-900 mb-4 sm:mb-6">{pageTexts.aboutTitle2}</h3>
+                )}
+                {pageTexts.aboutParagraph2 && (
+                  <p className="text-gray-700 text-base sm:text-lg leading-relaxed">{renderFormattedText(pageTexts.aboutParagraph2)}</p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
