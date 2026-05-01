@@ -982,6 +982,9 @@ export default function Home() {
   }, [contactFormData, emailApiUrl]);
 
   const amenities = useMemo(() => [
+    { icon: '🛏️', label: '1 Quarto' },
+    { icon: '🚿', label: '1 WC' },
+    { icon: '👥', label: 'Capacidade para 4+1 hóspedes' },
     { icon: '📶', label: 'Wi-Fi Gratuito' },
     { icon: '❄️', label: 'Ar Condicionado' },
     { icon: '🍳', label: 'Cozinha Equipada' },
@@ -994,6 +997,7 @@ export default function Home() {
     { icon: '🔥', label: 'Lareira' },
     { icon: '💦', label: 'Tanque Alentejano' },
     { icon: '☕', label: 'Máquina de café Nespresso' },
+    { icon: '💨', label: 'Secador de cabelo' },
   ], []);
 
   const galleryImages = useMemo(() => [], []);

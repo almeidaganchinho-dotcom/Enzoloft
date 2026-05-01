@@ -2,6 +2,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 const amenities = [
+  { icon: '🛏️', label: '1 Quarto' },
+  { icon: '🚿', label: '1 WC' },
+  { icon: '👥', label: 'Capacidade para 4+1 hóspedes' },
   { icon: '📶', label: 'Wi-Fi Gratuito' },
   { icon: '❄️', label: 'Ar Condicionado' },
   { icon: '🍳', label: 'Cozinha Equipada' },
@@ -14,6 +17,7 @@ const amenities = [
   { icon: '🔥', label: 'Lareira' },
   { icon: '💦', label: 'Tanque Alentejano' },
   { icon: '☕', label: 'Máquina de café Nespresso' },
+  { icon: '💨', label: 'Secador de cabelo' },
 ];
 
 export default function ComodidadesPage() {
