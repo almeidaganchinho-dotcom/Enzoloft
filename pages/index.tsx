@@ -63,6 +63,11 @@ interface FormData {
   totalPrice: number;
 }
 
+interface PriceCalculationResult {
+  totalPrice: number;
+  priceOnRequest: boolean;
+}
+
 interface ContactFormData {
   name: string;
   email: string;
@@ -239,6 +244,7 @@ export default function Home() {
   const [voucherError, setVoucherError] = useState<string>('');
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
+  const [priceOnRequest, setPriceOnRequest] = useState<boolean>(false);
   const [showFormCalendar, setShowFormCalendar] = useState<boolean>(false);
   const [formCalendarMonth, setFormCalendarMonth] = useState<Date>(new Date());
   const [showAmenitiesModal, setShowAmenitiesModal] = useState<boolean>(false);
@@ -487,6 +493,12 @@ export default function Home() {
       return;
     }
 
+    if (priceOnRequest) {
+      setVoucherError('Para este período, o preço está sob consulta e não permite voucher.');
+      void trackAnalyticsEvent('voucher_apply_failed', { reason: 'price_on_request' });
+      return;
+    }
+
     const currentPrice = originalPrice > 0 ? originalPrice : formData.totalPrice;
     
     if (currentPrice === 0) {
@@ -557,58 +569,43 @@ export default function Home() {
       setVoucherError('Erro ao validar voucher. Tente novamente.');
       void trackAnalyticsEvent('voucher_apply_failed', { reason: 'exception' });
     }
-  }, [voucherCode, originalPrice, formData.totalPrice]);
-  const calculateTotalPrice = useCallback(async (startDate: string, endDate: string): Promise<number> => {
-    if (!startDate || !endDate) return 0;
+  }, [voucherCode, originalPrice, formData.totalPrice, priceOnRequest]);
+  const calculateTotalPrice = useCallback(async (startDate: string, endDate: string): Promise<PriceCalculationResult> => {
+    if (!startDate || !endDate) return { totalPrice: 0, priceOnRequest: false };
 
     const nightsCount = getNightsBetween(startDate, endDate);
-    if (nightsCount <= 0) return 0;
+    if (nightsCount <= 0) return { totalPrice: 0, priceOnRequest: false };
 
     const start = new Date(`${startDate}T00:00:00`);
     setNights(nightsCount);
-    
+
     try {
-      // Carregar preços do Firestore
-      const pricesSnapshot = await getDocs(collection(db, 'prices'));
-      const prices: Price[] = pricesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Price));
-      
-      console.log('Preços carregados do Firestore:', prices);
-      
-      if (prices.length === 0) {
-        console.log('Usando preço padrão: €100/noite');
-        return nightsCount * 100;
+      if (priceRules.length === 0) {
+        setOriginalPrice(0);
+        setDiscount(0);
+        return { totalPrice: 0, priceOnRequest: true };
       }
-      
+
       let totalPrice = 0;
-      
-      // Calcular preço para cada noite
+
+      // Se alguma noite não tiver preço definido, fica sob consulta para todo o período.
       let currentDate = new Date(start);
       for (let i = 0; i < nightsCount; i++) {
         const dateStr = formatDateKey(currentDate);
-        
-        // Encontrar preço aplicável para esta data
-        const applicablePrice = prices.find((p: Price) => {
-          const priceStart = new Date(p.startDate + 'T00:00:00');
-          const priceEnd = new Date(p.endDate + 'T00:00:00');
-          const checkDate = new Date(dateStr + 'T00:00:00');
-          return checkDate >= priceStart && checkDate <= priceEnd;
-        });
-        
-        if (applicablePrice) {
-          console.log(`Data ${dateStr}: €${applicablePrice.pricePerNight} (${applicablePrice.season})`);
-          totalPrice += parseFloat(applicablePrice.pricePerNight.toString());
-        } else {
-          console.log(`Data ${dateStr}: €100 (preço padrão)`);
-          totalPrice += 100;
+        const nightlyPrice = getNightlyPrice(dateStr);
+
+        if (nightlyPrice === null) {
+          setOriginalPrice(0);
+          setDiscount(0);
+          return { totalPrice: 0, priceOnRequest: true };
         }
-        
+
+        totalPrice += nightlyPrice;
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      
-      console.log('Total calculado:', totalPrice);
+
       setOriginalPrice(totalPrice);
-      
-      // Recalcular com desconto se houver voucher aplicado
+
       if (appliedVoucher) {
         let discountAmount = 0;
         if (appliedVoucher.type === 'percentage') {
@@ -620,16 +617,18 @@ export default function Home() {
           discountAmount = totalPrice;
         }
         setDiscount(discountAmount);
-        return totalPrice - discountAmount;
+        return { totalPrice: totalPrice - discountAmount, priceOnRequest: false };
       }
-      
-      return totalPrice;
+
+      return { totalPrice, priceOnRequest: false };
     } catch (error) {
       console.error('Erro ao calcular preço:', error);
       await logClientError('booking_price_calculation_failed', error, { startDate, endDate });
-      return nightsCount * 100;
+      setOriginalPrice(0);
+      setDiscount(0);
+      return { totalPrice: 0, priceOnRequest: true };
     }
-  }, [appliedVoucher]);
+  }, [appliedVoucher, getNightlyPrice, priceRules]);
 
   const handleChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -654,6 +653,7 @@ export default function Home() {
       setDateError('❌ A data de check-out deve ser posterior à data de check-in.');
       setFormData(prev => ({ ...prev, endDate: '', totalPrice: 0 }));
       setNights(0);
+      setPriceOnRequest(false);
       return;
     }
 
@@ -677,12 +677,21 @@ export default function Home() {
         setDateError(conflict.message);
         setFormData(prev => ({ ...prev, totalPrice: 0 }));
         setNights(0);
+        setPriceOnRequest(false);
       } else {
-        const calculatedPrice = await calculateTotalPrice(nextStartDate, nextEndDate);
-        setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
+        const calculation = await calculateTotalPrice(nextStartDate, nextEndDate);
+        setPriceOnRequest(calculation.priceOnRequest);
+        if (calculation.priceOnRequest) {
+          setAppliedVoucher(null);
+          setVoucherCode('');
+          setDiscount(0);
+          setVoucherError('');
+        }
+        setFormData(prev => ({ ...prev, totalPrice: calculation.totalPrice }));
       }
     } else {
       setNights(0);
+      setPriceOnRequest(false);
     }
   }, [formData.startDate, formData.endDate, checkDateRangeConflict, calculateTotalPrice]);
 
@@ -721,22 +730,34 @@ export default function Home() {
         setDateError(conflict.message);
         setFormData(prev => ({ ...prev, totalPrice: 0 }));
         setNights(0);
+        setPriceOnRequest(false);
       } else {
-        const calculatedPrice = await calculateTotalPrice(newFormData.startDate, newFormData.endDate);
-        setFormData(prev => ({ ...prev, totalPrice: calculatedPrice }));
+        const calculation = await calculateTotalPrice(newFormData.startDate, newFormData.endDate);
+        setPriceOnRequest(calculation.priceOnRequest);
+        if (calculation.priceOnRequest) {
+          setAppliedVoucher(null);
+          setVoucherCode('');
+          setDiscount(0);
+          setVoucherError('');
+        }
+        setFormData(prev => ({ ...prev, totalPrice: calculation.totalPrice }));
         setShowFormCalendar(false);
         await logClientEvent({
           event: 'booking_dates_selected',
           context: {
             startDate: newFormData.startDate,
             endDate: newFormData.endDate,
-            totalPrice: calculatedPrice,
+            totalPrice: calculation.totalPrice,
+            priceOnRequest: calculation.priceOnRequest,
           },
         });
         void trackAnalyticsEvent('booking_dates_selected', {
-          total_price: Number(calculatedPrice.toFixed(2)),
+          total_price: Number(calculation.totalPrice.toFixed(2)),
+          price_on_request: calculation.priceOnRequest,
         });
       }
+    } else {
+      setPriceOnRequest(false);
     }
   }, [formData, checkDateRangeConflict, calculateTotalPrice]);
 
@@ -792,6 +813,7 @@ export default function Home() {
       guests_count: formData.guestsCount,
       total_price: Number(formData.totalPrice.toFixed(2)),
       has_voucher: !!appliedVoucher,
+      price_on_request: priceOnRequest,
     });
 
     try {
@@ -805,6 +827,7 @@ export default function Home() {
         endDate: formData.endDate,
         guestsCount: Number(formData.guestsCount),
         totalPrice: Number(formData.totalPrice),
+        priceOnRequest,
         status: 'pending',
         createdAt: new Date().toISOString(),
         ...(appliedVoucher && {
@@ -825,12 +848,14 @@ export default function Home() {
           endDate: reservation.endDate,
           totalPrice: reservation.totalPrice,
           guestsCount: reservation.guestsCount,
+          priceOnRequest: reservation.priceOnRequest,
         },
       });
       void trackAnalyticsEvent('booking_submit_success', {
         guests_count: reservation.guestsCount,
         total_price: Number(reservation.totalPrice.toFixed(2)),
         has_voucher: !!appliedVoucher,
+        price_on_request: reservation.priceOnRequest,
       });
       
       // Enviar emails (confirmação para hóspede + notificação para admin)
@@ -850,6 +875,7 @@ export default function Home() {
                 nights: nights,
                 guestsCount: reservation.guestsCount,
                 totalPrice: reservation.totalPrice,
+                priceOnRequest: reservation.priceOnRequest,
                 discount: discount || 0,
                 propertyName: 'Enzo Loft'
               }
@@ -870,7 +896,8 @@ export default function Home() {
                 endDate: reservation.endDate,
                 nights: nights,
                 guestsCount: reservation.guestsCount,
-                totalPrice: reservation.totalPrice
+                totalPrice: reservation.totalPrice,
+                priceOnRequest: reservation.priceOnRequest
               }
             })
           });
@@ -895,6 +922,7 @@ export default function Home() {
       setVoucherCode('');
       setDiscount(0);
       setOriginalPrice(0);
+      setPriceOnRequest(false);
       setVoucherError('');
     } catch (error) {
       console.error('Erro ao criar reserva:', error);
@@ -1071,12 +1099,12 @@ export default function Home() {
       !!formData.guestPhone.trim() &&
       !!formData.startDate &&
       !!formData.endDate &&
-      formData.totalPrice > 0 &&
+      (formData.totalPrice > 0 || priceOnRequest) &&
       dateError === '' &&
       !loading &&
       !submittingReservation
     );
-  }, [dateError, formData, loading, submittingReservation]);
+  }, [dateError, formData, loading, priceOnRequest, submittingReservation]);
 
   const seoHead = (
     <Head>
@@ -1573,14 +1601,17 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={applyVoucher}
-                      disabled={formData.totalPrice === 0}
+                      disabled={formData.totalPrice === 0 || priceOnRequest}
                       className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Aplicar
                     </button>
                   </div>
-                  {formData.totalPrice === 0 && voucherCode && (
+                  {formData.totalPrice === 0 && voucherCode && !priceOnRequest && (
                     <p className="text-xs text-gray-600 mt-1">💡 Selecione as datas primeiro para aplicar o voucher</p>
+                  )}
+                  {priceOnRequest && (
+                    <p className="text-xs text-gray-600 mt-1">💡 Para este período, o valor é sob consulta e não permite voucher.</p>
                   )}
                   {voucherError && (
                     <p className="text-xs text-red-600 mt-1">❌ {voucherError}</p>
@@ -1608,13 +1639,13 @@ export default function Home() {
                   )}
                 </div>
                 
-                {formData.totalPrice > 0 && (
+                {(formData.totalPrice > 0 || priceOnRequest) && (
                   <div className="bg-green-50 border-2 border-green-300 p-3 rounded-lg">
                     <p className="text-xs text-green-700 font-semibold mb-2">Resumo do Preço</p>
                     {liveNights > 0 && (
                       <p className="text-xs text-gray-700 mb-2">{liveNights} {liveNights === 1 ? 'noite' : 'noites'} selecionadas</p>
                     )}
-                    {appliedVoucher ? (
+                    {appliedVoucher && !priceOnRequest ? (
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs text-gray-700">
                           <span>Preço Original:</span>
@@ -1629,6 +1660,14 @@ export default function Home() {
                           <span className="text-sm font-semibold text-green-800">Total Final:</span>
                           <span className="text-2xl font-bold text-green-800">€{formData.totalPrice.toFixed(2)}</span>
                         </div>
+                      </div>
+                    ) : priceOnRequest ? (
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold text-green-800">Total:</span>
+                          <span className="text-2xl font-bold text-green-800">Sob consulta</span>
+                        </div>
+                        <p className="text-xs text-gray-700">Sem preço definido para uma ou mais noites deste período.</p>
                       </div>
                     ) : (
                       <p className="text-2xl font-bold text-green-800">€{formData.totalPrice.toFixed(2)}</p>
@@ -1659,7 +1698,7 @@ export default function Home() {
                 </button>
                 {!canSubmitReservation && bookingStarted && (
                   <p className="text-xs text-gray-600 text-center">
-                    Preencha todos os campos, selecione datas válidas e confirme o preço para concluir a reserva.
+                    Preencha todos os campos e selecione datas válidas para concluir a reserva.
                   </p>
                 )}
               </form>
