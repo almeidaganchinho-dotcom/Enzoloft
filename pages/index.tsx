@@ -997,7 +997,7 @@ export default function Home() {
     { icon: '🔥', label: 'Lareira' },
     { icon: '💦', label: 'Tanque Alentejano' },
     { icon: '☕', label: 'Máquina de café Nespresso' },
-    { icon: '💨', label: 'Secador de cabelo' },
+    { icon: '🪮', label: 'Secador de cabelo' },
   ], []);
 
   const galleryImages = useMemo(() => [], []);
