@@ -1242,6 +1242,7 @@ export default function Home() {
         <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{
+            backgroundImage: `linear-gradient(to right, rgba(234, 88, 12, 0.6), rgba(239, 68, 68, 0.55), rgba(234, 88, 12, 0.6)), url('/images/exterior.jpg')`,
             backgroundColor: '#c2410c',
           }}
           aria-hidden="true"
@@ -1656,7 +1657,7 @@ export default function Home() {
             </div>
             <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden">
               <Image
-                src="/og-image.jpg"
+                src="/images/exterior.jpg"
                 alt="Exterior"
                 fill
                 quality={70}
@@ -1672,7 +1673,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
               <div className="relative w-full h-64 sm:h-80 rounded-xl shadow-xl overflow-hidden order-2 md:order-1">
                 <Image
-                  src="/og-image.jpg"
+                  src="/images/piscina.jpg"
                   alt="Tanque Alentejano"
                   fill
                   quality={70}
