@@ -12,8 +12,7 @@ const amenities = [
   { icon: '🔑', label: 'Check-in autónomo' },
   { icon: '📺', label: '3 TVs' },
   { icon: '🔥', label: 'Lareira' },
-  { icon: '🏊', label: 'Piscina' },
-  { icon: '🌿', label: 'Pátio' },
+  { icon: '🏊', label: 'Tanque Alentejano' },
   { icon: '☕', label: 'Máquina de café Nespresso' },
 ];
 
