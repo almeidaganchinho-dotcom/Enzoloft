@@ -1877,15 +1877,6 @@ export default function Home() {
             </div>
           )}
           
-          {/* Admin Access Button */}
-          <div className="text-center mb-4 sm:mb-6">
-            <Link
-              href="/admin/login"
-              className="inline-flex items-center gap-2 bg-white bg-opacity-10 hover:bg-opacity-20 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-300 backdrop-blur-sm border border-white border-opacity-20 hover:border-opacity-40 text-sm sm:text-base"
-            >
-              🔐 Acesso Admin
-            </Link>
-          </div>
           <p className="text-orange-200 text-xs sm:text-sm text-center">© 2026 EnzoLoft. Todos os direitos reservados.</p>
         </div>
       </footer>
