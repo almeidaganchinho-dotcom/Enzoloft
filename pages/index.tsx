@@ -1255,10 +1255,6 @@ export default function Home() {
             <div className="text-white">
               <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-3 sm:mb-4 drop-shadow-lg">{pageTexts.heroTitle}</h2>
               <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 drop-shadow-md">{pageTexts.heroSubtitle}</p>
-              <div className="flex gap-3 sm:gap-4 text-sm sm:text-lg flex-wrap">
-                <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">📶 Wi-Fi Gratuito</span>
-                <span className="bg-white bg-opacity-20 px-3 sm:px-4 py-2 sm:py-3 rounded-full backdrop-blur-sm">🏊 Tanque Alentejano</span>
-              </div>
             </div>
 
             {/* Booking Form - Right Side */}
