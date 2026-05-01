@@ -1254,6 +1254,10 @@ export default function Home() {
             className="object-cover"
           />
         </div>
+        <div
+          className="absolute inset-0 z-0 bg-gradient-to-r from-amber-900/25 via-amber-700/18 to-yellow-900/25"
+          aria-hidden="true"
+        />
         
         {/* Content */}
         <div className="max-w-7xl mx-auto px-3 sm:px-4 relative z-10">
