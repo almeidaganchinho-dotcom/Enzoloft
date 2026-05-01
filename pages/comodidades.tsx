@@ -17,7 +17,7 @@ const amenities = [
   { icon: '🔥', label: 'Lareira' },
   { icon: '💦', label: 'Tanque Alentejano' },
   { icon: '☕', label: 'Máquina de café Nespresso' },
-  { icon: '💨', label: 'Secador de cabelo' },
+  { icon: '💇', label: 'Secador de cabelo' },
 ];
 
 export default function ComodidadesPage() {
