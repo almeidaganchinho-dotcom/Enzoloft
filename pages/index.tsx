@@ -1353,10 +1353,10 @@ export default function Home() {
           onClick={() => setShowAmenitiesModal(false)}
         >
           <div
-            className="w-full max-w-3xl bg-white rounded-2xl border-2 border-orange-100 shadow-2xl overflow-hidden animate-[fadeIn_.2s_ease-out]"
+            className="w-full max-w-3xl bg-white rounded-2xl border-2 border-orange-100 shadow-2xl flex flex-col max-h-[90vh] animate-[fadeIn_.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 px-4 sm:px-6 py-4 flex items-center justify-between gap-3 flex-shrink-0 rounded-t-2xl">
               <h3 className="text-white text-xl sm:text-2xl font-bold truncate min-w-0">Comodidades da Casa</h3>
               <button
                 type="button"
@@ -1368,7 +1368,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="p-6 bg-gradient-to-b from-orange-50 to-white">
+            <div className="p-6 bg-gradient-to-b from-orange-50 to-white overflow-y-auto">
               <p className="text-gray-700 mb-5">Tudo preparado para uma estadia confortável no Alentejo.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {amenities.map((amenity) => (
