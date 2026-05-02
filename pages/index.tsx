@@ -1776,11 +1776,13 @@ export default function Home() {
         type="button"
         onClick={() => {
           setShowMobileBookingForm(true);
-          document.getElementById('booking-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(() => {
+            document.getElementById('booking-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 50);
         }}
         className="lg:hidden fixed bottom-4 right-4 z-[65] bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold px-5 py-3 rounded-full shadow-xl hover:shadow-orange-300 transition-all"
       >
-        Reservar
+        Reservar Agora
       </button>
 
       {/* About Section */}
