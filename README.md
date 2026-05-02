@@ -45,6 +45,7 @@ Crie o arquivo `.env.local` na raiz do projeto:
 ADMIN_EMAIL=admin@enzoloft.com
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_EMAIL_API_URL=
+NEXT_PUBLIC_GOOGLE_CALENDAR_WEBHOOK_URL=
 NEXT_PUBLIC_OG_IMAGE_VERSION=20260227
 ```
 
@@ -53,6 +54,10 @@ Veja [.env.example](.env.example) para referência.
 Sempre que atualizar `public/og-image.jpg`, altere `NEXT_PUBLIC_OG_IMAGE_VERSION` para forçar refresh do preview social (Open Graph/Twitter).
 
 Para envio de emails em modo estático (Firebase Hosting), configure `NEXT_PUBLIC_EMAIL_API_URL` com o endpoint HTTPS externo (ex.: Cloud Function). Se não configurar, a reserva continua a ser criada e os emails são apenas ignorados.
+
+Para sincronização automática de reservas com Google Calendar em modo estático, configure `NEXT_PUBLIC_GOOGLE_CALENDAR_WEBHOOK_URL` com um endpoint HTTPS externo (ex.: Google Apps Script Web App). Se não configurar, a reserva continua a ser criada normalmente e apenas não é enviado evento para calendário.
+
+Guia passo a passo: [GOOGLE_CALENDAR_SETUP.md](GOOGLE_CALENDAR_SETUP.md)
 
 ### 4. Executar em desenvolvimento
 ```bash
