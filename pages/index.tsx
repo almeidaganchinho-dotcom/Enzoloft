@@ -220,7 +220,6 @@ export default function Home() {
   const ogImageVersion = process.env.NEXT_PUBLIC_OG_IMAGE_VERSION || '20260227';
   const ogImageUrl = `${siteBaseUrl}/og-image.jpg?v=${ogImageVersion}`;
   const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL;
-  const googleCalendarWebhookUrl = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_WEBHOOK_URL;
   const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
   const bingSiteVerification = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION;
 
@@ -844,42 +843,7 @@ export default function Home() {
       };
       
       // Criar reserva no Firestore
-      const reservationDocRef = await addDoc(collection(db, 'reservations'), reservation);
-
-      // Sincronização opcional com Google Calendar via webhook externo (ex.: Apps Script).
-      if (googleCalendarWebhookUrl) {
-        try {
-          const reservationForCalendar = {
-            id: reservationDocRef.id,
-            ...reservation,
-          };
-
-          const calendarResponse = await fetch(googleCalendarWebhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              source: 'enzoloft_booking_form',
-              reservation: reservationForCalendar,
-            }),
-          });
-
-          if (!calendarResponse.ok) {
-            throw new Error(`Calendar webhook falhou com status ${calendarResponse.status}`);
-          }
-
-          await logClientEvent({
-            event: 'booking_google_calendar_sync_success',
-            context: {
-              reservationId: reservationDocRef.id,
-            },
-          });
-        } catch (calendarError) {
-          await logClientError('booking_google_calendar_sync_failed', calendarError, {
-            reservationId: reservationDocRef.id,
-          });
-          // Não bloquear a reserva se integração de calendário falhar
-        }
-      }
+      await addDoc(collection(db, 'reservations'), reservation);
 
       await logClientEvent({
         event: 'booking_submit_success',
@@ -973,7 +937,7 @@ export default function Home() {
       setLoading(false);
       setSubmittingReservation(false);
     }
-  }, [appliedVoucher, dateError, discount, emailApiUrl, formData, googleCalendarWebhookUrl, nights, originalPrice, priceOnRequest]);
+  }, [appliedVoucher, dateError, discount, emailApiUrl, formData, nights, originalPrice, priceOnRequest]);
 
   const handleContactSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
