@@ -1231,37 +1231,6 @@ export default function Home() {
           
           {/* Desktop Menu */}
           <div className="hidden sm:flex items-center gap-3">
-            <a
-              href="https://www.instagram.com/alentejo.enzoloft?utm_source=qr&igsh=MWFlMDMwdTZrN3Q4Mw=="
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram EnzoLoft"
-              className="hover:opacity-80 transition-opacity"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6">
-                <defs>
-                  <radialGradient id="ig-grad-desktop" cx="30%" cy="107%" r="150%">
-                    <stop offset="0%" stopColor="#fdf497"/>
-                    <stop offset="5%" stopColor="#fdf497"/>
-                    <stop offset="45%" stopColor="#fd5949"/>
-                    <stop offset="60%" stopColor="#d6249f"/>
-                    <stop offset="90%" stopColor="#285AEB"/>
-                  </radialGradient>
-                </defs>
-                <path fill="url(#ig-grad-desktop)" d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.334 3.608 1.308.975.975 1.246 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.333 2.633-1.308 3.608-.975.975-2.242 1.246-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.333-3.608-1.308-.975-.975-1.246-2.242-1.308-3.608C2.175 15.584 2.163 15.204 2.163 12s.012-3.584.07-4.85c.062-1.366.333-2.633 1.308-3.608.975-.975 2.242-1.246 3.608-1.308C8.416 2.175 8.796 2.163 12 2.163zm0-2.163C8.741 0 8.333.014 7.053.072 5.775.131 4.602.44 3.635 1.407 2.668 2.374 2.359 3.547 2.3 4.825 2.242 6.105 2.228 6.513 2.228 12s.014 5.895.072 7.175c.059 1.278.368 2.451 1.335 3.418.967.967 2.14 1.276 3.418 1.335C8.333 23.986 8.741 24 12 24s3.667-.014 4.947-.072c1.278-.059 2.451-.368 3.418-1.335.967-.967 1.276-2.14 1.335-3.418.058-1.28.072-1.688.072-7.175s-.014-5.895-.072-7.175c-.059-1.278-.368-2.451-1.335-3.418C19.398.44 18.225.131 16.947.072 15.667.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324A6.162 6.162 0 0 0 12 5.838zm0 10.162a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
-              </svg>
-            </a>
-            <a
-              href="https://www.facebook.com/share/14cYTeWTuBM/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook EnzoLoft"
-              className="text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.269h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
-              </svg>
-            </a>
             <button
               type="button"
               onClick={() => setShowAmenitiesModal(true)}
@@ -1307,40 +1276,6 @@ export default function Home() {
                 className="block text-center bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-3 rounded-full hover:shadow-lg hover:shadow-orange-300 transition-all font-semibold"
               >
                 Reservar Agora
-              </a>
-              <a
-                href="https://www.instagram.com/alentejo.enzoloft?utm_source=qr&igsh=MWFlMDMwdTZrN3Q4Mw=="
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center justify-center gap-2 font-semibold py-2"
-                style={{ background: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0">
-                  <defs>
-                    <radialGradient id="ig-grad-mobile" cx="30%" cy="107%" r="150%">
-                      <stop offset="0%" stopColor="#fdf497"/>
-                      <stop offset="5%" stopColor="#fdf497"/>
-                      <stop offset="45%" stopColor="#fd5949"/>
-                      <stop offset="60%" stopColor="#d6249f"/>
-                      <stop offset="90%" stopColor="#285AEB"/>
-                    </radialGradient>
-                  </defs>
-                  <path fill="url(#ig-grad-mobile)" d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.334 3.608 1.308.975.975 1.246 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.333 2.633-1.308 3.608-.975.975-2.242 1.246-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.333-3.608-1.308-.975-.975-1.246-2.242-1.308-3.608C2.175 15.584 2.163 15.204 2.163 12s.012-3.584.07-4.85c.062-1.366.333-2.633 1.308-3.608.975-.975 2.242-1.246 3.608-1.308C8.416 2.175 8.796 2.163 12 2.163zm0-2.163C8.741 0 8.333.014 7.053.072 5.775.131 4.602.44 3.635 1.407 2.668 2.374 2.359 3.547 2.3 4.825 2.242 6.105 2.228 6.513 2.228 12s.014 5.895.072 7.175c.059 1.278.368 2.451 1.335 3.418.967.967 2.14 1.276 3.418 1.335C8.333 23.986 8.741 24 12 24s3.667-.014 4.947-.072c1.278-.059 2.451-.368 3.418-1.335.967-.967 1.276-2.14 1.335-3.418.058-1.28.072-1.688.072-7.175s-.014-5.895-.072-7.175c-.059-1.278-.368-2.451-1.335-3.418C19.398.44 18.225.131 16.947.072 15.667.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324A6.162 6.162 0 0 0 12 5.838zm0 10.162a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
-                </svg>
-                Instagram
-              </a>
-              <a
-                href="https://www.facebook.com/share/14cYTeWTuBM/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center justify-center gap-2 text-blue-600 font-semibold py-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                  <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.269h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
-                </svg>
-                Facebook
               </a>
             </div>
           </div>
