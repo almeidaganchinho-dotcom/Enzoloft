@@ -1356,13 +1356,13 @@ export default function Home() {
             className="w-full max-w-3xl bg-white rounded-2xl border-2 border-orange-100 shadow-2xl overflow-hidden animate-[fadeIn_.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-white text-2xl font-bold">Comodidades da Casa</h3>
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+              <h3 className="text-white text-xl sm:text-2xl font-bold truncate min-w-0">Comodidades da Casa</h3>
               <button
                 type="button"
                 aria-label="Fechar popup de comodidades"
                 onClick={() => setShowAmenitiesModal(false)}
-                className="w-9 h-9 rounded-full bg-white/20 text-white text-xl font-bold hover:bg-white/30 transition-colors"
+                className="flex-shrink-0 w-9 h-9 rounded-full bg-white/20 text-white text-xl font-bold hover:bg-white/30 transition-colors flex items-center justify-center"
               >
                 ✕
               </button>
