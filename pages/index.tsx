@@ -250,7 +250,7 @@ export default function Home() {
   const [showFormCalendar, setShowFormCalendar] = useState<boolean>(false);
   const [formCalendarMonth, setFormCalendarMonth] = useState<Date>(new Date());
   const [showAmenitiesModal, setShowAmenitiesModal] = useState<boolean>(false);
-  const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [presentationModeEnabled, setPresentationModeEnabled] = useState<boolean>(false);
   const [hideContactForm, setHideContactForm] = useState<boolean>(false);
   const [siteModeLoaded, setSiteModeLoaded] = useState<boolean>(false);
@@ -1049,6 +1049,39 @@ export default function Home() {
     { src: '/images/IMG_0055.JPG', alt: 'EnzoLoft - Foto 15' },
   ], []);
 
+  const selectedImage = selectedImageIndex !== null ? galleryImages[selectedImageIndex] : null;
+
+  const goToNextImage = useCallback(() => {
+    setSelectedImageIndex((currentIndex) => {
+      if (currentIndex === null) return currentIndex;
+      return (currentIndex + 1) % galleryImages.length;
+    });
+  }, [galleryImages.length]);
+
+  const goToPreviousImage = useCallback(() => {
+    setSelectedImageIndex((currentIndex) => {
+      if (currentIndex === null) return currentIndex;
+      return (currentIndex - 1 + galleryImages.length) % galleryImages.length;
+    });
+  }, [galleryImages.length]);
+
+  useEffect(() => {
+    if (selectedImageIndex === null) return;
+
+    const handleLightboxKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowRight') {
+        goToNextImage();
+      } else if (event.key === 'ArrowLeft') {
+        goToPreviousImage();
+      } else if (event.key === 'Escape') {
+        setSelectedImageIndex(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleLightboxKeyDown);
+    return () => window.removeEventListener('keydown', handleLightboxKeyDown);
+  }, [goToNextImage, goToPreviousImage, selectedImageIndex]);
+
   const structuredData = useMemo(
     () => ({
       '@context': 'https://schema.org',
@@ -1804,7 +1837,7 @@ export default function Home() {
               <div 
                 key={idx} 
                 className="relative h-64 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-                onClick={() => setSelectedImage(image)}
+                onClick={() => setSelectedImageIndex(idx)}
               >
                 <Image
                   src={image.src}
@@ -1829,15 +1862,37 @@ export default function Home() {
       {selectedImage && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedImage(null)}
+          onClick={() => setSelectedImageIndex(null)}
         >
           <div className="relative max-w-7xl max-h-full">
             <button
-              onClick={() => setSelectedImage(null)}
+              onClick={() => setSelectedImageIndex(null)}
               className="absolute -top-12 right-0 text-white text-4xl hover:text-orange-500 transition-colors"
               aria-label="Fechar"
             >
               ✕
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToPreviousImage();
+              }}
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/45 text-white text-2xl hover:bg-black/65 transition-colors"
+              aria-label="Foto anterior"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToNextImage();
+              }}
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/45 text-white text-2xl hover:bg-black/65 transition-colors"
+              aria-label="Foto seguinte"
+            >
+              ›
             </button>
             <Image
               src={selectedImage.src}
