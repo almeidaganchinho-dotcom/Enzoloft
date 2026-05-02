@@ -632,7 +632,7 @@ export default function Home() {
     }
   }, [appliedVoucher, getNightlyPrice, priceRules]);
 
-  const handleChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     if (!bookingStartedRef.current) {
@@ -1594,15 +1594,18 @@ export default function Home() {
                 )}
                 <div>
                   <label className="block text-xs font-semibold text-orange-900 mb-2">Número de Hóspedes</label>
-                  <input
-                    type="number"
+                  <select
                     name="guestsCount"
-                    min="1"
-                    max="5"
                     value={formData.guestsCount}
                     onChange={handleChange}
                     className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
-                  />
+                  >
+                    <option value="1">1 hóspede</option>
+                    <option value="2">2 hóspedes</option>
+                    <option value="3">3 hóspedes</option>
+                    <option value="4">4 hóspedes</option>
+                    <option value="5">5 hóspedes</option>
+                  </select>
                 </div>
                 
                 {/* Voucher Section */}
