@@ -57,6 +57,7 @@ interface FormData {
   guestName: string;
   guestEmail: string;
   guestPhone: string;
+  specialRequests: string;
   startDate: string;
   endDate: string;
   guestsCount: number;
@@ -227,6 +228,7 @@ export default function Home() {
     guestName: '',
     guestEmail: '',
     guestPhone: '',
+    specialRequests: '',
     startDate: '',
     endDate: '',
     guestsCount: 1,
@@ -823,6 +825,7 @@ export default function Home() {
         guestName: formData.guestName.trim(),
         guestEmail: formData.guestEmail.trim().toLowerCase(),
         guestPhone: formData.guestPhone.trim(),
+        specialRequests: formData.specialRequests.trim(),
         startDate: formData.startDate,
         endDate: formData.endDate,
         guestsCount: Number(formData.guestsCount),
@@ -917,7 +920,7 @@ export default function Home() {
       }
       
       setMessage('✅ Reserva criada com sucesso! Verifique o seu email para mais informações.');
-      setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
+      setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', specialRequests: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
       setAppliedVoucher(null);
       setVoucherCode('');
       setDiscount(0);
@@ -1355,6 +1358,21 @@ export default function Home() {
                     placeholder="+351 ..."
                     className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-orange-900 mb-2">Pedidos Especiais (opcional)</label>
+                  <textarea
+                    name="specialRequests"
+                    value={formData.specialRequests}
+                    onChange={handleChange}
+                    placeholder="Ex.: berço, hora de chegada aproximada, preferências..."
+                    maxLength={500}
+                    rows={4}
+                    className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm resize-y"
+                  />
+                  <p className="text-[11px] text-gray-500 mt-1 text-right">
+                    {formData.specialRequests.length}/500
+                  </p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-orange-900 mb-1">Selecione as datas</label>
