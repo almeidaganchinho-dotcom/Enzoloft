@@ -265,6 +265,7 @@ export default function Home() {
   const [submittingContact, setSubmittingContact] = useState<boolean>(false);
   const [contactFormMessage, setContactFormMessage] = useState<string>('');
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
+  const [showMobileBookingForm, setShowMobileBookingForm] = useState<boolean>(false);
   const bookingStartedRef = useRef(false);
   const [pageTexts, setPageTexts] = useState({
     heroTitle: 'Retiro Perfeito no Alentejo',
@@ -1350,7 +1351,16 @@ export default function Home() {
             </div>
 
             {/* Booking Form - Right Side */}
-            <div className="bg-white rounded-xl p-6 shadow-2xl">
+            <div id="booking-form-card" className={`${showMobileBookingForm ? 'block' : 'hidden'} lg:block bg-white rounded-xl p-6 shadow-2xl`}>
+              <div className="lg:hidden flex justify-end mb-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMobileBookingForm(false)}
+                  className="text-xs font-semibold text-orange-700 hover:text-orange-900"
+                >
+                  Fechar formulário
+                </button>
+              </div>
               <h3 className="text-2xl font-bold text-orange-900 mb-4">Fazer Reserva</h3>
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
@@ -1761,6 +1771,17 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <button
+        type="button"
+        onClick={() => {
+          setShowMobileBookingForm(true);
+          document.getElementById('booking-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
+        className="lg:hidden fixed bottom-4 right-4 z-[65] bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold px-5 py-3 rounded-full shadow-xl hover:shadow-orange-300 transition-all"
+      >
+        Reservar
+      </button>
 
       {/* About Section */}
       <section className="bg-gradient-to-r from-orange-50 to-red-50 py-10 sm:py-16" style={deferredSectionStyle}>
