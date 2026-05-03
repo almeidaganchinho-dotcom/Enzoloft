@@ -1798,6 +1798,7 @@ export default function AdminDashboard() {
                         </th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspede</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Email</th>
+                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Pedidos Especiais</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Datas</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Noites</th>
                         <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspedes</th>
@@ -1822,7 +1823,7 @@ export default function AdminDashboard() {
                     <tbody>
                       {paginatedReservations.length === 0 ? (
                         <tr>
-                          <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
+                          <td colSpan={11} className="px-6 py-8 text-center text-gray-500">
                             Nenhuma reserva encontrada para os filtros atuais
                           </td>
                         </tr>
@@ -1840,6 +1841,13 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-6 py-4 font-semibold text-gray-900">{res.guestName}</td>
                             <td className="px-6 py-4 text-gray-700">{res.guestEmail}</td>
+                            <td className="px-6 py-4 text-gray-600 text-xs max-w-[160px]">
+                              {res.specialRequests ? (
+                                <span className="bg-yellow-50 border border-yellow-200 rounded px-2 py-1 block whitespace-pre-wrap">{res.specialRequests}</span>
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )}
+                            </td>
                             <td className="px-6 py-4 text-gray-700">
                               {new Date(res.startDate).toLocaleDateString('pt-PT')} -{' '}
                               {new Date(res.endDate).toLocaleDateString('pt-PT')}
