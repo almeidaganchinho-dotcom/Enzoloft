@@ -52,10 +52,12 @@ service cloud.firestore {
         'guestName',
         'guestEmail',
         'guestPhone',
+        'specialRequests',
         'startDate',
         'endDate',
         'guestsCount',
         'totalPrice',
+        'priceOnRequest',
         'status',
         'createdAt',
         'voucher'
@@ -68,6 +70,9 @@ service cloud.firestore {
       && request.resource.data.guestName.size() <= 120
       && isValidEmail(request.resource.data.guestEmail)
       && isValidPhone(request.resource.data.guestPhone)
+      && (!request.resource.data.keys().hasAny(['specialRequests'])
+          || (request.resource.data.specialRequests is string
+              && request.resource.data.specialRequests.size() <= 500))
       && isValidDateString(request.resource.data.startDate)
       && isValidDateString(request.resource.data.endDate)
       && request.resource.data.endDate > request.resource.data.startDate
@@ -75,8 +80,13 @@ service cloud.firestore {
       && request.resource.data.guestsCount >= 1
       && request.resource.data.guestsCount <= 20
       && request.resource.data.totalPrice is number
-      && request.resource.data.totalPrice > 0
+      && request.resource.data.totalPrice >= 0
       && request.resource.data.totalPrice <= 20000
+      && (!request.resource.data.keys().hasAny(['priceOnRequest'])
+          || request.resource.data.priceOnRequest is bool)
+      && (request.resource.data.totalPrice > 0
+          || (request.resource.data.keys().hasAny(['priceOnRequest'])
+              && request.resource.data.priceOnRequest == true))
       && request.resource.data.status == 'pending'
       && isValidIsoDateTimeString(request.resource.data.createdAt)
       && hasValidVoucher();
