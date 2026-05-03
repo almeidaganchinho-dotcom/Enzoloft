@@ -1679,6 +1679,13 @@ export default function AdminDashboard() {
                           <p className="text-lg text-gray-800">👥 {selectedReservation.guestsCount}</p>
                         </div>
                         
+                        {selectedReservation.specialRequests && (
+                          <div>
+                            <label className="text-sm font-semibold text-gray-600">Pedidos Especiais</label>
+                            <p className="text-base text-gray-800 bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-1 whitespace-pre-wrap">{selectedReservation.specialRequests}</p>
+                          </div>
+                        )}
+                        
                         <div>
                           <label className="text-sm font-semibold text-gray-600">Preço Total</label>
                           <p className="text-2xl font-bold text-green-600">€{selectedReservation.totalPrice}</p>
@@ -1963,6 +1970,12 @@ export default function AdminDashboard() {
                             <span className="text-gray-600">Preço:</span>
                             <span className="font-bold text-blue-600 text-lg">€{res.totalPrice}</span>
                           </div>
+                          {res.specialRequests && (
+                            <div className="text-sm">
+                              <span className="text-gray-600 block mb-1">Pedidos especiais:</span>
+                              <span className="bg-yellow-50 border border-yellow-200 rounded p-2 block text-gray-800 text-xs whitespace-pre-wrap">{res.specialRequests}</span>
+                            </div>
+                          )}
                           {res.createdAt && (
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Pedido em:</span>
