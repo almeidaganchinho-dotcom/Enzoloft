@@ -1,5 +1,41 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
+const COUNTRIES = [
+  { code: 'PT', flag: '🇵🇹', name: 'Portugal', dialCode: '+351' },
+  { code: 'ES', flag: '🇪🇸', name: 'Espanha', dialCode: '+34' },
+  { code: 'FR', flag: '🇫🇷', name: 'França', dialCode: '+33' },
+  { code: 'DE', flag: '🇩🇪', name: 'Alemanha', dialCode: '+49' },
+  { code: 'GB', flag: '🇬🇧', name: 'Reino Unido', dialCode: '+44' },
+  { code: 'IT', flag: '🇮🇹', name: 'Itália', dialCode: '+39' },
+  { code: 'NL', flag: '🇳🇱', name: 'Países Baixos', dialCode: '+31' },
+  { code: 'BE', flag: '🇧🇪', name: 'Bélgica', dialCode: '+32' },
+  { code: 'CH', flag: '🇨🇭', name: 'Suíça', dialCode: '+41' },
+  { code: 'AT', flag: '🇦🇹', name: 'Áustria', dialCode: '+43' },
+  { code: 'SE', flag: '🇸🇪', name: 'Suécia', dialCode: '+46' },
+  { code: 'NO', flag: '🇳🇴', name: 'Noruega', dialCode: '+47' },
+  { code: 'DK', flag: '🇩🇰', name: 'Dinamarca', dialCode: '+45' },
+  { code: 'FI', flag: '🇫🇮', name: 'Finlândia', dialCode: '+358' },
+  { code: 'PL', flag: '🇵🇱', name: 'Polónia', dialCode: '+48' },
+  { code: 'CZ', flag: '🇨🇿', name: 'República Checa', dialCode: '+420' },
+  { code: 'RO', flag: '🇷🇴', name: 'Roménia', dialCode: '+40' },
+  { code: 'GR', flag: '🇬🇷', name: 'Grécia', dialCode: '+30' },
+  { code: 'IE', flag: '🇮🇪', name: 'Irlanda', dialCode: '+353' },
+  { code: 'LU', flag: '🇱🇺', name: 'Luxemburgo', dialCode: '+352' },
+  { code: 'BR', flag: '🇧🇷', name: 'Brasil', dialCode: '+55' },
+  { code: 'US', flag: '🇺🇸', name: 'Estados Unidos', dialCode: '+1' },
+  { code: 'CA', flag: '🇨🇦', name: 'Canadá', dialCode: '+1' },
+  { code: 'AU', flag: '🇦🇺', name: 'Austrália', dialCode: '+61' },
+  { code: 'MX', flag: '🇲🇽', name: 'México', dialCode: '+52' },
+  { code: 'AR', flag: '🇦🇷', name: 'Argentina', dialCode: '+54' },
+  { code: 'ZA', flag: '🇿🇦', name: 'África do Sul', dialCode: '+27' },
+  { code: 'AO', flag: '🇦🇴', name: 'Angola', dialCode: '+244' },
+  { code: 'MZ', flag: '🇲🇿', name: 'Moçambique', dialCode: '+258' },
+  { code: 'CV', flag: '🇨🇻', name: 'Cabo Verde', dialCode: '+238' },
+  { code: 'CN', flag: '🇨🇳', name: 'China', dialCode: '+86' },
+  { code: 'JP', flag: '🇯🇵', name: 'Japão', dialCode: '+81' },
+  { code: 'IN', flag: '🇮🇳', name: 'Índia', dialCode: '+91' },
+];
+
 function renderFormattedText(text: string): React.ReactNode {
   return text.split('\n').map((line, i, arr) => {
     const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
@@ -266,6 +302,8 @@ export default function Home() {
   const [contactFormMessage, setContactFormMessage] = useState<string>('');
   const [showMobileMenu, setShowMobileMenu] = useState<boolean>(false);
   const [showMobileBookingForm, setShowMobileBookingForm] = useState<boolean>(false);
+  const [phoneCountryCode, setPhoneCountryCode] = useState<string>('PT');
+  const [phoneLocalNumber, setPhoneLocalNumber] = useState<string>('');
   const bookingStartedRef = useRef(false);
   const [pageTexts, setPageTexts] = useState({
     heroTitle: 'Retiro Perfeito no Alentejo',
@@ -923,6 +961,8 @@ export default function Home() {
       
       setMessage('✅ Reserva criada com sucesso! Verifique o seu email para mais informações.');
       setFormData({ propertyId: '1', guestName: '', guestEmail: '', guestPhone: '', specialRequests: '', startDate: '', endDate: '', guestsCount: 1, totalPrice: 0 });
+      setPhoneCountryCode('PT');
+      setPhoneLocalNumber('');
       setAppliedVoucher(null);
       setVoucherCode('');
       setDiscount(0);
@@ -1391,17 +1431,38 @@ export default function Home() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-orange-900 mb-2">Telefone</label>
-                  <input
-                    type="tel"
-                    name="guestPhone"
-                    required
-                    autoComplete="tel"
-                    inputMode="tel"
-                    value={formData.guestPhone}
-                    onChange={handleChange}
-                    placeholder="+351 ..."
-                    className="w-full px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
-                  />
+                  <div className="flex gap-1.5">
+                    <select
+                      value={phoneCountryCode}
+                      onChange={(e) => {
+                        const country = COUNTRIES.find(c => c.code === e.target.value)!;
+                        setPhoneCountryCode(e.target.value);
+                        setFormData(prev => ({ ...prev, guestPhone: country.dialCode + phoneLocalNumber }));
+                      }}
+                      className="w-28 px-2 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
+                      aria-label="Indicativo do país"
+                    >
+                      {COUNTRIES.map(c => (
+                        <option key={c.code} value={c.code}>{c.flag} {c.dialCode}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel"
+                      name="guestPhone"
+                      required
+                      autoComplete="tel-national"
+                      inputMode="tel"
+                      value={phoneLocalNumber}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^\d\s\-()]/g, '');
+                        const country = COUNTRIES.find(c => c.code === phoneCountryCode)!;
+                        setPhoneLocalNumber(val);
+                        setFormData(prev => ({ ...prev, guestPhone: country.dialCode + val }));
+                      }}
+                      placeholder="912 345 678"
+                      className="flex-1 px-3 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white transition text-sm"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-orange-900 mb-2">Pedidos Especiais (opcional)</label>
