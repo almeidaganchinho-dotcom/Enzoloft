@@ -38,8 +38,8 @@ Este projeto usa **Resend** para envio de emails transacionais (confirmações d
 Execute no terminal:
 
 ```bash
-firebase functions:config:set resend.api_key="sua_chave_aqui"
-firebase functions:config:set admin.email="admin@enzoloft.com"
+firebase functions:secrets:set RESEND_API_KEY
+firebase functions:secrets:set ADMIN_EMAIL
 ```
 
 ### Desenvolvimento Local
@@ -71,7 +71,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ## 6. Personalizar Templates
 
-Os templates de email estão em [`pages/api/send-email.ts`](pages/api/send-email.ts).
+Os templates de email estão em [`functions/index.js`](functions/index.js).
 
 Para personalizar:
 1. Edite as funções `generateReservationConfirmationEmail()`, `generateAdminNotificationEmail()`, etc.
@@ -83,7 +83,7 @@ Para personalizar:
 ### Via API diretamente:
 
 ```bash
-curl -X POST http://localhost:3000/api/send-email \
+curl -X POST https://enzoloft.pt/api/send-email \
   -H "Content-Type: application/json" \
   -d '{
     "type": "reservation_confirmation",

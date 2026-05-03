@@ -43,6 +43,7 @@ Crie o arquivo `.env.local` na raiz do projeto:
 
 ```env
 ADMIN_EMAIL=admin@enzoloft.com
+RESEND_API_KEY=re_sua_chave_aqui
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_EMAIL_API_URL=
 NEXT_PUBLIC_OG_IMAGE_VERSION=20260227
@@ -52,7 +53,15 @@ Veja [.env.example](.env.example) para referência.
 
 Sempre que atualizar `public/og-image.jpg`, altere `NEXT_PUBLIC_OG_IMAGE_VERSION` para forçar refresh do preview social (Open Graph/Twitter).
 
-Para envio de emails em modo estático (Firebase Hosting), configure `NEXT_PUBLIC_EMAIL_API_URL` com o endpoint HTTPS externo (ex.: Cloud Function). Se não configurar, a reserva continua a ser criada e os emails são apenas ignorados.
+Em produção, o site usa por defeito o endpoint `/api/send-email` (Cloud Function com Resend).
+Se quiser usar outro endpoint, configure `NEXT_PUBLIC_EMAIL_API_URL`.
+
+Antes do deploy, configure os secrets das Functions:
+
+```bash
+firebase functions:secrets:set RESEND_API_KEY
+firebase functions:secrets:set ADMIN_EMAIL
+```
 
 
 ### 4. Executar em desenvolvimento

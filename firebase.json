@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "source": "functions"
+  },
   "firestore": {
     "rules": "firestore.rules"
   },
@@ -10,6 +13,13 @@
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/api/send-email",
+        "function": {
+          "functionId": "sendEmail",
+          "region": "europe-west1"
+        }
+      },
       {
         "source": "/admin/login",
         "destination": "/admin/login.html"
