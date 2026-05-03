@@ -1499,6 +1499,11 @@ export default function Home() {
                   </p>
                 </div>
                 <div>
+                    {dateError && (
+                      <div className="bg-red-50 border-2 border-red-300 rounded-lg p-2 text-xs text-red-700 font-semibold mb-2">
+                        {dateError}
+                      </div>
+                    )}
                   <label className="block text-xs font-semibold text-orange-900 mb-1">Selecione as datas</label>
                   <p className="text-[11px] text-gray-600 mb-1.5">{dateSelectionStepLabel}</p>
                   <button
@@ -1711,11 +1716,6 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-                {dateError && (
-                  <div className="bg-red-50 border-2 border-red-300 rounded-lg p-2 text-xs text-red-700 font-semibold">
-                    {dateError}
-                  </div>
-                )}
                 <div>
                   <label className="block text-xs font-semibold text-orange-900 mb-2">Número de Hóspedes</label>
                   <select
@@ -1817,12 +1817,6 @@ export default function Home() {
                     ) : (
                       <p className="text-2xl font-bold text-green-800">€{formData.totalPrice.toFixed(2)}</p>
                     )}
-                  </div>
-                )}
-                
-                {dateError && (
-                  <div className="bg-red-50 border-2 border-red-300 text-red-800 p-3 rounded-lg font-semibold text-xs">
-                    ⚠️ {dateError}
                   </div>
                 )}
                 
