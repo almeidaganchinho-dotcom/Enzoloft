@@ -698,6 +698,18 @@ export default function Home() {
       return;
     }
 
+    // Mínimo de 2 noites
+    if (name === 'endDate' && nextStartDate && nextEndDate) {
+      const diffDays = Math.ceil((new Date(nextEndDate).getTime() - new Date(nextStartDate).getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays < 2) {
+        setDateError('❌ A estadia mínima é de 2 noites.');
+        setFormData(prev => ({ ...prev, endDate: '', totalPrice: 0 }));
+        setNights(0);
+        setPriceOnRequest(false);
+        return;
+      }
+    }
+
     // Se o checkin avançar para depois do checkout atual, limpar checkout
     if (name === 'startDate' && nextEndDate && nextEndDate <= nextStartDate) {
       nextEndDate = '';
@@ -756,6 +768,13 @@ export default function Home() {
       if (newFormData.startDate && dateStr <= newFormData.startDate) {
         setDateError('❌ A data de check-out deve ser posterior à data de check-in.');
         return;
+      }
+      if (newFormData.startDate) {
+        const diffDays = Math.ceil((new Date(dateStr).getTime() - new Date(newFormData.startDate).getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays < 2) {
+          setDateError('❌ A estadia mínima é de 2 noites.');
+          return;
+        }
       }
       newFormData.endDate = dateStr;
     }
