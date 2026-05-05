@@ -60,7 +60,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { db, trackAnalyticsEvent } from '../lib/firebase';
-import { collection, addDoc, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, getDocs, query, runTransaction, serverTimestamp, where, writeBatch } from 'firebase/firestore';
 import { logClientError, logClientEvent } from '../lib/monitoring';
 
 const PresentationModePage = dynamic(() => import('../components/PresentationModePage'));
@@ -432,14 +432,43 @@ export default function Home() {
         const blockedData = availabilitySnapshot.docs.map(doc => doc.data() as BlockedDate);
         setBlockedDates(blockedData);
         
-        // Reservas confirmadas
+        // Reservas confirmadas (fallback para dados legados)
         const confirmedReservations = reservationsSnapshot.docs
           .map(doc => doc.data())
           .map(res => ({
             startDate: res.startDate,
             endDate: res.endDate
           }));
-        setReservedDates(confirmedReservations);
+        let mergedReservations = [...confirmedReservations];
+
+        // Locks públicos de reserva (pending + confirmed)
+        try {
+          const reservationLocksSnapshot = await getDocs(
+            query(collection(db, 'reservationLocks'), where('status', 'in', ['pending', 'confirmed']))
+          );
+
+          const reservationLocks = reservationLocksSnapshot.docs
+            .map((lockDoc) => lockDoc.data())
+            .map((lock) => ({
+              startDate: lock.startDate,
+              endDate: lock.endDate,
+            }));
+
+          mergedReservations = [...mergedReservations, ...reservationLocks];
+        } catch (lockError) {
+          await logClientError('homepage_reservation_locks_load_failed', lockError);
+        }
+
+        const uniqueReservations = Array.from(
+          new Map(
+            mergedReservations.map((reservation) => [
+              `${reservation.startDate}_${reservation.endDate}`,
+              reservation,
+            ])
+          ).values()
+        );
+
+        setReservedDates(uniqueReservations);
 
         const pricesData = pricesSnapshot.docs.map(priceDoc => ({ id: priceDoc.id, ...priceDoc.data() } as Price));
         setPriceRules(pricesData);
@@ -511,7 +540,7 @@ export default function Home() {
     
     let currentDate = new Date(startDate);
     
-    while (currentDate < endDate) {
+    while (currentDate <= endDate) {
       const dateStr = formatDateKey(currentDate);
       
       if (isDateBlocked(dateStr)) {
@@ -900,8 +929,21 @@ export default function Home() {
         })
       };
       
-      // Criar reserva no Firestore
-      await addDoc(collection(db, 'reservations'), reservation);
+      // Criar reserva + lock público de datas de forma atómica
+      const reservationRef = doc(collection(db, 'reservations'));
+      const reservationLockRef = doc(db, 'reservationLocks', reservationRef.id);
+      const reservationBatch = writeBatch(db);
+
+      reservationBatch.set(reservationRef, reservation);
+      reservationBatch.set(reservationLockRef, {
+        reservationId: reservationRef.id,
+        startDate: reservation.startDate,
+        endDate: reservation.endDate,
+        status: reservation.status,
+        createdAt: new Date().toISOString(),
+      });
+
+      await reservationBatch.commit();
 
       await logClientEvent({
         event: 'booking_submit_success',

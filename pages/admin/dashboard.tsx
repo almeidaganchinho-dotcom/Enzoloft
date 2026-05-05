@@ -641,6 +641,13 @@ export default function AdminDashboard() {
       try {
         const reservationId = reservation.id;
         await updateDoc(doc(db, 'reservations', reservationId), { status });
+
+        // Sincronizar lock público de calendário, se existir
+        try {
+          await updateDoc(doc(db, 'reservationLocks', reservationId), { status });
+        } catch {
+          // Não bloquear o fluxo admin se for reserva legada sem lock
+        }
         
         // Enviar email de cancelamento se o status mudou para cancelled
         if (status === 'cancelled' && oldStatus !== 'cancelled') {
