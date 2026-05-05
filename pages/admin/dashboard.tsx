@@ -682,6 +682,41 @@ export default function AdminDashboard() {
     }
   }, [reservations, sendEmailNotification]);
 
+  const updateReservationPrice = useCallback(async (reservationId: string, nextPriceRaw: string) => {
+    const parsedPrice = Number(nextPriceRaw);
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      return;
+    }
+
+    const previousReservations = [...reservations];
+    const updatedReservations = reservations.map((reservation) => (
+      reservation.id === reservationId
+        ? { ...reservation, totalPrice: parsedPrice }
+        : reservation
+    ));
+
+    setReservations(updatedReservations);
+    if (selectedReservation?.id === reservationId) {
+      setSelectedReservation((prev: any) => (prev ? { ...prev, totalPrice: parsedPrice } : prev));
+    }
+
+    try {
+      await updateDoc(doc(db, 'reservations', reservationId), { totalPrice: parsedPrice });
+    } catch (error) {
+      setReservations(previousReservations);
+      if (selectedReservation?.id === reservationId) {
+        const previousSelected = previousReservations.find((reservation) => reservation.id === reservationId);
+        if (previousSelected) {
+          setSelectedReservation((prev: any) => (prev ? { ...prev, totalPrice: previousSelected.totalPrice } : prev));
+        }
+      }
+      await logClientError('admin_reservation_price_update_failed', error, {
+        reservationId,
+        attemptedPrice: parsedPrice,
+      });
+    }
+  }, [reservations, selectedReservation]);
+
   // Calcular estatísticas reais baseadas nos dados do Firestore
   const stats = useMemo(() => {
     const totalRevenue = reservations
@@ -1863,7 +1898,31 @@ export default function AdminDashboard() {
                               🌙 {Math.ceil((new Date(res.endDate).getTime() - new Date(res.startDate).getTime()) / (1000 * 60 * 60 * 24))}
                             </td>
                             <td className="px-6 py-4 text-gray-700">👥 {res.guestsCount}</td>
-                            <td className="px-6 py-4 font-semibold text-blue-600">€{res.totalPrice}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-1">
+                                <span className="text-gray-500">€</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  defaultValue={Number(res.totalPrice || 0)}
+                                  onBlur={(event) => {
+                                    const nextValue = event.target.value;
+                                    const currentValue = Number(res.totalPrice || 0);
+                                    if (Number(nextValue) !== currentValue) {
+                                      void updateReservationPrice(res.id, nextValue);
+                                    }
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      (event.currentTarget as HTMLInputElement).blur();
+                                    }
+                                  }}
+                                  className="w-24 border border-blue-200 rounded px-2 py-1 text-sm font-semibold text-blue-700 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                                  aria-label={`Editar preço da reserva de ${res.guestName}`}
+                                />
+                              </div>
+                            </td>
                             <td className="px-6 py-4 text-gray-600 text-xs">
                               {res.createdAt ? (
                                 <>
@@ -1981,9 +2040,31 @@ export default function AdminDashboard() {
                             <span className="text-gray-600">Hóspedes:</span>
                             <span className="font-semibold text-gray-900">👥 {res.guestsCount}</span>
                           </div>
-                          <div className="flex justify-between text-sm">
+                          <div className="flex justify-between items-center text-sm gap-2">
                             <span className="text-gray-600">Preço:</span>
-                            <span className="font-bold text-blue-600 text-lg">€{res.totalPrice}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">€</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                defaultValue={Number(res.totalPrice || 0)}
+                                onBlur={(event) => {
+                                  const nextValue = event.target.value;
+                                  const currentValue = Number(res.totalPrice || 0);
+                                  if (Number(nextValue) !== currentValue) {
+                                    void updateReservationPrice(res.id, nextValue);
+                                  }
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    (event.currentTarget as HTMLInputElement).blur();
+                                  }
+                                }}
+                                className="w-24 border border-blue-200 rounded px-2 py-1 text-sm font-semibold text-blue-700 focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                                aria-label={`Editar preço da reserva de ${res.guestName}`}
+                              />
+                            </div>
                           </div>
                           {res.specialRequests && (
                             <div className="text-sm">
