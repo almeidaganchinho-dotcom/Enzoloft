@@ -1845,11 +1845,11 @@ export default function AdminDashboard() {
                 </div>
                 
                 {/* Desktop Table */}
-                <div className="hidden lg:block overflow-x-auto">
-                  <table className="w-full text-sm">
+                <div className="hidden lg:block">
+                  <table className="w-full table-fixed text-sm">
                     <thead>
                       <tr className="bg-gradient-to-r from-purple-50 to-blue-50 border-b-2 border-purple-200">
-                        <th className="px-4 py-4 text-left font-semibold text-gray-700 w-10">
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 w-10">
                           <input
                             type="checkbox"
                             checked={allVisibleReservationsSelected}
@@ -1858,41 +1858,32 @@ export default function AdminDashboard() {
                             aria-label="Selecionar reservas visíveis"
                           />
                         </th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspede</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Email</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Pedidos Especiais</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Datas</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Noites</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">Hóspedes</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 w-[28%]">Hóspede</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 w-[30%]">Estadia</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 w-[16%]">
                           <button onClick={() => toggleReservationSort('totalPrice')} className="hover:text-purple-700 transition-colors">
                             Preço {getReservationSortIndicator('totalPrice')}
                           </button>
                         </th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                          <button onClick={() => toggleReservationSort('createdAt')} className="hover:text-purple-700 transition-colors">
-                            Pedido em {getReservationSortIndicator('createdAt')}
-                          </button>
-                        </th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 w-[14%]">
                           <button onClick={() => toggleReservationSort('status')} className="hover:text-purple-700 transition-colors">
                             Status {getReservationSortIndicator('status')}
                           </button>
                         </th>
-                        <th className="px-6 py-4 text-center font-semibold text-gray-700">Ações</th>
+                        <th className="px-3 py-3 text-center font-semibold text-gray-700 w-[12%]">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       {paginatedReservations.length === 0 ? (
                         <tr>
-                          <td colSpan={11} className="px-6 py-8 text-center text-gray-500">
+                          <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                             Nenhuma reserva encontrada para os filtros atuais
                           </td>
                         </tr>
                       ) : (
                         paginatedReservations.map((res) => (
                           <tr key={res.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-4">
+                            <td className="px-3 py-3 align-top">
                               <input
                                 type="checkbox"
                                 checked={selectedReservationIds.has(res.id)}
@@ -1901,24 +1892,25 @@ export default function AdminDashboard() {
                                 aria-label={`Selecionar reserva de ${res.guestName}`}
                               />
                             </td>
-                            <td className="px-6 py-4 font-semibold text-gray-900">{res.guestName}</td>
-                            <td className="px-6 py-4 text-gray-700">{res.guestEmail}</td>
-                            <td className="px-6 py-4 text-gray-600 text-xs max-w-[160px]">
-                              {res.specialRequests ? (
-                                <span className="bg-yellow-50 border border-yellow-200 rounded px-2 py-1 block whitespace-pre-wrap">{res.specialRequests}</span>
-                              ) : (
-                                <span className="text-gray-300">—</span>
+                            <td className="px-3 py-3 align-top">
+                              <p className="font-semibold text-gray-900 truncate">{res.guestName}</p>
+                              <p className="text-xs text-gray-600 truncate">{res.guestEmail}</p>
+                              {res.specialRequests && (
+                                <p className="text-[11px] text-amber-700 mt-1 line-clamp-2">{res.specialRequests}</p>
                               )}
                             </td>
-                            <td className="px-6 py-4 text-gray-700">
-                              {new Date(res.startDate).toLocaleDateString('pt-PT')} -{' '}
-                              {new Date(res.endDate).toLocaleDateString('pt-PT')}
+                            <td className="px-3 py-3 align-top text-xs text-gray-700">
+                              <p className="font-semibold text-gray-900">
+                                {new Date(res.startDate).toLocaleDateString('pt-PT')} - {new Date(res.endDate).toLocaleDateString('pt-PT')}
+                              </p>
+                              <p className="mt-1">🌙 {Math.ceil((new Date(res.endDate).getTime() - new Date(res.startDate).getTime()) / (1000 * 60 * 60 * 24))} noite(s) · 👥 {res.guestsCount}</p>
+                              <p className="text-gray-500 mt-1">
+                                {res.createdAt
+                                  ? `${new Date(res.createdAt.toDate ? res.createdAt.toDate() : res.createdAt).toLocaleDateString('pt-PT')} ${new Date(res.createdAt.toDate ? res.createdAt.toDate() : res.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`
+                                  : 'N/A'}
+                              </p>
                             </td>
-                            <td className="px-6 py-4 text-gray-900 font-semibold">
-                              🌙 {Math.ceil((new Date(res.endDate).getTime() - new Date(res.startDate).getTime()) / (1000 * 60 * 60 * 24))}
-                            </td>
-                            <td className="px-6 py-4 text-gray-700">👥 {res.guestsCount}</td>
-                            <td className="px-6 py-4">
+                            <td className="px-3 py-3 align-top">
                               <div className="flex items-center gap-1">
                                 <span className="text-gray-500">€</span>
                                 <input
@@ -1943,19 +1935,9 @@ export default function AdminDashboard() {
                                 />
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-gray-600 text-xs">
-                              {res.createdAt ? (
-                                <>
-                                  {new Date(res.createdAt.toDate ? res.createdAt.toDate() : res.createdAt).toLocaleDateString('pt-PT')}<br />
-                                  <span className="text-gray-400">{new Date(res.createdAt.toDate ? res.createdAt.toDate() : res.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</span>
-                                </>
-                              ) : (
-                                <span className="text-gray-400">N/A</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4">
+                            <td className="px-3 py-3 align-top">
                               <span
-                                className={`inline-block px-3 py-1.5 rounded-full font-semibold text-sm whitespace-nowrap ${
+                                className={`inline-block px-2 py-1 rounded-full font-semibold text-xs whitespace-nowrap ${
                                   res.status === 'confirmed'
                                     ? 'bg-green-100 text-green-800'
                                     : res.status === 'cancelled'
@@ -1966,19 +1948,21 @@ export default function AdminDashboard() {
                                 {res.status === 'confirmed' ? '✓ Confirmada' : res.status === 'cancelled' ? '✗ Cancelada' : '⏳ Pendente'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-center space-x-2 flex justify-center">
+                            <td className="px-3 py-3 align-top">
+                              <div className="flex justify-center gap-1">
                               <button
                                 onClick={() => updateReservationStatus(res.id, 'confirmed')}
-                                className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                                className="bg-green-500 hover:bg-green-600 text-white px-2 py-1.5 rounded-lg text-xs font-semibold transition-all"
                               >
                                 ✓
                               </button>
                               <button
                                 onClick={() => updateReservationStatus(res.id, 'cancelled')}
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                                className="bg-red-500 hover:bg-red-600 text-white px-2 py-1.5 rounded-lg text-xs font-semibold transition-all"
                               >
                                 ✗
                               </button>
+                              </div>
                             </td>
                           </tr>
                         ))
