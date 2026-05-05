@@ -731,6 +731,7 @@ export default function AdminDashboard() {
     
     const pendingCount = reservations.filter(r => r.status === 'pending').length;
     const confirmedCount = reservations.filter(r => r.status === 'confirmed').length;
+    const cancelledCount = reservations.filter(r => r.status === 'cancelled').length;
     const totalReservations = reservations.length;
     
     // Calcular dias ocupados no mês atual (usando data local)
@@ -782,6 +783,7 @@ export default function AdminDashboard() {
       totalRevenue,
       pendingCount,
       confirmedCount,
+      cancelledCount,
       totalReservations,
       occupancyRate,
       occupiedDays: occupiedDays.size,
@@ -1416,7 +1418,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all">
             <div className="flex justify-between items-start">
               <div>
@@ -1458,6 +1460,17 @@ export default function AdminDashboard() {
                 <p className="text-red-100 text-sm mt-2">Reservas a confirmar</p>
               </div>
               <span className="text-4xl">⏳</span>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-rose-100 font-semibold mb-2">Canceladas</p>
+                <p className="text-3xl font-bold">{stats.cancelledCount}</p>
+                <p className="text-rose-100 text-sm mt-2">Reservas canceladas</p>
+              </div>
+              <span className="text-4xl">❌</span>
             </div>
           </div>
 
@@ -1550,7 +1563,7 @@ export default function AdminDashboard() {
                           { status: 'Confirmadas', total: stats.confirmedCount },
                           {
                             status: 'Canceladas',
-                            total: Math.max(stats.totalReservations - stats.pendingCount - stats.confirmedCount, 0),
+                            total: stats.cancelledCount,
                           },
                         ]}
                       >
