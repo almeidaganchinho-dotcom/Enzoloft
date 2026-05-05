@@ -235,6 +235,14 @@ const toUtcDateValue = (dateKey: string): number => {
   return Date.UTC(year, month - 1, day);
 };
 
+const formatDateKeyFromUtcValue = (utcValue: number): string => {
+  const date = new Date(utcValue);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const getNightsBetween = (startDate: string, endDate: string): number => {
   if (!startDate || !endDate) return 0;
 
@@ -500,20 +508,26 @@ export default function Home() {
   }, []);
 
   const isDateBlocked = useCallback((date: string): boolean => {
-    const checkDate = new Date(date);
+    const checkDateUtc = toUtcDateValue(date);
+    if (Number.isNaN(checkDateUtc)) return false;
+
     return blockedDates.some(block => {
-      const blockStart = new Date(block.startDate);
-      const blockEnd = new Date(block.endDate);
-      return checkDate >= blockStart && checkDate <= blockEnd && block.status === 'blocked';
+      const blockStartUtc = toUtcDateValue(block.startDate);
+      const blockEndUtc = toUtcDateValue(block.endDate);
+      if (Number.isNaN(blockStartUtc) || Number.isNaN(blockEndUtc)) return false;
+      return checkDateUtc >= blockStartUtc && checkDateUtc <= blockEndUtc && block.status === 'blocked';
     });
   }, [blockedDates]);
 
   const isDateReserved = useCallback((date: string): boolean => {
-    const checkDate = new Date(date);
+    const checkDateUtc = toUtcDateValue(date);
+    if (Number.isNaN(checkDateUtc)) return false;
+
     return reservedDates.some(res => {
-      const resStart = new Date(res.startDate);
-      const resEnd = new Date(res.endDate);
-      return checkDate >= resStart && checkDate <= resEnd;
+      const resStartUtc = toUtcDateValue(res.startDate);
+      const resEndUtc = toUtcDateValue(res.endDate);
+      if (Number.isNaN(resStartUtc) || Number.isNaN(resEndUtc)) return false;
+      return checkDateUtc >= resStartUtc && checkDateUtc <= resEndUtc;
     });
   }, [reservedDates]);
 
@@ -531,17 +545,17 @@ export default function Home() {
   const checkDateRangeConflict = useCallback((start: string, end: string): { hasConflict: boolean; message: string } => {
     if (!start || !end) return { hasConflict: false, message: '' };
     
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const startUtc = toUtcDateValue(start);
+    const endUtc = toUtcDateValue(end);
     
-    if (endDate <= startDate) {
+    if (Number.isNaN(startUtc) || Number.isNaN(endUtc) || endUtc <= startUtc) {
       return { hasConflict: true, message: '❌ A data de check-out deve ser posterior à data de check-in.' };
     }
     
-    let currentDate = new Date(startDate);
+    const oneDayMs = 1000 * 60 * 60 * 24;
     
-    while (currentDate <= endDate) {
-      const dateStr = formatDateKey(currentDate);
+    for (let currentUtc = startUtc; currentUtc <= endUtc; currentUtc += oneDayMs) {
+      const dateStr = formatDateKeyFromUtcValue(currentUtc);
       
       if (isDateBlocked(dateStr)) {
         return { hasConflict: true, message: '❌ Uma ou mais datas selecionadas estão bloqueadas pelo administrador.' };
@@ -550,8 +564,6 @@ export default function Home() {
       if (isDateReserved(dateStr)) {
         return { hasConflict: true, message: '❌ Uma ou mais datas selecionadas já estão reservadas. Escolha outras datas.' };
       }
-      
-      currentDate.setDate(currentDate.getDate() + 1);
     }
     
     return { hasConflict: false, message: '' };
@@ -1649,17 +1661,8 @@ export default function Home() {
                             const dateStr = formatDateKey(date);
                             const nightlyPrice = getNightlyPrice(dateStr);
                             
-                            const isBlocked = blockedDates.some(block => {
-                              const blockStart = new Date(block.startDate);
-                              const blockEnd = new Date(block.endDate);
-                              return date >= blockStart && date <= blockEnd && block.status === 'blocked';
-                            });
-                            
-                            const isReserved = reservedDates.some(res => {
-                              const resStart = new Date(res.startDate);
-                              const resEnd = new Date(res.endDate);
-                              return date >= resStart && date <= resEnd;
-                            });
+                            const isBlocked = isDateBlocked(dateStr);
+                            const isReserved = isDateReserved(dateStr);
                             
                             const isPast = date < today;
                             const isSelected = dateStr === formData.startDate || dateStr === formData.endDate;

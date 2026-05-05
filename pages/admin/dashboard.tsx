@@ -86,6 +86,12 @@ const detectMobileOsFromUserAgent = (userAgent: string): 'iOS' | 'Android' | 'Ou
   return 'Outro';
 };
 
+const toUtcDateValue = (dateKey: string): number => {
+  const [year, month, day] = String(dateKey || '').split('-').map(Number);
+  if (!year || !month || !day) return Number.NaN;
+  return Date.UTC(year, month - 1, day);
+};
+
 export default function AdminDashboard() {
   const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL;
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
@@ -1624,14 +1630,15 @@ export default function AdminDashboard() {
                       // Days of the month
                       for (let day = 1; day <= daysInMonth; day++) {
                         const date = new Date(year, month, day);
-                        const dateStr = date.toISOString().split('T')[0];
+                        const dateUtc = Date.UTC(year, month, day);
                         
                         // Find reservations for this day
                         const dayReservations = reservations.filter(res => {
                           if (res.status !== 'confirmed') return false;
-                          const start = new Date(res.startDate);
-                          const end = new Date(res.endDate);
-                          return date >= start && date <= end;
+                          const startUtc = toUtcDateValue(res.startDate);
+                          const endUtc = toUtcDateValue(res.endDate);
+                          if (Number.isNaN(startUtc) || Number.isNaN(endUtc)) return false;
+                          return dateUtc >= startUtc && dateUtc <= endUtc;
                         });
                         
                         const isToday = new Date().toDateString() === date.toDateString();
