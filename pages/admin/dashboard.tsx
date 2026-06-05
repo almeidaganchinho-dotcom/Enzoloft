@@ -93,7 +93,7 @@ const toUtcDateValue = (dateKey: string): number => {
 };
 
 export default function AdminDashboard() {
-  const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL;
+  const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL || '/api/send-email';
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
   const [prices, setPrices] = useState<any[]>([

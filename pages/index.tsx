@@ -263,7 +263,7 @@ export default function Home() {
   const siteDescription = 'Retiro de charme no coração do Alentejo. Reserve agora o seu alojamento exclusivo em Vila Ruiva, Cuba - Beja. Casa completa com tanque alentejano e vistas deslumbrantes.';
   const ogImageVersion = process.env.NEXT_PUBLIC_OG_IMAGE_VERSION || '20260227';
   const ogImageUrl = `${siteBaseUrl}/og-image.jpg?v=${ogImageVersion}`;
-  const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL;
+  const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL || '/api/send-email';
   const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
   const bingSiteVerification = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION;
 

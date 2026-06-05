@@ -99,6 +99,22 @@ function statusUpdateTemplate(data) {
   `;
 }
 
+function systemAlertTemplate(data) {
+  const alerts = Array.isArray(data.alerts) ? data.alerts : [];
+  const listItems = alerts
+    .map((alert) => `<li style="margin:4px 0;">${String(alert || '-')}</li>`)
+    .join('');
+
+  return `
+    <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
+      <h2 style="margin: 0 0 12px; color: #b45309;">${data.title || 'Alerta operacional'}</h2>
+      ${listItems ? `<ul style="margin: 0 0 16px 20px; padding: 0;">${listItems}</ul>` : '<p>Sem detalhes adicionais.</p>'}
+      ${data.dashboardUrl ? `<p><a href="${data.dashboardUrl}">Abrir dashboard</a></p>` : ''}
+      <p>EnzoLoft</p>
+    </div>
+  `;
+}
+
 function buildMessage(payload, adminEmailValue) {
   const type = payload.type;
   const data = payload.data || {};
@@ -125,6 +141,23 @@ function buildMessage(payload, adminEmailValue) {
       to: data.guestEmail,
       subject: `EnzoLoft - Estado da reserva: ${data.status || 'atualizado'}`,
       html: statusUpdateTemplate(data),
+    };
+  }
+
+  if (type === 'reservation_cancelled') {
+    return {
+      to: data.guestEmail,
+      subject: 'EnzoLoft - Reserva cancelada',
+      html: statusUpdateTemplate({ ...data, status: 'cancelled' }),
+    };
+  }
+
+  if (type === 'system_alert') {
+    const toEmail = (data.toEmail || adminEmailValue || '').toString();
+    return {
+      to: toEmail,
+      subject: data.title || 'EnzoLoft - Alerta operacional',
+      html: systemAlertTemplate(data),
     };
   }
 
