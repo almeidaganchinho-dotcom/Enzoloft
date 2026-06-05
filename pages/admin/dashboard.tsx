@@ -94,7 +94,7 @@ const toUtcDateValue = (dateKey: string): number => {
 
 export default function AdminDashboard() {
   const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL || '/api/send-email';
-  const prereservaTestRecipient = 'f.nando.almeida@gmail.com';
+  const prereservaTestRecipient = 'almeida.ganchinho@gmail.com';
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
   const [prices, setPrices] = useState<any[]>([
