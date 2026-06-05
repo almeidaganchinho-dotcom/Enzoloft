@@ -982,7 +982,7 @@ export default function Home() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              type: 'reservation_confirmation',
+              type: 'prereserva',
               data: {
                 guestName: reservation.guestName,
                 guestEmail: reservation.guestEmail,

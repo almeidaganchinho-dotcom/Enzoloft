@@ -132,10 +132,12 @@ function buildMessage(payload, adminEmailValue) {
   const type = payload.type;
   const data = payload.data || {};
 
-  if (type === 'reservation_confirmation') {
+  if (type === 'reservation_confirmation' || type === 'prereserva') {
     return {
       to: data.guestEmail,
-      subject: 'EnzoLoft - Pedido de reserva recebido',
+      subject: type === 'prereserva'
+        ? 'EnzoLoft - Pré-reserva recebida'
+        : 'EnzoLoft - Pedido de reserva recebido',
       html: reservationGuestTemplate(data),
     };
   }

@@ -94,6 +94,7 @@ const toUtcDateValue = (dateKey: string): number => {
 
 export default function AdminDashboard() {
   const emailApiUrl = process.env.NEXT_PUBLIC_EMAIL_API_URL || '/api/send-email';
+  const prereservaTestRecipient = 'f.nando.almeida@gmail.com';
   const [admin, setAdmin] = useState<{ email: string } | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
   const [prices, setPrices] = useState<any[]>([
@@ -334,36 +335,39 @@ export default function AdminDashboard() {
   );
 
   const sendTestEmail = useCallback(async () => {
-    if (!admin?.email) {
-      setTestEmailMessage('❌ Não foi possível identificar o email admin.');
-      return;
-    }
-
     setSendingTestEmail(true);
     setTestEmailMessage('');
 
     try {
       await sendEmailNotification(
         {
-          type: 'test_email',
+          type: 'prereserva',
           data: {
-            toEmail: admin.email,
-            requestedBy: admin.email,
+            toEmail: prereservaTestRecipient,
+            requestedBy: admin?.email || 'admin-dashboard',
+            guestName: 'Teste Pré-reserva',
+            guestEmail: prereservaTestRecipient,
+            startDate: new Date().toISOString().slice(0, 10),
+            endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+            nights: 2,
+            guestsCount: 2,
+            totalPrice: 0,
+            priceOnRequest: true,
           },
         },
-        'admin_test_email_skipped'
+        'admin_prereserva_email_skipped'
       );
 
-      setTestEmailMessage(`✅ Email de teste enviado para ${admin.email}.`);
-      await logClientEvent({ event: 'admin_test_email_sent' });
+      setTestEmailMessage(`✅ Pré-reserva enviada para ${prereservaTestRecipient}.`);
+      await logClientEvent({ event: 'admin_prereserva_email_sent', context: { toEmail: prereservaTestRecipient } });
     } catch (error) {
       console.error('Erro ao enviar email de teste:', error);
-      await logClientError('admin_test_email_failed', error);
-      setTestEmailMessage('❌ Falha ao enviar email de teste.');
+      await logClientError('admin_prereserva_email_failed', error, { toEmail: prereservaTestRecipient });
+      setTestEmailMessage('❌ Falha ao enviar pré-reserva de teste.');
     } finally {
       setSendingTestEmail(false);
     }
-  }, [admin?.email, sendEmailNotification]);
+  }, [admin?.email, prereservaTestRecipient, sendEmailNotification]);
 
   const filteredReservations = useMemo(() => {
     const now = new Date();
@@ -1448,7 +1452,7 @@ export default function AdminDashboard() {
               disabled={sendingTestEmail}
               className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-all text-sm md:text-base"
             >
-              {sendingTestEmail ? '⏳ A enviar...' : '✉️ Enviar teste'}
+              {sendingTestEmail ? '⏳ A enviar...' : '✉️ Enviar pré-reserva teste'}
             </button>
             <button
               onClick={logout}
