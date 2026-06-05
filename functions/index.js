@@ -115,6 +115,19 @@ function systemAlertTemplate(data) {
   `;
 }
 
+function testEmailTemplate(data) {
+  return `
+    <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
+      <h2 style="margin: 0 0 12px; color: #16a34a;">Teste de email bem-sucedido</h2>
+      <p>Este email confirma que a integração Resend do EnzoLoft está operacional.</p>
+      <p><strong>Ambiente:</strong> produção</p>
+      <p><strong>Disparado por:</strong> ${data.requestedBy || 'admin'}</p>
+      <p><strong>Data:</strong> ${new Date().toLocaleString('pt-PT')}</p>
+      <p>EnzoLoft</p>
+    </div>
+  `;
+}
+
 function buildMessage(payload, adminEmailValue) {
   const type = payload.type;
   const data = payload.data || {};
@@ -158,6 +171,15 @@ function buildMessage(payload, adminEmailValue) {
       to: toEmail,
       subject: data.title || 'EnzoLoft - Alerta operacional',
       html: systemAlertTemplate(data),
+    };
+  }
+
+  if (type === 'test_email') {
+    const toEmail = (data.toEmail || adminEmailValue || '').toString();
+    return {
+      to: toEmail,
+      subject: 'EnzoLoft - Teste de integração Resend',
+      html: testEmailTemplate(data),
     };
   }
 

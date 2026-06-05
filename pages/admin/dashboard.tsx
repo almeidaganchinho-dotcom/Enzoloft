@@ -142,6 +142,8 @@ export default function AdminDashboard() {
   const [reservationSortDirection, setReservationSortDirection] = useState<'asc' | 'desc'>('desc');
   const [reservationPage, setReservationPage] = useState(1);
   const [selectedReservationIds, setSelectedReservationIds] = useState<Set<string>>(new Set());
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [testEmailMessage, setTestEmailMessage] = useState('');
   const router = useRouter();
 
   const COLORS = useMemo(() => ['#b45309', '#f59e0b'], []);
@@ -330,6 +332,38 @@ export default function AdminDashboard() {
     },
     [emailApiUrl]
   );
+
+  const sendTestEmail = useCallback(async () => {
+    if (!admin?.email) {
+      setTestEmailMessage('❌ Não foi possível identificar o email admin.');
+      return;
+    }
+
+    setSendingTestEmail(true);
+    setTestEmailMessage('');
+
+    try {
+      await sendEmailNotification(
+        {
+          type: 'test_email',
+          data: {
+            toEmail: admin.email,
+            requestedBy: admin.email,
+          },
+        },
+        'admin_test_email_skipped'
+      );
+
+      setTestEmailMessage(`✅ Email de teste enviado para ${admin.email}.`);
+      await logClientEvent({ event: 'admin_test_email_sent' });
+    } catch (error) {
+      console.error('Erro ao enviar email de teste:', error);
+      await logClientError('admin_test_email_failed', error);
+      setTestEmailMessage('❌ Falha ao enviar email de teste.');
+    } finally {
+      setSendingTestEmail(false);
+    }
+  }, [admin?.email, sendEmailNotification]);
 
   const filteredReservations = useMemo(() => {
     const now = new Date();
@@ -1406,13 +1440,23 @@ export default function AdminDashboard() {
           <div className="text-center md:text-left">
             <h1 className="text-2xl md:text-3xl font-bold">🏢 Painel Admin</h1>
             <p className="text-purple-100 text-sm md:text-base">EnzoLoft Management</p>
+            {testEmailMessage && <p className="text-purple-50 text-xs md:text-sm mt-1">{testEmailMessage}</p>}
           </div>
-          <button
-            onClick={logout}
-            className="bg-red-500 hover:bg-red-600 px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-all text-sm md:text-base"
-          >
-            🚪 Sair
-          </button>
+          <div className="flex items-center gap-2 md:gap-3">
+            <button
+              onClick={sendTestEmail}
+              disabled={sendingTestEmail}
+              className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-all text-sm md:text-base"
+            >
+              {sendingTestEmail ? '⏳ A enviar...' : '✉️ Enviar teste'}
+            </button>
+            <button
+              onClick={logout}
+              className="bg-red-500 hover:bg-red-600 px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-all text-sm md:text-base"
+            >
+              🚪 Sair
+            </button>
+          </div>
         </div>
       </header>
 
