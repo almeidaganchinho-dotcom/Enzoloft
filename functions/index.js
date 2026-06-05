@@ -167,6 +167,7 @@ function buildMessage(payload, adminEmailValue) {
 exports.sendEmail = onRequest(
   {
     region: 'europe-west1',
+    invoker: 'public',
     secrets: [RESEND_API_KEY, ADMIN_EMAIL],
     timeoutSeconds: 30,
   },

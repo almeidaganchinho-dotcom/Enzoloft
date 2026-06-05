@@ -15,8 +15,8 @@
     "rewrites": [
       {
         "source": "/api/send-email",
-        "function": {
-          "functionId": "sendEmail",
+        "run": {
+          "serviceId": "sendemail",
           "region": "europe-west1"
         }
       },
