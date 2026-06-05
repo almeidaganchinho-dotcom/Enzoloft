@@ -132,13 +132,35 @@ function buildMessage(payload, adminEmailValue) {
   const type = payload.type;
   const data = payload.data || {};
 
-  if (type === 'reservation_confirmation' || type === 'prereserva') {
+  if (type === 'reservation_confirmation') {
     return {
       to: data.guestEmail,
-      subject: type === 'prereserva'
-        ? 'EnzoLoft - Pré-reserva recebida'
-        : 'EnzoLoft - Pedido de reserva recebido',
+      subject: 'EnzoLoft - Pedido de reserva recebido',
       html: reservationGuestTemplate(data),
+    };
+  }
+
+  if (type === 'prereserva') {
+    const totalPrice = Number(data.totalPrice || 0);
+    const priceSummary = data.priceOnRequest ? 'Sob consulta' : `EUR ${totalPrice.toFixed(2)}`;
+
+    return {
+      to: data.guestEmail || data.toEmail,
+      subject: 'EnzoLoft - Pré-reserva recebida',
+      template: {
+        id: 'prereserva',
+        variables: {
+          guestName: data.guestName || 'Hóspede',
+          guestEmail: data.guestEmail || data.toEmail || '',
+          startDate: data.startDate || '-',
+          endDate: data.endDate || '-',
+          nights: Number(data.nights || 0),
+          guestsCount: Number(data.guestsCount || 0),
+          totalPrice,
+          priceSummary,
+          requestedBy: data.requestedBy || 'sistema',
+        },
+      },
     };
   }
 
@@ -229,12 +251,14 @@ exports.sendEmail = onRequest(
       }
 
       const resend = new Resend(process.env.RESEND_API_KEY);
-      const result = await resend.emails.send({
+      const sendPayload = {
         from: 'EnzoLoft <onboarding@resend.dev>',
         to: message.to,
         subject: message.subject,
-        html: message.html,
-      });
+        ...(message.template ? { template: message.template } : { html: message.html }),
+      };
+
+      const result = await resend.emails.send(sendPayload);
 
       if (result.error) {
         logger.error('resend_send_failed', result.error);
