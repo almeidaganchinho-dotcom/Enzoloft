@@ -428,10 +428,9 @@ export default function Home() {
     const loadAllData = async () => {
       try {
         // Carregar tudo em paralelo para melhor performance
-        const [availabilitySnapshot, reservationsSnapshot, allReservationsSnapshot, pricesSnapshot, contactDoc, siteModeDoc] = await Promise.all([
+        const [availabilitySnapshot, reservationsSnapshot, pricesSnapshot, contactDoc, siteModeDoc] = await Promise.all([
           getDocs(collection(db, 'availability')),
           getDocs(query(collection(db, 'reservations'), where('status', '==', 'confirmed'))),
-          getDocs(collection(db, 'reservations')),
           getDocs(collection(db, 'prices')),
           getDoc(doc(db, 'settings', 'contactInfo')),
           getDoc(doc(db, 'settings', 'siteMode'))
@@ -456,14 +455,7 @@ export default function Home() {
             query(collection(db, 'reservationLocks'), where('status', 'in', ['pending', 'confirmed']))
           );
 
-          const existingReservationIds = new Set(allReservationsSnapshot.docs.map((reservationDoc) => reservationDoc.id));
-
           const reservationLocks = reservationLocksSnapshot.docs
-            .filter((lockDoc) => {
-              const lockData = lockDoc.data() as any;
-              const lockReservationId = lockData?.reservationId || lockDoc.id;
-              return existingReservationIds.has(lockReservationId);
-            })
             .map((lockDoc) => lockDoc.data())
             .map((lock) => ({
               startDate: lock.startDate,
