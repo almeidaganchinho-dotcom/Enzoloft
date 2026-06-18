@@ -71,6 +71,7 @@ function buildReservationConfirmationVariables(data) {
   const guestsValue = Number(data.guestsCount || 0);
   const totalValue = Number(data.totalPrice || 0);
   const totalLabel = data.priceOnRequest ? 'Sob consulta' : `EUR ${totalValue.toFixed(2)}`;
+  const specialRequests = asText(data.specialRequests, 'Sem pedidos especiais');
   const propertyName = 'EnzoLoft';
   const propertyLocation = 'Vila Ruiva, Cuba - Beja';
 
@@ -95,6 +96,8 @@ function buildReservationConfirmationVariables(data) {
     total: totalLabel,
     totalPrice: totalLabel,
     total_price: totalLabel,
+    specialRequests,
+    special_requests: specialRequests,
     propertyName,
     property_name: propertyName,
     propertyLocation,

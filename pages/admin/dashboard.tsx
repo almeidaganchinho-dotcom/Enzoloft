@@ -704,6 +704,7 @@ export default function AdminDashboard() {
                   guestEmail: reservation.guestEmail,
                   startDate: reservation.startDate,
                   endDate: reservation.endDate,
+                  specialRequests: reservation.specialRequests || '',
                   nights: reservation.nights ?? Math.ceil(
                     (new Date(reservation.endDate).getTime() - new Date(reservation.startDate).getTime())
                     / (1000 * 60 * 60 * 24)
