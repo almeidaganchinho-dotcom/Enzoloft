@@ -396,7 +396,7 @@ exports.sendEmail = onRequest(
 
       const resend = new Resend(process.env.RESEND_API_KEY);
       const basePayload = {
-        from: 'EnzoLoft <onboarding@resend.dev>',
+        from: 'EnzoLoft <reservas@enzoloft.pt>',
         subject: message.subject,
       };
 
