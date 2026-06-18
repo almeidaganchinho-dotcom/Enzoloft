@@ -160,16 +160,18 @@ function buildMessage(payload, adminEmailValue) {
     return {
       to: data.guestEmail,
       subject: 'EnzoLoft - Reserva confirmada! ✅',
-      template: 'reservation-confirmation',
-      variables: {
-        guestName: String(data.guestName || ''),
-        checkIn: formatDate(data.startDate),
-        checkOut: formatDate(data.endDate),
-        nights: String(nights),
-        guests: String(Number(data.guestsCount || 0)),
-        total: data.priceOnRequest ? 'Sob consulta' : `EUR ${total.toFixed(2)}`,
-        propertyName: 'EnzoLoft',
-        propertyLocation: 'Vila Ruiva, Cuba - Beja',
+      template: {
+        id: 'reservation-confirmation',
+        variables: {
+          guestName: String(data.guestName || ''),
+          checkIn: formatDate(data.startDate),
+          checkOut: formatDate(data.endDate),
+          nights: String(nights),
+          guests: String(Number(data.guestsCount || 0)),
+          total: data.priceOnRequest ? 'Sob consulta' : `EUR ${total.toFixed(2)}`,
+          propertyName: 'EnzoLoft',
+          propertyLocation: 'Vila Ruiva, Cuba - Beja',
+        },
       },
       html: reservationConfirmedTemplate(data),
     };
@@ -274,9 +276,7 @@ exports.sendEmail = onRequest(
         from: 'EnzoLoft <onboarding@resend.dev>',
         to: message.to,
         subject: message.subject,
-        ...(message.template
-          ? { template: message.template, ...(message.variables ? { variables: message.variables } : {}) }
-          : { html: message.html }),
+        ...(message.template ? { template: message.template } : { html: message.html }),
       };
 
       const result = await resend.emails.send(sendPayload);
