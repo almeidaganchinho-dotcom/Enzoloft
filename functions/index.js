@@ -115,6 +115,28 @@ function systemAlertTemplate(data) {
   `;
 }
 
+function reservationConfirmedTemplate(data) {
+  const nights = Number(data.nights || 0);
+  const total = Number(data.totalPrice || 0);
+
+  return `
+    <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
+      <h2 style="margin: 0 0 12px; color: #16a34a;">Reserva confirmada! ✅</h2>
+      <p>Olá ${data.guestName || 'hóspede'},</p>
+      <p>A sua reserva no <strong>EnzoLoft</strong> foi confirmada. Aguardamos a sua visita!</p>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin:16px 0;">
+        <p style="margin:4px 0;"><strong>Check-in:</strong> ${formatDate(data.startDate)}</p>
+        <p style="margin:4px 0;"><strong>Check-out:</strong> ${formatDate(data.endDate)}</p>
+        <p style="margin:4px 0;"><strong>Noites:</strong> ${nights}</p>
+        <p style="margin:4px 0;"><strong>Hóspedes:</strong> ${Number(data.guestsCount || 0)}</p>
+        <p style="margin:4px 0;"><strong>Total:</strong> ${data.priceOnRequest ? 'Sob consulta' : `EUR ${total.toFixed(2)}`}</p>
+      </div>
+      <p>Para qualquer questão, contacte-nos em <a href="mailto:info@enzoloft.com">info@enzoloft.com</a>.</p>
+      <p>Até breve,<br/>Equipa EnzoLoft<br/>Vila Ruiva, Cuba - Beja</p>
+    </div>
+  `;
+}
+
 function testEmailTemplate(data) {
   return `
     <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
@@ -133,34 +155,31 @@ function buildMessage(payload, adminEmailValue) {
   const data = payload.data || {};
 
   if (type === 'reservation_confirmation') {
+    const nights = Number(data.nights || 0);
+    const total = Number(data.totalPrice || 0);
     return {
       to: data.guestEmail,
-      subject: 'EnzoLoft - Pedido de reserva recebido',
-      html: reservationGuestTemplate(data),
+      subject: 'EnzoLoft - Reserva confirmada! ✅',
+      template: 'reservation-confirmation',
+      variables: {
+        guestName: String(data.guestName || ''),
+        checkIn: formatDate(data.startDate),
+        checkOut: formatDate(data.endDate),
+        nights: String(nights),
+        guests: String(Number(data.guestsCount || 0)),
+        total: data.priceOnRequest ? 'Sob consulta' : `EUR ${total.toFixed(2)}`,
+        propertyName: 'EnzoLoft',
+        propertyLocation: 'Vila Ruiva, Cuba - Beja',
+      },
+      html: reservationConfirmedTemplate(data),
     };
   }
 
   if (type === 'prereserva') {
-    const totalPrice = Number(data.totalPrice || 0);
-    const priceSummary = data.priceOnRequest ? 'Sob consulta' : `EUR ${totalPrice.toFixed(2)}`;
-
     return {
       to: data.guestEmail || data.toEmail,
       subject: 'EnzoLoft - Pré-reserva recebida',
-      template: {
-        id: 'prereserva',
-        variables: {
-          guestName: data.guestName || 'Hóspede',
-          guestEmail: data.guestEmail || data.toEmail || '',
-          startDate: data.startDate || '-',
-          endDate: data.endDate || '-',
-          nights: Number(data.nights || 0),
-          guestsCount: Number(data.guestsCount || 0),
-          totalPrice,
-          priceSummary,
-          requestedBy: data.requestedBy || 'sistema',
-        },
-      },
+      html: reservationGuestTemplate(data),
     };
   }
 
@@ -255,7 +274,9 @@ exports.sendEmail = onRequest(
         from: 'EnzoLoft <onboarding@resend.dev>',
         to: message.to,
         subject: message.subject,
-        ...(message.template ? { template: message.template } : { html: message.html }),
+        ...(message.template
+          ? { template: message.template, ...(message.variables ? { variables: message.variables } : {}) }
+          : { html: message.html }),
       };
 
       const result = await resend.emails.send(sendPayload);

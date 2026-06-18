@@ -693,6 +693,36 @@ export default function AdminDashboard() {
           // Não bloquear o fluxo admin se for reserva legada sem lock
         }
         
+        // Enviar email de confirmação se o status mudou para confirmed
+        if (status === 'confirmed' && oldStatus !== 'confirmed') {
+          try {
+            await sendEmailNotification(
+              {
+                type: 'reservation_confirmation',
+                data: {
+                  guestName: reservation.guestName,
+                  guestEmail: reservation.guestEmail,
+                  startDate: reservation.startDate,
+                  endDate: reservation.endDate,
+                  nights: reservation.nights ?? Math.ceil(
+                    (new Date(reservation.endDate).getTime() - new Date(reservation.startDate).getTime())
+                    / (1000 * 60 * 60 * 24)
+                  ),
+                  guestsCount: reservation.guestsCount,
+                  totalPrice: reservation.totalPrice,
+                  priceOnRequest: reservation.priceOnRequest ?? false,
+                },
+              },
+              'admin_reservation_confirm_email_skipped'
+            );
+          } catch (emailError) {
+            console.error('Erro ao enviar email de confirmação:', emailError);
+            await logClientError('admin_reservation_confirm_email_failed', emailError, {
+              reservationId,
+            });
+          }
+        }
+
         // Enviar email de cancelamento se o status mudou para cancelled
         if (status === 'cancelled' && oldStatus !== 'cancelled') {
           try {
