@@ -5,6 +5,7 @@ const { Resend } = require('resend');
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 const ADMIN_EMAIL = defineSecret('ADMIN_EMAIL');
+const OPERATIONAL_NOTIFICATION_EMAIL = 'alentejo.enzoloft@gmail.com';
 
 const allowedOrigins = [
   'https://enzoloft.pt',
@@ -147,6 +148,10 @@ function buildPreReservationVariables(data) {
   };
 }
 
+function buildRecipients(...values) {
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
 function reservationGuestTemplate(data) {
   const nights = Number(data.nights || 0);
   const total = Number(data.totalPrice || 0);
@@ -272,8 +277,9 @@ function buildMessage(payload, adminEmailValue) {
 
   if (type === 'reservation_confirmation') {
     const templateVariables = buildReservationConfirmationVariables(data);
+    const recipients = buildRecipients(data.guestEmail, OPERATIONAL_NOTIFICATION_EMAIL);
     return {
-      to: data.guestEmail,
+      to: recipients,
       subject: 'EnzoLoft - Reserva confirmada! ✅',
       templateCandidates: reservationConfirmationTemplateCandidates,
       templateVariables,
@@ -283,8 +289,9 @@ function buildMessage(payload, adminEmailValue) {
 
   if (type === 'prereserva') {
     const templateVariables = buildPreReservationVariables(data);
+    const recipients = buildRecipients(data.guestEmail || data.toEmail, OPERATIONAL_NOTIFICATION_EMAIL);
     return {
-      to: data.guestEmail || data.toEmail,
+      to: recipients,
       subject: 'EnzoLoft - Pré-reserva recebida',
       templateCandidates: preReservationTemplateCandidates,
       templateVariables,
@@ -378,10 +385,18 @@ exports.sendEmail = onRequest(
         return;
       }
 
+      const recipients = Array.isArray(message.to)
+        ? message.to.map((value) => String(value || '').trim()).filter(Boolean)
+        : [String(message.to || '').trim()].filter(Boolean);
+
+      if (recipients.length === 0) {
+        res.status(400).json({ error: 'Missing destination email' });
+        return;
+      }
+
       const resend = new Resend(process.env.RESEND_API_KEY);
       const basePayload = {
         from: 'EnzoLoft <onboarding@resend.dev>',
-        to: message.to,
         subject: message.subject,
       };
 
@@ -394,54 +409,89 @@ exports.sendEmail = onRequest(
         logger.info('reservation_template_variables', templateVariables);
       }
 
-      let result = null;
-      let templateSelected = null;
+      const sendToRecipient = async (recipient) => {
+        let result = null;
+        let templateSelected = null;
+        let lastError = null;
 
-      for (const templateId of templateCandidates) {
-        const templateResult = await resend.emails.send({
-          ...basePayload,
-          template: {
-            id: templateId,
-            variables: templateVariables,
-          },
-        });
+        for (const templateId of templateCandidates) {
+          const templateResult = await resend.emails.send({
+            ...basePayload,
+            to: recipient,
+            template: {
+              id: templateId,
+              variables: templateVariables,
+            },
+          });
 
-        if (!templateResult.error) {
-          result = templateResult;
-          templateSelected = templateId;
-          break;
+          if (!templateResult.error) {
+            result = templateResult;
+            templateSelected = templateId;
+            break;
+          }
+
+          lastError = templateResult.error;
+          logger.warn('resend_template_candidate_failed', {
+            type: payload.type,
+            templateId,
+            recipient,
+            statusCode: templateResult.error.statusCode,
+            name: templateResult.error.name,
+          });
         }
 
-        logger.warn('resend_template_candidate_failed', {
-          type: payload.type,
-          templateId,
-          statusCode: templateResult.error.statusCode,
-          name: templateResult.error.name,
-        });
+        if (!result && message.html) {
+          logger.warn('resend_template_fallback_html', {
+            type: payload.type,
+            recipient,
+            attemptedTemplates: templateCandidates,
+          });
+          const htmlResult = await resend.emails.send({
+            ...basePayload,
+            to: recipient,
+            html: message.html,
+          });
+          result = htmlResult;
+          if (htmlResult.error) {
+            lastError = htmlResult.error;
+          }
+        }
+
+        if (templateSelected) {
+          logger.info('resend_template_selected', { type: payload.type, recipient, templateId: templateSelected });
+        }
+
+        return { recipient, result, error: result?.error || lastError };
+      };
+
+      const sendResults = [];
+      for (const recipient of recipients) {
+        sendResults.push(await sendToRecipient(recipient));
       }
 
-      if (!result && message.html) {
-        logger.warn('resend_template_fallback_html', {
-          type: payload.type,
-          attemptedTemplates: templateCandidates,
-        });
-        result = await resend.emails.send({
-          ...basePayload,
-          html: message.html,
-        });
-      }
+      const successfulSends = sendResults.filter((entry) => entry.result && !entry.result.error);
+      const failedSends = sendResults.filter((entry) => entry.error);
 
-      if (templateSelected) {
-        logger.info('resend_template_selected', { type: payload.type, templateId: templateSelected });
-      }
-
-      if (result.error) {
-        logger.error('resend_send_failed', result.error);
+      if (successfulSends.length === 0) {
+        const firstError = failedSends[0]?.error || { message: 'Unknown email send error' };
+        logger.error('resend_send_failed', firstError);
         res.status(502).json({ error: 'Failed to send email' });
         return;
       }
 
-      res.status(200).json({ ok: true, id: result.data?.id || null });
+      if (failedSends.length > 0) {
+        logger.warn('resend_partial_send_failure', {
+          type: payload.type,
+          failedRecipients: failedSends.map((entry) => entry.recipient),
+          deliveredRecipients: successfulSends.map((entry) => entry.recipient),
+        });
+      }
+
+      res.status(200).json({
+        ok: true,
+        id: successfulSends[0]?.result?.data?.id || null,
+        deliveredRecipients: successfulSends.map((entry) => entry.recipient),
+      });
     } catch (error) {
       logger.error('send_email_unhandled_error', error);
       res.status(500).json({ error: 'Internal server error' });
