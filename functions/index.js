@@ -263,19 +263,12 @@ function buildMessage(payload, adminEmailValue) {
   const data = payload.data || {};
 
   const preReservationTemplateCandidates = [
-    (process.env.RESEND_TEMPLATE_PRERESERVA || '').trim(),
-    (process.env.RESEND_TEMPLATE_PRE_RESERVATION || '').trim(),
-    'prereserva',
-    'pre-reserva',
-    'pre-reservation',
-    'reservation-prereserva',
-  ].filter(Boolean);
+    (process.env.RESEND_TEMPLATE_PRERESERVA || '').trim() || 'prereserva',
+  ];
 
   const reservationConfirmationTemplateCandidates = [
-    (process.env.RESEND_TEMPLATE_RESERVATION_CONFIRMATION || '').trim(),
-    'reservation-confirmation',
-    'reservation_confirmation',
-  ].filter(Boolean);
+    (process.env.RESEND_TEMPLATE_RESERVATION_CONFIRMATION || '').trim() || 'reservation-confirmation',
+  ];
 
   if (type === 'reservation_confirmation') {
     const templateVariables = buildReservationConfirmationVariables(data);
