@@ -986,6 +986,7 @@ export default function Home() {
               data: {
                 guestName: reservation.guestName,
                 guestEmail: reservation.guestEmail,
+                specialRequests: reservation.specialRequests || '',
                 startDate: reservation.startDate,
                 endDate: reservation.endDate,
                 nights: nights,

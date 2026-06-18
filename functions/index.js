@@ -105,6 +105,48 @@ function buildReservationConfirmationVariables(data) {
   };
 }
 
+function buildPreReservationVariables(data) {
+  const guestName = asText(data.guestName, 'Hóspede');
+  const checkIn = formatDate(data.startDate);
+  const checkOut = formatDate(data.endDate);
+  const nightsValue = calculateNights(data.startDate, data.endDate, data.nights);
+  const guestsValue = Number(data.guestsCount || 0);
+  const totalValue = Number(data.totalPrice || 0);
+  const totalLabel = data.priceOnRequest ? 'Sob consulta' : `EUR ${totalValue.toFixed(2)}`;
+  const specialRequests = asText(data.specialRequests, 'Sem pedidos especiais');
+  const propertyName = 'EnzoLoft';
+  const propertyLocation = 'Vila Ruiva, Cuba - Beja';
+
+  return {
+    guestName,
+    guest_name: guestName,
+    name: guestName,
+    checkIn,
+    check_in: checkIn,
+    startDate: checkIn,
+    start_date: checkIn,
+    checkOut,
+    check_out: checkOut,
+    endDate: checkOut,
+    end_date: checkOut,
+    nights: String(nightsValue),
+    numberOfNights: String(nightsValue),
+    number_of_nights: String(nightsValue),
+    guests: String(guestsValue),
+    guestsCount: String(guestsValue),
+    guests_count: String(guestsValue),
+    total: totalLabel,
+    totalPrice: totalLabel,
+    total_price: totalLabel,
+    specialRequests,
+    special_requests: specialRequests,
+    propertyName,
+    property_name: propertyName,
+    propertyLocation,
+    property_location: propertyLocation,
+  };
+}
+
 function reservationGuestTemplate(data) {
   const nights = Number(data.nights || 0);
   const total = Number(data.totalPrice || 0);
@@ -220,23 +262,39 @@ function buildMessage(payload, adminEmailValue) {
   const type = payload.type;
   const data = payload.data || {};
 
+  const preReservationTemplateCandidates = [
+    (process.env.RESEND_TEMPLATE_PRERESERVA || '').trim(),
+    (process.env.RESEND_TEMPLATE_PRE_RESERVATION || '').trim(),
+    'prereserva',
+    'pre-reserva',
+    'pre-reservation',
+    'reservation-prereserva',
+  ].filter(Boolean);
+
+  const reservationConfirmationTemplateCandidates = [
+    (process.env.RESEND_TEMPLATE_RESERVATION_CONFIRMATION || '').trim(),
+    'reservation-confirmation',
+    'reservation_confirmation',
+  ].filter(Boolean);
+
   if (type === 'reservation_confirmation') {
     const templateVariables = buildReservationConfirmationVariables(data);
     return {
       to: data.guestEmail,
       subject: 'EnzoLoft - Reserva confirmada! ✅',
-      template: {
-        id: 'reservation-confirmation',
-        variables: templateVariables,
-      },
+      templateCandidates: reservationConfirmationTemplateCandidates,
+      templateVariables,
       html: reservationConfirmedTemplate(data),
     };
   }
 
   if (type === 'prereserva') {
+    const templateVariables = buildPreReservationVariables(data);
     return {
       to: data.guestEmail || data.toEmail,
       subject: 'EnzoLoft - Pré-reserva recebida',
+      templateCandidates: preReservationTemplateCandidates,
+      templateVariables,
       html: reservationGuestTemplate(data),
     };
   }
@@ -328,17 +386,61 @@ exports.sendEmail = onRequest(
       }
 
       const resend = new Resend(process.env.RESEND_API_KEY);
-      if (message.template?.variables) {
-        logger.info('reservation_template_variables', message.template.variables);
-      }
-      const sendPayload = {
+      const basePayload = {
         from: 'EnzoLoft <onboarding@resend.dev>',
         to: message.to,
         subject: message.subject,
-        ...(message.template ? { template: message.template } : { html: message.html }),
       };
 
-      const result = await resend.emails.send(sendPayload);
+      const templateCandidates = Array.isArray(message.templateCandidates)
+        ? message.templateCandidates
+        : [];
+      const templateVariables = message.templateVariables || {};
+
+      if (Object.keys(templateVariables).length > 0) {
+        logger.info('reservation_template_variables', templateVariables);
+      }
+
+      let result = null;
+      let templateSelected = null;
+
+      for (const templateId of templateCandidates) {
+        const templateResult = await resend.emails.send({
+          ...basePayload,
+          template: {
+            id: templateId,
+            variables: templateVariables,
+          },
+        });
+
+        if (!templateResult.error) {
+          result = templateResult;
+          templateSelected = templateId;
+          break;
+        }
+
+        logger.warn('resend_template_candidate_failed', {
+          type: payload.type,
+          templateId,
+          statusCode: templateResult.error.statusCode,
+          name: templateResult.error.name,
+        });
+      }
+
+      if (!result && message.html) {
+        logger.warn('resend_template_fallback_html', {
+          type: payload.type,
+          attemptedTemplates: templateCandidates,
+        });
+        result = await resend.emails.send({
+          ...basePayload,
+          html: message.html,
+        });
+      }
+
+      if (templateSelected) {
+        logger.info('resend_template_selected', { type: payload.type, templateId: templateSelected });
+      }
 
       if (result.error) {
         logger.error('resend_send_failed', result.error);
