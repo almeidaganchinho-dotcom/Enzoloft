@@ -1056,7 +1056,7 @@ export default function Home() {
   const handleContactSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const recipientEmail = 'alentejo.enzoloft@gmail.com';
+    const fallbackRecipientEmail = contactInfo.email?.trim() || 'info@enzoloft.com';
     const name = contactFormData.name.trim();
     const email = contactFormData.email.trim().toLowerCase();
     const phone = contactFormData.phone.trim();
@@ -1089,7 +1089,6 @@ export default function Home() {
           body: JSON.stringify({
             type: 'admin_notification',
             data: {
-              toEmail: recipientEmail,
               guestName: `[Contacto] ${name}`,
               guestEmail: email,
               guestPhone: phone || 'N/A',
@@ -1112,7 +1111,7 @@ export default function Home() {
         const body = encodeURIComponent(
           `Nome: ${name}\nEmail: ${email}\nTelefone: ${phone || 'N/A'}\n\nMensagem:\n${messageText}`
         );
-        window.location.href = `mailto:${recipientEmail}?subject=${subject}&body=${body}`;
+        window.location.href = `mailto:${fallbackRecipientEmail}?subject=${subject}&body=${body}`;
       }
 
       await logClientEvent({ event: 'contact_form_submit_success' });
@@ -1125,7 +1124,7 @@ export default function Home() {
     } finally {
       setSubmittingContact(false);
     }
-  }, [contactFormData, emailApiUrl]);
+  }, [contactFormData, contactInfo.email, emailApiUrl]);
 
   const amenities = useMemo(() => [
     { icon: '🛏️', label: '1 Quarto' },
