@@ -71,6 +71,11 @@ interface BlockedDate {
   status: string;
 }
 
+interface DateRange {
+  startDate: string;
+  endDate: string;
+}
+
 interface Price {
   id: string;
   season: string;
@@ -229,6 +234,50 @@ const formatDateKey = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeDateKey = (value: unknown): string => {
+  if (!value) return '';
+
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    const datePrefixMatch = normalized.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (datePrefixMatch) {
+      return datePrefixMatch[1];
+    }
+
+    const parsedDate = new Date(normalized);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      return parsedDate.toISOString().slice(0, 10);
+    }
+
+    return '';
+  }
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return '';
+    return value.toISOString().slice(0, 10);
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const candidate = value as { toDate?: () => Date; seconds?: number };
+
+    if (typeof candidate.toDate === 'function') {
+      const parsedDate = candidate.toDate();
+      if (!Number.isNaN(parsedDate.getTime())) {
+        return parsedDate.toISOString().slice(0, 10);
+      }
+    }
+
+    if (typeof candidate.seconds === 'number') {
+      const parsedDate = new Date(candidate.seconds * 1000);
+      if (!Number.isNaN(parsedDate.getTime())) {
+        return parsedDate.toISOString().slice(0, 10);
+      }
+    }
+  }
+
+  return '';
+};
+
 const toUtcDateValue = (dateKey: string): number => {
   const [year, month, day] = dateKey.split('-').map(Number);
   if (!year || !month || !day) return Number.NaN;
@@ -281,7 +330,7 @@ export default function Home() {
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
-  const [reservedDates, setReservedDates] = useState<{startDate: string, endDate: string}[]>([]);
+  const [reservedDates, setReservedDates] = useState<DateRange[]>([]);
   const [priceRules, setPriceRules] = useState<Price[]>([]);
   const [dateError, setDateError] = useState<string>('');
   const [nights, setNights] = useState<number>(0);
@@ -437,15 +486,22 @@ export default function Home() {
         ]);
         
         // Datas bloqueadas
-        const blockedData = availabilitySnapshot.docs.map(doc => doc.data() as BlockedDate);
+        const blockedData = availabilitySnapshot.docs
+          .map(doc => doc.data() as any)
+          .map((block) => ({
+            startDate: normalizeDateKey(block.startDate),
+            endDate: normalizeDateKey(block.endDate),
+            status: String(block.status || 'blocked').toLowerCase(),
+          }))
+          .filter((block) => !!block.startDate && !!block.endDate);
         setBlockedDates(blockedData);
         
         // Reservas confirmadas (fallback para dados legados)
         const confirmedReservations = reservationsSnapshot.docs
           .map(doc => doc.data())
           .map(res => ({
-            startDate: res.startDate,
-            endDate: res.endDate
+            startDate: normalizeDateKey(res.startDate),
+            endDate: normalizeDateKey(res.endDate)
           }));
         let mergedReservations = [...confirmedReservations];
 
@@ -458,14 +514,16 @@ export default function Home() {
           const reservationLocks = reservationLocksSnapshot.docs
             .map((lockDoc) => lockDoc.data())
             .map((lock) => ({
-              startDate: lock.startDate,
-              endDate: lock.endDate,
+              startDate: normalizeDateKey(lock.startDate),
+              endDate: normalizeDateKey(lock.endDate),
             }));
 
           mergedReservations = [...mergedReservations, ...reservationLocks];
         } catch (lockError) {
           await logClientError('homepage_reservation_locks_load_failed', lockError);
         }
+
+        mergedReservations = mergedReservations.filter((reservation) => !!reservation.startDate && !!reservation.endDate);
 
         const uniqueReservations = Array.from(
           new Map(
@@ -1009,6 +1067,7 @@ export default function Home() {
                 guestName: reservation.guestName,
                 guestEmail: reservation.guestEmail,
                 guestPhone: reservation.guestPhone,
+                specialRequests: reservation.specialRequests || '',
                 startDate: reservation.startDate,
                 endDate: reservation.endDate,
                 nights: nights,
