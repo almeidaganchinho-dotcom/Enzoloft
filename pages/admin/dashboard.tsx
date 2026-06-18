@@ -547,7 +547,10 @@ export default function AdminDashboard() {
 
     try {
       await Promise.all(
-        reservationIds.map((reservationId) => deleteDoc(doc(db, 'reservations', reservationId)))
+        reservationIds.flatMap((reservationId) => [
+          deleteDoc(doc(db, 'reservations', reservationId)),
+          deleteDoc(doc(db, 'reservationLocks', reservationId)),
+        ])
       );
 
       setReservations((currentReservations) =>
