@@ -153,6 +153,31 @@ function buildRecipients(...values) {
   return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
 }
 
+const ALLOWED_EMAIL_TYPES = new Set([
+  'prereserva',
+  'reservation_confirmation',
+  'admin_notification',
+  'status_update',
+  'reservation_cancelled',
+  'system_alert',
+  'test_email',
+]);
+
+function sanitizePayloadData(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
+  const out = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      out[key] = value.slice(0, 1000);
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      out[key] = value;
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
 function reservationGuestTemplate(data) {
   const nights = Number(data.nights || 0);
   const total = Number(data.totalPrice || 0);
@@ -371,8 +396,20 @@ exports.sendEmail = onRequest(
       return;
     }
 
+    if (JSON.stringify(req.body || {}).length > 30000) {
+      res.status(413).json({ error: 'Payload too large' });
+      return;
+    }
+
     try {
       const payload = req.body || {};
+
+      if (!ALLOWED_EMAIL_TYPES.has(payload.type)) {
+        res.status(400).json({ error: 'Invalid email type' });
+        return;
+      }
+
+      payload.data = sanitizePayloadData(payload.data);
       const adminEmailValue = process.env.ADMIN_EMAIL;
       const message = buildMessage(payload, adminEmailValue);
 
