@@ -39,6 +39,69 @@ function formatDate(dateValue) {
   });
 }
 
+function asText(value, fallback = '-') {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const text = String(value).trim();
+  return text || fallback;
+}
+
+function calculateNights(startDate, endDate, fallbackNights) {
+  const parsedFallback = Number(fallbackNights || 0);
+  if (parsedFallback > 0) {
+    return parsedFallback;
+  }
+
+  const start = new Date(startDate || '').getTime();
+  const end = new Date(endDate || '').getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return 0;
+  }
+
+  return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+}
+
+function buildReservationConfirmationVariables(data) {
+  const guestName = asText(data.guestName, 'Hóspede');
+  const checkIn = formatDate(data.startDate);
+  const checkOut = formatDate(data.endDate);
+  const nightsValue = calculateNights(data.startDate, data.endDate, data.nights);
+  const guestsValue = Number(data.guestsCount || 0);
+  const totalValue = Number(data.totalPrice || 0);
+  const totalLabel = data.priceOnRequest ? 'Sob consulta' : `EUR ${totalValue.toFixed(2)}`;
+  const propertyName = 'EnzoLoft';
+  const propertyLocation = 'Vila Ruiva, Cuba - Beja';
+
+  return {
+    guestName,
+    guest_name: guestName,
+    name: guestName,
+    checkIn,
+    check_in: checkIn,
+    startDate: checkIn,
+    start_date: checkIn,
+    checkOut,
+    check_out: checkOut,
+    endDate: checkOut,
+    end_date: checkOut,
+    nights: String(nightsValue),
+    numberOfNights: String(nightsValue),
+    number_of_nights: String(nightsValue),
+    guests: String(guestsValue),
+    guestsCount: String(guestsValue),
+    guests_count: String(guestsValue),
+    total: totalLabel,
+    totalPrice: totalLabel,
+    total_price: totalLabel,
+    propertyName,
+    property_name: propertyName,
+    propertyLocation,
+    property_location: propertyLocation,
+  };
+}
+
 function reservationGuestTemplate(data) {
   const nights = Number(data.nights || 0);
   const total = Number(data.totalPrice || 0);
@@ -116,7 +179,7 @@ function systemAlertTemplate(data) {
 }
 
 function reservationConfirmedTemplate(data) {
-  const nights = Number(data.nights || 0);
+  const nights = calculateNights(data.startDate, data.endDate, data.nights);
   const total = Number(data.totalPrice || 0);
 
   return `
@@ -155,23 +218,13 @@ function buildMessage(payload, adminEmailValue) {
   const data = payload.data || {};
 
   if (type === 'reservation_confirmation') {
-    const nights = Number(data.nights || 0);
-    const total = Number(data.totalPrice || 0);
+    const templateVariables = buildReservationConfirmationVariables(data);
     return {
       to: data.guestEmail,
       subject: 'EnzoLoft - Reserva confirmada! ✅',
       template: {
         id: 'reservation-confirmation',
-        variables: {
-          guestName: String(data.guestName || ''),
-          checkIn: formatDate(data.startDate),
-          checkOut: formatDate(data.endDate),
-          nights: String(nights),
-          guests: String(Number(data.guestsCount || 0)),
-          total: data.priceOnRequest ? 'Sob consulta' : `EUR ${total.toFixed(2)}`,
-          propertyName: 'EnzoLoft',
-          propertyLocation: 'Vila Ruiva, Cuba - Beja',
-        },
+        variables: templateVariables,
       },
       html: reservationConfirmedTemplate(data),
     };
@@ -272,6 +325,9 @@ exports.sendEmail = onRequest(
       }
 
       const resend = new Resend(process.env.RESEND_API_KEY);
+      if (message.template?.variables) {
+        logger.info('reservation_template_variables', message.template.variables);
+      }
       const sendPayload = {
         from: 'EnzoLoft <onboarding@resend.dev>',
         to: message.to,
