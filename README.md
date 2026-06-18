@@ -61,6 +61,7 @@ Antes do deploy, configure os secrets das Functions:
 ```bash
 firebase functions:secrets:set RESEND_API_KEY
 firebase functions:secrets:set ADMIN_EMAIL
+firebase functions:secrets:set RESEND_FROM_EMAIL
 ```
 
 

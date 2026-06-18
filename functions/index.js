@@ -5,6 +5,7 @@ const { Resend } = require('resend');
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 const ADMIN_EMAIL = defineSecret('ADMIN_EMAIL');
+const RESEND_FROM_EMAIL = defineSecret('RESEND_FROM_EMAIL');
 const OPERATIONAL_NOTIFICATION_EMAIL = 'alentejo.enzoloft@gmail.com';
 
 const allowedOrigins = [
@@ -349,7 +350,7 @@ exports.sendEmail = onRequest(
   {
     region: 'europe-west1',
     invoker: 'public',
-    secrets: [RESEND_API_KEY, ADMIN_EMAIL],
+    secrets: [RESEND_API_KEY, ADMIN_EMAIL, RESEND_FROM_EMAIL],
     timeoutSeconds: 30,
   },
   async (req, res) => {
@@ -395,8 +396,9 @@ exports.sendEmail = onRequest(
       }
 
       const resend = new Resend(process.env.RESEND_API_KEY);
+      const fromEmail = String(process.env.RESEND_FROM_EMAIL || 'reservas@enzoloft.pt').trim();
       const basePayload = {
-        from: 'EnzoLoft <reservas@enzoloft.pt>',
+        from: `EnzoLoft <${fromEmail}>`,
         subject: message.subject,
       };
 

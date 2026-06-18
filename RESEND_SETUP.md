@@ -40,7 +40,10 @@ Execute no terminal:
 ```bash
 firebase functions:secrets:set RESEND_API_KEY
 firebase functions:secrets:set ADMIN_EMAIL
+firebase functions:secrets:set RESEND_FROM_EMAIL
 ```
+
+Use um remetente do domínio verificado no Resend (ex: `reservas@enzoloft.pt`).
 
 ### Desenvolvimento Local
 
