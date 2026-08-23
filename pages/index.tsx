@@ -1326,7 +1326,7 @@ export default function Home() {
       <meta name="geo.position" content="37.9833;-7.9167" />
       <meta name="ICBM" content="37.9833, -7.9167" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <meta name="robots" content="index, follow, max-image-preview:large" />
+      <meta name="robots" content="noindex, nofollow, noarchive" />
       <meta name="author" content="EnzoLoft" />
       <meta property="og:title" content={siteTitle} />
       <meta property="og:description" content={siteDescription} />

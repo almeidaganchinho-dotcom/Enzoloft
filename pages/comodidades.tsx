@@ -29,6 +29,7 @@ export default function ComodidadesPage() {
           name="description"
           content="Conheça todas as comodidades da EnzoLoft para uma estadia confortável no Alentejo."
         />
+        <meta name="robots" content="noindex, nofollow, noarchive" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 

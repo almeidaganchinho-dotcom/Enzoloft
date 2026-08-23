@@ -2,6 +2,3 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /admin
-
-Sitemap: https://enzoloft.pt/sitemap.xml
-Host: enzoloft.pt
