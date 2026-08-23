@@ -12,15 +12,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'enzoloft.web.app',
-      },
-      {
-        protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'enzoloft.vercel.app',
       },
       {
         protocol: 'https',

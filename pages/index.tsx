@@ -1347,7 +1347,6 @@ export default function Home() {
       <meta name="twitter:image:alt" content="EnzoLoft no Alentejo" />
       <link rel="dns-prefetch" href="https://images.unsplash.com" />
       <link rel="preconnect" href="https://images.unsplash.com" />
-      <link rel="dns-prefetch" href="https://enzoloft.web.app" />
       {googleSiteVerification && (
         <meta name="google-site-verification" content={googleSiteVerification} />
       )}

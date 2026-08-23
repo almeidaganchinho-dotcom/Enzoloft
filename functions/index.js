@@ -10,8 +10,9 @@ const OPERATIONAL_NOTIFICATION_EMAIL = 'alentejo.enzoloft@gmail.com';
 
 const allowedOrigins = [
   'https://enzoloft.pt',
-  'https://enzoloft-51508.web.app',
+  'https://www.enzoloft.pt',
   'http://localhost:3000',
+  'http://127.0.0.1:3000',
 ];
 
 function setCorsHeaders(req, res) {

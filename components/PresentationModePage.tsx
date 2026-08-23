@@ -113,7 +113,7 @@ export default function PresentationModePage({
             </div>
             <div className="relative w-full h-80 rounded-xl shadow-xl overflow-hidden">
               <Image
-                src="https://enzoloft.web.app/images/about/casa-exterior.jpg"
+                src="/images/about/casa-exterior.jpg"
                 alt="Casa exterior"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
