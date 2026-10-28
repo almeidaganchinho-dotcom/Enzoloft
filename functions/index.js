@@ -2,6 +2,14 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const { Resend } = require('resend');
+const { initializeApp, getApps } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+
+if (getApps().length === 0) {
+  initializeApp();
+}
+
+const firebaseAuth = getAuth();
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 const ADMIN_EMAIL = defineSecret('ADMIN_EMAIL');
@@ -25,7 +33,7 @@ function setCorsHeaders(req, res) {
   }
 
   res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
   return isAllowed;
 }
@@ -49,6 +57,34 @@ function asText(value, fallback = '-') {
 
   const text = String(value).trim();
   return text || fallback;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]);
+}
+
+function escapeTemplateVariables(variables) {
+  return Object.fromEntries(
+    Object.entries(variables).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? escapeHtml(value) : value,
+    ])
+  );
+}
+
+function safeHttpsUrl(value) {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === 'https:' ? escapeHtml(url.toString()) : '';
+  } catch {
+    return '';
+  }
 }
 
 function calculateNights(startDate, endDate, fallbackNights) {
@@ -166,6 +202,40 @@ const ALLOWED_EMAIL_TYPES = new Set([
   'test_email',
 ]);
 
+const ADMIN_ONLY_EMAIL_TYPES = new Set([
+  'reservation_confirmation',
+  'status_update',
+  'reservation_cancelled',
+  'system_alert',
+  'test_email',
+]);
+
+async function authorizeAdminRequest(req, res) {
+  const authorization = req.get('authorization') || '';
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    res.status(401).json({ error: 'Authentication required' });
+    return false;
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await firebaseAuth.verifyIdToken(match[1], true);
+  } catch (error) {
+    logger.warn('email_admin_token_invalid', { code: error.code || 'unknown' });
+    res.status(401).json({ error: 'Invalid authentication token' });
+    return false;
+  }
+
+  const configuredAdminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  if (!configuredAdminEmail || String(decodedToken.email || '').trim().toLowerCase() !== configuredAdminEmail) {
+    res.status(403).json({ error: 'Administrator access required' });
+    return false;
+  }
+
+  return true;
+}
+
 function sanitizePayloadData(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
   const out = {};
@@ -184,11 +254,12 @@ function sanitizePayloadData(data) {
 function reservationGuestTemplate(data) {
   const nights = Number(data.nights || 0);
   const total = Number(data.totalPrice || 0);
+  const guestName = escapeHtml(data.guestName || 'hóspede');
 
   return `
     <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
       <h2 style="margin: 0 0 12px; color: #b45309;">Pedido de reserva recebido</h2>
-      <p>Olá ${data.guestName || 'hóspede'},</p>
+      <p>Olá ${guestName},</p>
       <p>Recebemos o seu pedido de reserva no EnzoLoft. Em breve entraremos em contacto para confirmação.</p>
       <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px;margin:16px 0;">
         <p style="margin:4px 0;"><strong>Check-in:</strong> ${formatDate(data.startDate)}</p>
@@ -205,22 +276,26 @@ function reservationGuestTemplate(data) {
 function adminTemplate(data) {
   const nights = Number(data.nights || 0);
   const total = Number(data.totalPrice || 0);
-  const specialRequests = (data.specialRequests || '').toString().trim();
+  const guestName = escapeHtml(data.guestName || '-');
+  const guestEmail = escapeHtml(data.guestEmail || '-');
+  const guestPhone = escapeHtml(data.guestPhone || '-');
+  const specialRequests = escapeHtml((data.specialRequests || '').toString().trim());
+  const contactMessage = escapeHtml(data.contactMessage || '');
 
   return `
     <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
       <h2 style="margin: 0 0 12px; color: #b45309;">Novo pedido de reserva</h2>
       <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">
-        <p style="margin:4px 0;"><strong>Nome:</strong> ${data.guestName || '-'}</p>
-        <p style="margin:4px 0;"><strong>Email:</strong> ${data.guestEmail || '-'}</p>
-        <p style="margin:4px 0;"><strong>Telefone:</strong> ${data.guestPhone || '-'}</p>
+        <p style="margin:4px 0;"><strong>Nome:</strong> ${guestName}</p>
+        <p style="margin:4px 0;"><strong>Email:</strong> ${guestEmail}</p>
+        <p style="margin:4px 0;"><strong>Telefone:</strong> ${guestPhone}</p>
         <p style="margin:4px 0;"><strong>Check-in:</strong> ${formatDate(data.startDate)}</p>
         <p style="margin:4px 0;"><strong>Check-out:</strong> ${formatDate(data.endDate)}</p>
         <p style="margin:4px 0;"><strong>Noites:</strong> ${nights}</p>
         <p style="margin:4px 0;"><strong>Hóspedes:</strong> ${Number(data.guestsCount || 0)}</p>
         <p style="margin:4px 0;"><strong>Total:</strong> ${data.priceOnRequest ? 'Sob consulta' : `EUR ${total.toFixed(2)}`}</p>
         ${specialRequests ? `<p style="margin:4px 0;"><strong>Pedidos especiais:</strong> ${specialRequests}</p>` : ''}
-        ${data.contactMessage ? `<p style="margin:8px 0 0;"><strong>Mensagem:</strong><br/>${data.contactMessage}</p>` : ''}
+        ${contactMessage ? `<p style="margin:8px 0 0;"><strong>Mensagem:</strong><br/>${contactMessage}</p>` : ''}
       </div>
     </div>
   `;
@@ -229,12 +304,14 @@ function adminTemplate(data) {
 function statusUpdateTemplate(data) {
   const status = (data.status || '').toString();
   const title = status === 'confirmed' ? 'Reserva confirmada' : status === 'cancelled' ? 'Reserva cancelada' : 'Atualização da reserva';
+  const guestName = escapeHtml(data.guestName || 'hóspede');
+  const safeStatus = escapeHtml(status);
 
   return `
     <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
       <h2 style="margin: 0 0 12px; color: #b45309;">${title}</h2>
-      <p>Olá ${data.guestName || 'hóspede'},</p>
-      <p>O estado da sua reserva foi atualizado para <strong>${status}</strong>.</p>
+      <p>Olá ${guestName},</p>
+      <p>O estado da sua reserva foi atualizado para <strong>${safeStatus}</strong>.</p>
       <p style="margin-top: 16px;">Datas: ${formatDate(data.startDate)} - ${formatDate(data.endDate)}</p>
       <p>EnzoLoft</p>
     </div>
@@ -244,14 +321,16 @@ function statusUpdateTemplate(data) {
 function systemAlertTemplate(data) {
   const alerts = Array.isArray(data.alerts) ? data.alerts : [];
   const listItems = alerts
-    .map((alert) => `<li style="margin:4px 0;">${String(alert || '-')}</li>`)
+    .map((alert) => `<li style="margin:4px 0;">${escapeHtml(alert || '-')}</li>`)
     .join('');
+  const title = escapeHtml(data.title || 'Alerta operacional');
+  const dashboardUrl = safeHttpsUrl(data.dashboardUrl);
 
   return `
     <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
-      <h2 style="margin: 0 0 12px; color: #b45309;">${data.title || 'Alerta operacional'}</h2>
+      <h2 style="margin: 0 0 12px; color: #b45309;">${title}</h2>
       ${listItems ? `<ul style="margin: 0 0 16px 20px; padding: 0;">${listItems}</ul>` : '<p>Sem detalhes adicionais.</p>'}
-      ${data.dashboardUrl ? `<p><a href="${data.dashboardUrl}">Abrir dashboard</a></p>` : ''}
+      ${dashboardUrl ? `<p><a href="${dashboardUrl}">Abrir dashboard</a></p>` : ''}
       <p>EnzoLoft</p>
     </div>
   `;
@@ -260,11 +339,12 @@ function systemAlertTemplate(data) {
 function reservationConfirmedTemplate(data) {
   const nights = calculateNights(data.startDate, data.endDate, data.nights);
   const total = Number(data.totalPrice || 0);
+  const guestName = escapeHtml(data.guestName || 'hóspede');
 
   return `
     <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
       <h2 style="margin: 0 0 12px; color: #16a34a;">Reserva confirmada! ✅</h2>
-      <p>Olá ${data.guestName || 'hóspede'},</p>
+      <p>Olá ${guestName},</p>
       <p>A sua reserva no <strong>EnzoLoft</strong> foi confirmada. Aguardamos a sua visita!</p>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin:16px 0;">
         <p style="margin:4px 0;"><strong>Check-in:</strong> ${formatDate(data.startDate)}</p>
@@ -280,12 +360,14 @@ function reservationConfirmedTemplate(data) {
 }
 
 function testEmailTemplate(data) {
+  const requestedBy = escapeHtml(data.requestedBy || 'admin');
+
   return `
     <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.5;">
       <h2 style="margin: 0 0 12px; color: #16a34a;">Teste de email bem-sucedido</h2>
       <p>Este email confirma que a integração Resend do EnzoLoft está operacional.</p>
       <p><strong>Ambiente:</strong> produção</p>
-      <p><strong>Disparado por:</strong> ${data.requestedBy || 'admin'}</p>
+      <p><strong>Disparado por:</strong> ${requestedBy}</p>
       <p><strong>Data:</strong> ${new Date().toLocaleString('pt-PT')}</p>
       <p>EnzoLoft</p>
     </div>
@@ -305,7 +387,7 @@ function buildMessage(payload, adminEmailValue) {
   ];
 
   if (type === 'reservation_confirmation') {
-    const templateVariables = buildReservationConfirmationVariables(data);
+    const templateVariables = escapeTemplateVariables(buildReservationConfirmationVariables(data));
     const recipients = buildRecipients(data.guestEmail, OPERATIONAL_NOTIFICATION_EMAIL);
     return {
       to: recipients,
@@ -317,8 +399,8 @@ function buildMessage(payload, adminEmailValue) {
   }
 
   if (type === 'prereserva') {
-    const templateVariables = buildPreReservationVariables(data);
-    const recipients = buildRecipients(data.guestEmail || data.toEmail, OPERATIONAL_NOTIFICATION_EMAIL);
+    const templateVariables = escapeTemplateVariables(buildPreReservationVariables(data));
+    const recipients = buildRecipients(data.guestEmail, OPERATIONAL_NOTIFICATION_EMAIL);
     return {
       to: recipients,
       subject: 'EnzoLoft - Pré-reserva recebida',
@@ -329,7 +411,7 @@ function buildMessage(payload, adminEmailValue) {
   }
 
   if (type === 'admin_notification') {
-    const toEmail = (data.toEmail || adminEmailValue || '').toString();
+    const toEmail = (adminEmailValue || '').toString();
     return {
       to: toEmail,
       subject: data.contactMessage ? 'EnzoLoft - Novo contacto' : 'EnzoLoft - Nova reserva',
@@ -354,7 +436,7 @@ function buildMessage(payload, adminEmailValue) {
   }
 
   if (type === 'system_alert') {
-    const toEmail = (data.toEmail || adminEmailValue || '').toString();
+    const toEmail = (adminEmailValue || '').toString();
     return {
       to: toEmail,
       subject: data.title || 'EnzoLoft - Alerta operacional',
@@ -363,7 +445,7 @@ function buildMessage(payload, adminEmailValue) {
   }
 
   if (type === 'test_email') {
-    const toEmail = (data.toEmail || adminEmailValue || '').toString();
+    const toEmail = (adminEmailValue || '').toString();
     return {
       to: toEmail,
       subject: 'EnzoLoft - Teste de integração Resend',
@@ -412,6 +494,10 @@ exports.sendEmail = onRequest(
         return;
       }
 
+      if (ADMIN_ONLY_EMAIL_TYPES.has(payload.type) && !(await authorizeAdminRequest(req, res))) {
+        return;
+      }
+
       payload.data = sanitizePayloadData(payload.data);
       const adminEmailValue = process.env.ADMIN_EMAIL;
       const message = buildMessage(payload, adminEmailValue);
@@ -447,10 +533,6 @@ exports.sendEmail = onRequest(
         : [];
       const templateVariables = message.templateVariables || {};
 
-      if (Object.keys(templateVariables).length > 0) {
-        logger.info('reservation_template_variables', templateVariables);
-      }
-
       const sendToRecipient = async (recipient) => {
         let result = null;
         let templateSelected = null;
@@ -476,7 +558,6 @@ exports.sendEmail = onRequest(
           logger.warn('resend_template_candidate_failed', {
             type: payload.type,
             templateId,
-            recipient,
             statusCode: templateResult.error.statusCode,
             name: templateResult.error.name,
           });
@@ -485,7 +566,6 @@ exports.sendEmail = onRequest(
         if (!result && message.html) {
           logger.warn('resend_template_fallback_html', {
             type: payload.type,
-            recipient,
             attemptedTemplates: templateCandidates,
           });
           const htmlResult = await resend.emails.send({
@@ -524,15 +604,14 @@ exports.sendEmail = onRequest(
       if (failedSends.length > 0) {
         logger.warn('resend_partial_send_failure', {
           type: payload.type,
-          failedRecipients: failedSends.map((entry) => entry.recipient),
-          deliveredRecipients: successfulSends.map((entry) => entry.recipient),
+          failedCount: failedSends.length,
+          deliveredCount: successfulSends.length,
         });
       }
 
       res.status(200).json({
         ok: true,
         id: successfulSends[0]?.result?.data?.id || null,
-        deliveredRecipients: successfulSends.map((entry) => entry.recipient),
       });
     } catch (error) {
       logger.error('send_email_unhandled_error', error);

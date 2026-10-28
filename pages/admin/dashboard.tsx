@@ -321,9 +321,18 @@ export default function AdminDashboard() {
         return;
       }
 
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Sessão administrativa não autenticada.');
+      }
+
+      const idToken = await currentUser.getIdToken();
       const response = await fetch(emailApiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       });
 
